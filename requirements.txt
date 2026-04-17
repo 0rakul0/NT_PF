@@ -1,0 +1,11 @@
+# Ambiente validado com Python 3.13.12
+beautifulsoup4==4.14.3
+docling==2.82.0
+lxml==6.0.2
+ollama==0.6.1
+pandas==2.3.3
+pydantic==2.12.5
+plotly==6.6.0
+requests==2.33.0
+scikit-learn==1.8.0
+streamlit==1.55.0

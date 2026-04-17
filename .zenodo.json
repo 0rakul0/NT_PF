@@ -1,0 +1,23 @@
+{
+  "title": "NT PF: atlas analitico sobre noticias de operacoes da Policia Federal brasileira",
+  "description": "NT PF e um projeto em Python para coletar noticias publicas de operacoes da Policia Federal brasileira, extrair o conteudo principal de cada pagina, organizar artefatos tabulares e abrir um painel exploratorio em Streamlit com clusters semanticos, recorrencia temporal, vizinhanca semantica e distribuicao territorial. Este deposito deve ser usado para o software do projeto. Os dados derivados e os textos extraidos devem ser publicados separadamente, com documentacao metodologica propria e revisao da licenca aplicavel a esse material.",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Anjos, J. S."
+    }
+  ],
+  "keywords": [
+    "policia federal",
+    "brasil",
+    "streamlit",
+    "web scraping",
+    "analise textual",
+    "dados publicos"
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "language": "por",
+  "version": "1.0.0",
+  "notes": "Recomenda-se separar o deposito de software do deposito de dados derivados. O software pode ser publicado com licenca MIT. Os textos de origem e datasets derivados exigem atribuicao a fonte publica e checagem especifica de licenciamento antes de um deposito dedicado."
+}

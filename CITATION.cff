@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "NT PF: atlas analitico sobre noticias de operacoes da Policia Federal brasileira"
+type: software
+authors:
+  - family-names: "Anjos"
+    given-names: "J. S."
+    email: "jefferson.ti@hotmail.com.br"
+version: "1.0.0"
+license: "MIT"
+abstract: >-
+  NT PF coleta noticias publicas de operacoes da Policia Federal brasileira,
+  extrai o conteudo principal das paginas, organiza artefatos tabulares e gera
+  uma camada analitica exploratoria em Streamlit sobre crimes, clusters
+  semanticos, series recorrentes e distribuicao territorial.
+keywords:
+  - "policia federal"
+  - "brasil"
+  - "web scraping"
+  - "streamlit"
+  - "analise textual"
+  - "dados publicos"
