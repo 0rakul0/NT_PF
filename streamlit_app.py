@@ -14,57 +14,13 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-
-BASE_DIR = Path(__file__).resolve().parent
-ANALYSIS_DIR = BASE_DIR / "data" / "analise_qualitativa"
-REFERENCE_DIR = BASE_DIR / "data" / "reference"
-BRAZIL_STATES_GEOJSON = REFERENCE_DIR / "brazil_states.geojson"
-REQUIRED_DATA_FILES = [
-    ANALYSIS_DIR / "corpus_enriquecido.csv",
-    ANALYSIS_DIR / "resumo_clusters.csv",
-    ANALYSIS_DIR / "recorrencia_temporal.csv",
-    ANALYSIS_DIR / "clusters_canonicos.csv",
-    ANALYSIS_DIR / "clusters_canonicos_por_ano.csv",
-    ANALYSIS_DIR / "recorrencia_temporal_clusters_canonicos.csv",
-    ANALYSIS_DIR / "crimes_por_ano.csv",
-    ANALYSIS_DIR / "modus_operandi_por_ano.csv",
-    ANALYSIS_DIR / "series_semanticas.csv",
-    ANALYSIS_DIR / "pares_recorrentes.csv",
-    ANALYSIS_DIR / "estados_por_ano.csv",
-    ANALYSIS_DIR / "estados_por_cluster.csv",
-    ANALYSIS_DIR / "analise_qualitativa.md",
+from scripts.project_config import (
+    ANALYSIS_DIR,
     BRAZIL_STATES_GEOJSON,
-]
-
-STATE_POINTS = {
-    "AC": {"state": "Acre", "lat": -9.97499, "lon": -67.8243},
-    "AL": {"state": "Alagoas", "lat": -9.64985, "lon": -35.70895},
-    "AP": {"state": "Amapa", "lat": 0.03493, "lon": -51.0694},
-    "AM": {"state": "Amazonas", "lat": -3.11903, "lon": -60.0217},
-    "BA": {"state": "Bahia", "lat": -12.9718, "lon": -38.5011},
-    "CE": {"state": "Ceara", "lat": -3.73186, "lon": -38.5267},
-    "DF": {"state": "Distrito Federal", "lat": -15.7797, "lon": -47.9297},
-    "ES": {"state": "Espirito Santo", "lat": -20.3155, "lon": -40.3128},
-    "GO": {"state": "Goias", "lat": -16.6864, "lon": -49.2643},
-    "MA": {"state": "Maranhao", "lat": -2.53874, "lon": -44.2825},
-    "MT": {"state": "Mato Grosso", "lat": -15.6014, "lon": -56.0974},
-    "MS": {"state": "Mato Grosso do Sul", "lat": -20.4697, "lon": -54.6201},
-    "MG": {"state": "Minas Gerais", "lat": -19.9167, "lon": -43.9345},
-    "PA": {"state": "Para", "lat": -1.45583, "lon": -48.5044},
-    "PB": {"state": "Paraiba", "lat": -7.11532, "lon": -34.8610},
-    "PR": {"state": "Parana", "lat": -25.4284, "lon": -49.2733},
-    "PE": {"state": "Pernambuco", "lat": -8.05389, "lon": -34.8811},
-    "PI": {"state": "Piaui", "lat": -5.08917, "lon": -42.8019},
-    "RJ": {"state": "Rio de Janeiro", "lat": -22.9068, "lon": -43.1729},
-    "RN": {"state": "Rio Grande do Norte", "lat": -5.79448, "lon": -35.2110},
-    "RS": {"state": "Rio Grande do Sul", "lat": -30.0346, "lon": -51.2177},
-    "RO": {"state": "Rondonia", "lat": -8.76077, "lon": -63.8999},
-    "RR": {"state": "Roraima", "lat": 2.82384, "lon": -60.6753},
-    "SC": {"state": "Santa Catarina", "lat": -27.5949, "lon": -48.5482},
-    "SP": {"state": "Sao Paulo", "lat": -23.5505, "lon": -46.6333},
-    "SE": {"state": "Sergipe", "lat": -10.9472, "lon": -37.0731},
-    "TO": {"state": "Tocantins", "lat": -10.1840, "lon": -48.3336},
-}
+    PROJECT_ROOT as BASE_DIR,
+    STATE_POINTS,
+    STREAMLIT_REQUIRED_DATA_FILES as REQUIRED_DATA_FILES,
+)
 
 
 CLUSTER_GRAPH_COLORS = [
@@ -205,8 +161,7 @@ def render_missing_data_state(missing_paths: list[Path]) -> None:
     st.code(
         "\n".join(
             [
-                "python -m venv .venv",
-                r".\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt",
+                "uv sync --group extraction",
                 r".\\.venv\\Scripts\\python.exe .\\scripts\\pf_operacoes_pipeline.py sync --index-csv .\\data\\pf_operacoes_index.csv --content-csv .\\data\\pf_operacoes_conteudos.csv --markdown-dir .\\data\\noticias_markdown",
                 r".\\.venv\\Scripts\\python.exe .\\scripts\\pf_analise_qualitativa.py --output-dir .\\data\\analise_qualitativa",
                 r".\\.venv\\Scripts\\python.exe -m streamlit run .\\streamlit_app.py",

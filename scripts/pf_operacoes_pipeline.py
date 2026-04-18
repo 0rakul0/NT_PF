@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import argparse
 import hashlib
 import html
+import math
 import re
+import sys
 import time
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -15,14 +17,29 @@ from bs4 import BeautifulSoup, Tag
 from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter
 
+try:
+    from project_config import (
+        BASE_LIST_URL,
+        CONTENT_CSV as DEFAULT_CONTENT_CSV,
+        DEFAULT_HTTP_TIMEOUT_SECONDS as DEFAULT_TIMEOUT,
+        DEFAULT_REQUEST_SLEEP_SECONDS as DEFAULT_SLEEP,
+        DEFAULT_SCRAPE_STEP as DEFAULT_STEP,
+        INDEX_CSV as DEFAULT_INDEX_CSV,
+        NEWS_MARKDOWN_DIR as DEFAULT_MARKDOWN_DIR,
+        PROJECT_ROOT,
+    )
+except ModuleNotFoundError:
+    from scripts.project_config import (
+        BASE_LIST_URL,
+        CONTENT_CSV as DEFAULT_CONTENT_CSV,
+        DEFAULT_HTTP_TIMEOUT_SECONDS as DEFAULT_TIMEOUT,
+        DEFAULT_REQUEST_SLEEP_SECONDS as DEFAULT_SLEEP,
+        DEFAULT_SCRAPE_STEP as DEFAULT_STEP,
+        INDEX_CSV as DEFAULT_INDEX_CSV,
+        NEWS_MARKDOWN_DIR as DEFAULT_MARKDOWN_DIR,
+        PROJECT_ROOT,
+    )
 
-BASE_LIST_URL = "https://www.gov.br/pf/pt-br/assuntos/noticias/noticias-operacoes"
-DEFAULT_INDEX_CSV = Path("data/pf_operacoes_index.csv")
-DEFAULT_CONTENT_CSV = Path("data/pf_operacoes_conteudos.csv")
-DEFAULT_MARKDOWN_DIR = Path("data/noticias_markdown")
-DEFAULT_STEP = 60
-DEFAULT_TIMEOUT = 30
-DEFAULT_SLEEP = 0.2
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -34,11 +51,22 @@ PUBLISHED_RE = re.compile(
     r"(?P<time>\d{2}h\d{2})\s+(?P<kind>\S+)",
     re.IGNORECASE,
 )
+MARKDOWN_FULL_PUBLISHED_RE = re.compile(
+    r"^Publicado em\s+(?P<published>\d{2}/\d{2}/\d{4}(?:\s+\d{2}h\d{2})?)$",
+    re.IGNORECASE,
+)
+MARKDOWN_UPDATED_RE = re.compile(
+    r"^Atualizado em\s+(?P<updated>\d{2}/\d{2}/\d{4}(?:\s+\d{2}h\d{2})?)$",
+    re.IGNORECASE,
+)
+MARKDOWN_TAGS_RE = re.compile(r"^Tags:\s*(?P<tags>.+)$", re.IGNORECASE)
 ARTICLE_DATES_RE = re.compile(
     r"Publicado em\s+(?P<published>\d{2}/\d{2}/\d{4}\s+\d{2}h\d{2})"
     r"(?:\s+Atualizado em\s+(?P<updated>\d{2}/\d{2}/\d{4}\s+\d{2}h\d{2}))?",
     re.IGNORECASE,
 )
+MARKDOWN_PUBLISHED_RE = re.compile(r"^Publicado em\s+(?P<date>\d{2}/\d{2}/\d{4})(?:\s+\d{2}h\d{2})?", re.IGNORECASE)
+PAGE_OFFSET_RE = re.compile(r"b_start:int=(?P<offset>\d+)")
 
 
 @dataclass
@@ -53,11 +81,58 @@ class ArticleCore:
     content_html: str
 
 
+@dataclass
+class ExistingNewsInventory:
+    records: list["LocalMarkdownRecord"]
+    known_links: set[str]
+    known_paths: set[Path]
+    known_title_date_keys: set[str]
+    known_title_keys: set[str]
+
+
+@dataclass(frozen=True)
+class LocalMarkdownRecord:
+    markdown_path: Path
+    title: str
+    subtitle: str
+    published_at: str
+    updated_at: str
+    tags: list[str]
+
+
+@dataclass
+class InventoryComparisonState:
+    remaining_title_date_keys: set[str]
+    remaining_title_keys: set[str]
+
+
 def clean_text(value: str | None) -> str | None:
     if value is None:
         return None
     cleaned = " ".join(value.split())
     return cleaned or None
+
+
+def fold_to_ascii(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    return normalized.encode("ascii", "ignore").decode("ascii")
+
+
+def normalize_news_key(value: object) -> str:
+    if value is None:
+        return ""
+    if pd.isna(value):
+        return ""
+    normalized = fold_to_ascii(str(value)).lower()
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def build_title_date_key(title: object, published_date: object) -> str:
+    title_key = normalize_news_key(title)
+    date_key = normalize_news_key(published_date)
+    if not title_key or not date_key:
+        return ""
+    return f"{title_key}|{date_key}"
 
 
 def ensure_parent(path: Path) -> None:
@@ -168,6 +243,50 @@ def collect_listing(
     return df
 
 
+def collect_listing_page(
+    session: requests.Session,
+    offset: int,
+    step: int,
+    timeout: int,
+) -> tuple[pd.DataFrame, BeautifulSoup]:
+    url = f"{BASE_LIST_URL}?b_start:int={offset}"
+    soup = fetch_soup(session, url, timeout=timeout)
+    articles = soup.select("article.tileItem")
+    print(f"[collect] offset={offset} items={len(articles)}")
+
+    rows = [parse_listing_item(article, offset=offset, step=step, item_index=item_index) for item_index, article in enumerate(articles, start=1)]
+    return pd.DataFrame(rows), soup
+
+
+def infer_last_offset(first_page_soup: BeautifulSoup) -> int:
+    offsets = [
+        int(match.group("offset"))
+        for anchor in first_page_soup.select('a[href*="b_start:int="]')
+        if anchor.has_attr("href")
+        for match in [PAGE_OFFSET_RE.search(anchor["href"])]
+        if match
+    ]
+    return max(offsets, default=0)
+
+
+def infer_site_count(
+    session: requests.Session,
+    step: int,
+    timeout: int,
+) -> tuple[int, pd.DataFrame]:
+    first_page_df, first_page_soup = collect_listing_page(session=session, offset=0, step=step, timeout=timeout)
+    if first_page_df.empty:
+        return 0, first_page_df
+
+    last_offset = infer_last_offset(first_page_soup)
+    if last_offset == 0:
+        return len(first_page_df), first_page_df
+
+    last_page_df, _ = collect_listing_page(session=session, offset=last_offset, step=step, timeout=timeout)
+    site_count = last_offset + len(last_page_df)
+    return site_count, first_page_df
+
+
 def parse_article_core(soup: BeautifulSoup) -> ArticleCore:
     content = soup.select_one("#content article")
     if content is None:
@@ -259,6 +378,77 @@ def markdown_filename(url: str) -> str:
     return f"{slug_from_url(url)}-{digest}.md"
 
 
+def extract_markdown_inventory_entry(markdown_file: Path) -> tuple[str, str]:
+    title = ""
+    published_date = ""
+
+    with markdown_file.open("r", encoding="utf-8", errors="ignore") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line:
+                continue
+            if not title and line.startswith("#"):
+                title = line.lstrip("#").strip()
+                continue
+            if not published_date:
+                published_match = MARKDOWN_PUBLISHED_RE.match(line)
+                if published_match:
+                    published_date = published_match.group("date")
+            if title and published_date:
+                break
+
+    return title, published_date
+
+
+def parse_local_markdown_record(markdown_file: Path) -> LocalMarkdownRecord:
+    non_empty_lines = [
+        line.strip()
+        for line in markdown_file.read_text(encoding="utf-8", errors="ignore").splitlines()
+        if line.strip()
+    ]
+
+    title = ""
+    subtitle = ""
+    published_at = ""
+    updated_at = ""
+    tags: list[str] = []
+
+    for line in non_empty_lines:
+        if not title and line.startswith("#"):
+            title = line.lstrip("#").strip()
+            continue
+
+        if not published_at:
+            published_match = MARKDOWN_FULL_PUBLISHED_RE.match(line)
+            if published_match:
+                published_at = published_match.group("published")
+                continue
+
+        if not updated_at:
+            updated_match = MARKDOWN_UPDATED_RE.match(line)
+            if updated_match:
+                updated_at = updated_match.group("updated")
+                continue
+
+        if not tags:
+            tags_match = MARKDOWN_TAGS_RE.match(line)
+            if tags_match:
+                tags = [part.strip() for part in tags_match.group("tags").split(",") if part.strip()]
+                continue
+
+        if title and not subtitle and not line.startswith(("Publicado em", "Atualizado em", "Tags:")):
+            subtitle = line
+
+    return LocalMarkdownRecord(
+        markdown_path=markdown_file.resolve(),
+        title=title,
+        subtitle=subtitle,
+        published_at=published_at,
+        updated_at=updated_at,
+        tags=tags,
+    )
+
+
 def export_markdown(converter: DocumentConverter, article: ArticleCore, output_file: Path) -> str:
     html_content = build_docling_html(article)
     result = converter.convert_string(
@@ -327,68 +517,464 @@ def build_manifest_lookup(manifest: pd.DataFrame) -> dict[str, dict[str, object]
 
 def resolve_markdown_path(markdown_path: object, markdown_dir: Path, link: str) -> Path:
     if isinstance(markdown_path, str) and markdown_path.strip():
-        return Path(markdown_path.strip())
+        candidate = Path(markdown_path.strip())
+        if candidate.is_absolute():
+            return candidate
+        return (PROJECT_ROOT / candidate).resolve()
     return markdown_dir / markdown_filename(link)
 
 
-def article_already_exists(
-    link: str,
+def serialize_markdown_path(markdown_path: Path) -> str:
+    resolved = markdown_path.resolve()
+    try:
+        return str(resolved.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(resolved)
+
+
+def build_existing_news_inventory(
+    markdown_dir: Path,
     manifest_lookup: dict[str, dict[str, object]],
+) -> ExistingNewsInventory:
+    records: list[LocalMarkdownRecord] = []
+    known_links: set[str] = set()
+    known_paths: set[Path] = set()
+    known_title_date_keys: set[str] = set()
+    known_title_keys: set[str] = set()
+
+    for markdown_file in sorted(markdown_dir.glob("*.md")):
+        record = parse_local_markdown_record(markdown_file)
+        records.append(record)
+        known_paths.add(record.markdown_path)
+
+        published_date = record.published_at.split()[0] if record.published_at else ""
+        title_key = normalize_news_key(record.title)
+        title_date_key = build_title_date_key(record.title, published_date)
+        if title_key:
+            known_title_keys.add(title_key)
+        if title_date_key:
+            known_title_date_keys.add(title_date_key)
+
+    for link, record in manifest_lookup.items():
+        if record.get("status") != "ok":
+            continue
+
+        markdown_path = resolve_markdown_path(record.get("markdown_path"), markdown_dir, link).resolve()
+        if markdown_path.exists():
+            known_links.add(link)
+            known_paths.add(markdown_path)
+
+    return ExistingNewsInventory(
+        records=records,
+        known_links=known_links,
+        known_paths=known_paths,
+        known_title_date_keys=known_title_date_keys,
+        known_title_keys=known_title_keys,
+    )
+
+
+def register_article_in_inventory(
+    inventory: ExistingNewsInventory,
+    markdown_path: Path,
+    link: str | None,
+    title: object,
+    published_date: object,
+) -> None:
+    inventory.known_paths.add(markdown_path.resolve())
+    if link:
+        inventory.known_links.add(link)
+
+    title_key = normalize_news_key(title)
+    title_date_key = build_title_date_key(title, published_date)
+    if title_key:
+        inventory.known_title_keys.add(title_key)
+    if title_date_key:
+        inventory.known_title_date_keys.add(title_date_key)
+
+
+def build_inventory_comparison_state(inventory: ExistingNewsInventory) -> InventoryComparisonState:
+    return InventoryComparisonState(
+        remaining_title_date_keys=set(inventory.known_title_date_keys),
+        remaining_title_keys=set(inventory.known_title_keys),
+    )
+
+
+def row_exists_in_inventory(
+    row: pd.Series | dict[str, object],
+    inventory: ExistingNewsInventory,
+    comparison_state: InventoryComparisonState | None = None,
+) -> bool:
+    title = row["titulo"] if isinstance(row, pd.Series) else row.get("titulo")
+    published_date = row["data_publicacao"] if isinstance(row, pd.Series) else row.get("data_publicacao")
+
+    title_date_key = build_title_date_key(title, published_date)
+    if title_date_key:
+        if comparison_state and title_date_key in comparison_state.remaining_title_date_keys:
+            comparison_state.remaining_title_date_keys.discard(title_date_key)
+            return True
+        if title_date_key in inventory.known_title_date_keys:
+            return True
+        return False
+
+    title_key = normalize_news_key(title)
+    if not title_key:
+        return False
+
+    if comparison_state and title_key in comparison_state.remaining_title_keys:
+        comparison_state.remaining_title_keys.discard(title_key)
+        return True
+    return title_key in inventory.known_title_keys
+
+
+def article_already_exists(
+    row: pd.Series | dict[str, object],
+    manifest_lookup: dict[str, dict[str, object]],
+    inventory: ExistingNewsInventory,
     markdown_dir: Path,
 ) -> bool:
+    link = normalize_link(row["link"] if isinstance(row, pd.Series) else row.get("link"))
+    if not link:
+        return False
+
+    expected_path = (markdown_dir / markdown_filename(link)).resolve()
+    if expected_path in inventory.known_paths or expected_path.exists():
+        return True
+
     existing = manifest_lookup.get(link)
-    if not existing:
+    if existing and existing.get("status") == "ok":
+        markdown_path = resolve_markdown_path(existing.get("markdown_path"), markdown_dir, link).resolve()
+        if markdown_path.exists():
+            return True
+
+    return row_exists_in_inventory(row=row, inventory=inventory)
+
+
+INDEX_COLUMNS = [
+    "offset",
+    "page_number",
+    "item_index",
+    "categoria",
+    "titulo",
+    "subtitulo",
+    "data_publicacao",
+    "hora_publicacao",
+    "publicado_em",
+    "tipo_conteudo",
+    "tags",
+    "total_tags",
+    "link",
+]
+
+
+def split_published_at(published_at: str) -> tuple[str | None, str | None]:
+    cleaned = clean_text(published_at)
+    if not cleaned:
+        return None, None
+
+    parts = cleaned.split()
+    if len(parts) >= 2 and re.fullmatch(r"\d{2}/\d{2}/\d{4}", parts[0]) and re.fullmatch(r"\d{2}h\d{2}", parts[1]):
+        return parts[0], parts[1]
+    if re.fullmatch(r"\d{2}/\d{2}/\d{4}", parts[0]):
+        return parts[0], None
+    return cleaned, None
+
+
+def ensure_index_columns(df_index: pd.DataFrame) -> pd.DataFrame:
+    normalized = df_index.copy()
+    for column in INDEX_COLUMNS:
+        if column not in normalized.columns:
+            normalized[column] = pd.NA
+    return normalized.loc[:, INDEX_COLUMNS]
+
+
+def load_or_create_index(index_csv: Path) -> pd.DataFrame:
+    if index_csv.exists():
+        return ensure_index_columns(pd.read_csv(index_csv))
+    return pd.DataFrame(columns=INDEX_COLUMNS)
+
+
+def build_index_keys(df_index: pd.DataFrame) -> tuple[set[str], set[str]]:
+    title_date_keys: set[str] = set()
+    title_keys: set[str] = set()
+
+    for _, row in df_index.iterrows():
+        title = row.get("titulo")
+        published_date = row.get("data_publicacao")
+        title_key = normalize_news_key(title)
+        title_date_key = build_title_date_key(title, published_date)
+        if title_key:
+            title_keys.add(title_key)
+        if title_date_key:
+            title_date_keys.add(title_date_key)
+
+    return title_date_keys, title_keys
+
+
+def row_exists_in_index(
+    title: object,
+    published_date: object,
+    known_title_date_keys: set[str],
+    known_title_keys: set[str],
+) -> bool:
+    title_date_key = build_title_date_key(title, published_date)
+    if title_date_key and title_date_key in known_title_date_keys:
+        return True
+
+    if normalize_news_key(published_date):
         return False
 
-    if existing.get("status") != "ok":
-        return False
-
-    markdown_path = resolve_markdown_path(existing.get("markdown_path"), markdown_dir, link)
-    return markdown_path.exists()
+    title_key = normalize_news_key(title)
+    return bool(title_key and title_key in known_title_keys)
 
 
-def count_missing_articles(
-    df_index: pd.DataFrame,
-    manifest_lookup: dict[str, dict[str, object]],
+def build_manifest_path_lookup(
+    manifest: pd.DataFrame,
     markdown_dir: Path,
-) -> int:
-    missing = 0
-    for link in df_index["link"].tolist():
-        if not article_already_exists(link, manifest_lookup, markdown_dir):
-            missing += 1
-    return missing
+) -> dict[Path, dict[str, object]]:
+    lookup: dict[Path, dict[str, object]] = {}
+    for record in manifest.to_dict(orient="records"):
+        link = normalize_link(record.get("link"))
+        if not link:
+            continue
+        markdown_path = resolve_markdown_path(record.get("markdown_path"), markdown_dir, link).resolve()
+        lookup[markdown_path] = record
+    return lookup
 
 
-def extract_articles(
+def build_index_row_from_local_record(
+    record: LocalMarkdownRecord,
+    manifest_record: dict[str, object] | None,
+) -> dict[str, object]:
+    published_date, published_time = split_published_at(record.published_at)
+    return {
+        "offset": pd.NA,
+        "page_number": pd.NA,
+        "item_index": pd.NA,
+        "categoria": pd.NA,
+        "titulo": record.title or pd.NA,
+        "subtitulo": record.subtitle or pd.NA,
+        "data_publicacao": published_date or pd.NA,
+        "hora_publicacao": published_time or pd.NA,
+        "publicado_em": record.published_at or pd.NA,
+        "tipo_conteudo": "Markdown local",
+        "tags": " | ".join(record.tags) if record.tags else pd.NA,
+        "total_tags": len(record.tags),
+        "link": normalize_link(manifest_record.get("link")) if manifest_record else pd.NA,
+    }
+
+
+def append_missing_local_rows_to_index(
+    df_index: pd.DataFrame,
+    inventory: ExistingNewsInventory,
+    manifest: pd.DataFrame,
+    markdown_dir: Path,
+) -> tuple[pd.DataFrame, int]:
+    known_title_date_keys, known_title_keys = build_index_keys(df_index)
+    manifest_by_path = build_manifest_path_lookup(manifest, markdown_dir)
+    rows_to_append: list[dict[str, object]] = []
+
+    for record in inventory.records:
+        published_date = record.published_at.split()[0] if record.published_at else ""
+        if row_exists_in_index(record.title, published_date, known_title_date_keys, known_title_keys):
+            continue
+
+        rows_to_append.append(
+            build_index_row_from_local_record(
+                record=record,
+                manifest_record=manifest_by_path.get(record.markdown_path),
+            )
+        )
+
+        title_key = normalize_news_key(record.title)
+        title_date_key = build_title_date_key(record.title, published_date)
+        if title_key:
+            known_title_keys.add(title_key)
+        if title_date_key:
+            known_title_date_keys.add(title_date_key)
+
+    if not rows_to_append:
+        return df_index, 0
+
+    appended = pd.concat([df_index, pd.DataFrame(rows_to_append)], ignore_index=True)
+    return ensure_index_columns(appended), len(rows_to_append)
+
+
+def collect_site_rows_missing_locally(
+    df_site: pd.DataFrame,
+    manifest_lookup: dict[str, dict[str, object]],
+    inventory: ExistingNewsInventory,
+    markdown_dir: Path,
+) -> pd.DataFrame:
+    missing_rows: list[dict[str, object]] = []
+    for _, row in df_site.iterrows():
+        if article_already_exists(row, manifest_lookup, inventory, markdown_dir):
+            continue
+        missing_rows.append(row.to_dict())
+    return pd.DataFrame(missing_rows, columns=df_site.columns)
+
+
+def append_site_rows_to_index(df_index: pd.DataFrame, df_site_rows: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    if df_site_rows.empty:
+        return df_index, 0
+
+    known_title_date_keys, known_title_keys = build_index_keys(df_index)
+    rows_to_append: list[dict[str, object]] = []
+
+    for _, row in df_site_rows.iterrows():
+        if row_exists_in_index(row.get("titulo"), row.get("data_publicacao"), known_title_date_keys, known_title_keys):
+            continue
+
+        rows_to_append.append({column: row.get(column, pd.NA) for column in INDEX_COLUMNS})
+
+        title_key = normalize_news_key(row.get("titulo"))
+        title_date_key = build_title_date_key(row.get("titulo"), row.get("data_publicacao"))
+        if title_key:
+            known_title_keys.add(title_key)
+        if title_date_key:
+            known_title_date_keys.add(title_date_key)
+
+    if not rows_to_append:
+        return df_index, 0
+
+    appended = pd.concat([df_index, pd.DataFrame(rows_to_append)], ignore_index=True)
+    return ensure_index_columns(appended), len(rows_to_append)
+
+
+def collect_recent_site_rows(
     session: requests.Session,
-    index_csv: Path,
+    pages_to_scan: int,
+    step: int,
+    timeout: int,
+    sleep_seconds: float,
+    first_page_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    if pages_to_scan <= 0:
+        return pd.DataFrame(columns=INDEX_COLUMNS)
+
+    frames: list[pd.DataFrame] = []
+    for page_index in range(pages_to_scan):
+        offset = page_index * step
+        if page_index == 0 and first_page_df is not None:
+            page_df = first_page_df.copy()
+            print(f"[collect] reutilizando primeira pagina em memoria com {len(page_df)} itens")
+        else:
+            page_df, _ = collect_listing_page(session=session, offset=offset, step=step, timeout=timeout)
+            if sleep_seconds > 0:
+                time.sleep(sleep_seconds)
+
+        if page_df.empty:
+            break
+        frames.append(page_df)
+
+    if not frames:
+        return pd.DataFrame(columns=INDEX_COLUMNS)
+
+    merged = pd.concat(frames, ignore_index=True)
+    return ensure_index_columns(prepare_index_df(merged))
+
+
+def find_missing_site_rows_progressively(
+    session: requests.Session,
+    missing_count_estimate: int,
+    manifest_lookup: dict[str, dict[str, object]],
+    inventory: ExistingNewsInventory,
+    markdown_dir: Path,
+    step: int,
+    timeout: int,
+    sleep_seconds: float,
+    first_page_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    if missing_count_estimate <= 0:
+        return pd.DataFrame(columns=INDEX_COLUMNS)
+
+    target_count = max(1, missing_count_estimate)
+    comparison_state = build_inventory_comparison_state(inventory)
+    page_index = 0
+    found_rows: list[dict[str, object]] = []
+    found_links: set[str] = set()
+
+    while len(found_rows) < target_count:
+        offset = page_index * step
+        if page_index == 0 and first_page_df is not None:
+            page_df = first_page_df.copy()
+            print(f"[collect] reutilizando primeira pagina em memoria com {len(page_df)} itens")
+        else:
+            page_df, _ = collect_listing_page(session=session, offset=offset, step=step, timeout=timeout)
+            if sleep_seconds > 0:
+                time.sleep(sleep_seconds)
+
+        if page_df.empty:
+            break
+
+        new_rows_on_page = 0
+        for _, row in page_df.iterrows():
+            link = normalize_link(row.get("link"))
+            if not link or link in found_links:
+                continue
+
+            exists = article_already_exists(
+                row=row,
+                manifest_lookup=manifest_lookup,
+                inventory=inventory,
+                markdown_dir=markdown_dir,
+            )
+            if not exists:
+                found_rows.append({column: row.get(column, pd.NA) for column in INDEX_COLUMNS})
+                found_links.add(link)
+                new_rows_on_page += 1
+                continue
+
+            row_exists_in_inventory(
+                row=row,
+                inventory=inventory,
+                comparison_state=comparison_state,
+            )
+
+        print(
+            f"[sync] pagina {(page_index + 1)} verificada | "
+            f"novos_titulos_encontrados={new_rows_on_page} | acumulado={len(found_rows)} | "
+            f"titulos_pendentes={len(comparison_state.remaining_title_date_keys)}"
+        )
+
+        if len(page_df) < step:
+            break
+
+        page_index += 1
+
+    if not found_rows:
+        return pd.DataFrame(columns=INDEX_COLUMNS)
+
+    return pd.DataFrame(found_rows, columns=INDEX_COLUMNS)
+
+
+def save_manifest(content_csv: Path, manifest: pd.DataFrame) -> None:
+    ensure_parent(content_csv)
+    manifest.to_csv(content_csv, index=False, encoding="utf-8-sig")
+
+
+def download_new_site_articles(
+    session: requests.Session,
+    df_site_rows: pd.DataFrame,
+    manifest: pd.DataFrame,
     content_csv: Path,
     markdown_dir: Path,
     timeout: int,
     sleep_seconds: float,
-    limit: int | None,
-    only_missing: bool,
 ) -> pd.DataFrame:
-    df_index = prepare_index_df(load_index_csv(index_csv))
-    manifest = prepare_manifest_df(load_existing_manifest(content_csv))
-    manifest_lookup = build_manifest_lookup(manifest)
+    if df_site_rows.empty:
+        return manifest
 
     converter = DocumentConverter()
     markdown_dir.mkdir(parents=True, exist_ok=True)
-
     rows: list[dict[str, object]] = manifest.to_dict(orient="records")
-    processed = 0
 
-    for _, row in df_index.iterrows():
-        link = row["link"]
-        if only_missing and article_already_exists(link, manifest_lookup, markdown_dir):
-            print(f"[extract] pulando existente: {link}")
+    for _, row in df_site_rows.iterrows():
+        link = normalize_link(row.get("link"))
+        if not link:
             continue
-        if limit is not None and processed >= limit:
-            break
 
         output_file = markdown_dir / markdown_filename(link)
-        print(f"[extract] {link}")
+        print(f"[sync] baixando: {link}")
 
         try:
             soup = fetch_soup(session, link, timeout=timeout)
@@ -397,7 +983,7 @@ def extract_articles(
             rows.append(
                 {
                     "link": link,
-                    "markdown_path": str(output_file),
+                    "markdown_path": serialize_markdown_path(output_file),
                     "status": "ok",
                     "titulo_extraido": article.title,
                     "subtitulo_extraido": article.subtitle,
@@ -407,12 +993,11 @@ def extract_articles(
                     "erro": None,
                 }
             )
-            manifest_lookup[link] = rows[-1]
         except Exception as exc:  # noqa: BLE001
             rows.append(
                 {
                     "link": link,
-                    "markdown_path": str(output_file),
+                    "markdown_path": serialize_markdown_path(output_file),
                     "status": "erro",
                     "titulo_extraido": None,
                     "subtitulo_extraido": None,
@@ -422,136 +1007,106 @@ def extract_articles(
                     "erro": str(exc),
                 }
             )
-            manifest_lookup[link] = rows[-1]
 
-        processed += 1
-        updated_manifest = pd.DataFrame(rows).drop_duplicates(subset=["link"], keep="last").reset_index(drop=True)
-        ensure_parent(content_csv)
-        updated_manifest.to_csv(content_csv, index=False, encoding="utf-8-sig")
+        manifest = pd.DataFrame(rows).drop_duplicates(subset=["link"], keep="last").reset_index(drop=True)
+        save_manifest(content_csv, manifest)
 
         if sleep_seconds > 0:
             time.sleep(sleep_seconds)
 
-    return pd.DataFrame(rows).drop_duplicates(subset=["link"], keep="last").reset_index(drop=True)
-
-
-def command_collect(args: argparse.Namespace) -> None:
-    session = build_session()
-    df = collect_listing(
-        session=session,
-        start_offset=args.start_offset,
-        end_offset=args.end_offset,
-        step=args.step,
-        timeout=args.timeout,
-        sleep_seconds=args.sleep_seconds,
-    )
-    ensure_parent(args.output_csv)
-    df.to_csv(args.output_csv, index=False, encoding="utf-8-sig")
-    print(f"[collect] noticias salvas: {len(df)}")
-    print(f"[collect] csv: {args.output_csv.resolve()}")
-
-
-def command_extract(args: argparse.Namespace) -> None:
-    manifest = extract_articles(
-        session=build_session(),
-        index_csv=args.index_csv,
-        content_csv=args.output_csv,
-        markdown_dir=args.markdown_dir,
-        timeout=args.timeout,
-        sleep_seconds=args.sleep_seconds,
-        limit=args.limit,
-        only_missing=args.only_missing,
-    )
-    print(f"[extract] registros no manifesto: {len(manifest)}")
-    print(f"[extract] manifesto: {args.output_csv.resolve()}")
-    print(f"[extract] markdown dir: {args.markdown_dir.resolve()}")
-
-
-def command_sync(args: argparse.Namespace) -> None:
-    session = build_session()
-    df_index = collect_listing(
-        session=session,
-        start_offset=args.start_offset,
-        end_offset=args.end_offset,
-        step=args.step,
-        timeout=args.timeout,
-        sleep_seconds=args.sleep_seconds,
-    )
-    ensure_parent(args.index_csv)
-    df_index.to_csv(args.index_csv, index=False, encoding="utf-8-sig")
-    print(f"[sync] indice atualizado com {len(df_index)} noticias em {args.index_csv.resolve()}")
-
-    prepared_index = prepare_index_df(df_index)
-    manifest = prepare_manifest_df(load_existing_manifest(args.content_csv))
-    manifest_lookup = build_manifest_lookup(manifest)
-    missing_count = count_missing_articles(prepared_index, manifest_lookup, args.markdown_dir)
-    print(f"[sync] noticias pendentes de extracao: {missing_count}")
-
-    updated_manifest = extract_articles(
-        session=session,
-        index_csv=args.index_csv,
-        content_csv=args.content_csv,
-        markdown_dir=args.markdown_dir,
-        timeout=args.timeout,
-        sleep_seconds=args.sleep_seconds,
-        limit=args.limit,
-        only_missing=True,
-    )
-    print(f"[sync] registros no manifesto: {len(updated_manifest)}")
-    print(f"[sync] manifesto: {args.content_csv.resolve()}")
-    print(f"[sync] markdown dir: {args.markdown_dir.resolve()}")
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Coleta noticias de operacoes da PF e extrai o conteudo principal com docling."
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    collect_parser = subparsers.add_parser("collect", help="Coleta o indice das noticias e gera um CSV.")
-    collect_parser.add_argument("--start-offset", type=int, default=0)
-    collect_parser.add_argument("--end-offset", type=int, default=None)
-    collect_parser.add_argument("--step", type=int, default=DEFAULT_STEP)
-    collect_parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
-    collect_parser.add_argument("--sleep-seconds", type=float, default=DEFAULT_SLEEP)
-    collect_parser.add_argument("--output-csv", type=Path, default=DEFAULT_INDEX_CSV)
-    collect_parser.set_defaults(func=command_collect)
-
-    extract_parser = subparsers.add_parser(
-        "extract",
-        help="Abre cada link do CSV de indice, extrai o conteudo principal e salva em markdown.",
-    )
-    extract_parser.add_argument("--index-csv", type=Path, default=DEFAULT_INDEX_CSV)
-    extract_parser.add_argument("--output-csv", type=Path, default=DEFAULT_CONTENT_CSV)
-    extract_parser.add_argument("--markdown-dir", type=Path, default=DEFAULT_MARKDOWN_DIR)
-    extract_parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
-    extract_parser.add_argument("--sleep-seconds", type=float, default=DEFAULT_SLEEP)
-    extract_parser.add_argument("--limit", type=int, default=None)
-    extract_parser.add_argument("--only-missing", action="store_true")
-    extract_parser.set_defaults(func=command_extract)
-
-    sync_parser = subparsers.add_parser(
-        "sync",
-        help="Atualiza o indice e extrai automaticamente apenas as noticias faltantes.",
-    )
-    sync_parser.add_argument("--start-offset", type=int, default=0)
-    sync_parser.add_argument("--end-offset", type=int, default=None)
-    sync_parser.add_argument("--step", type=int, default=DEFAULT_STEP)
-    sync_parser.add_argument("--index-csv", type=Path, default=DEFAULT_INDEX_CSV)
-    sync_parser.add_argument("--content-csv", type=Path, default=DEFAULT_CONTENT_CSV)
-    sync_parser.add_argument("--markdown-dir", type=Path, default=DEFAULT_MARKDOWN_DIR)
-    sync_parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
-    sync_parser.add_argument("--sleep-seconds", type=float, default=DEFAULT_SLEEP)
-    sync_parser.add_argument("--limit", type=int, default=None)
-    sync_parser.set_defaults(func=command_sync)
-
-    return parser
+    return manifest
 
 
 def main() -> None:
-    parser = build_parser()
-    args = parser.parse_args()
-    args.func(args)
+    if sys.argv[1:]:
+        ignored = " ".join(sys.argv[1:])
+        print(f"[sync] ignorando argumentos extras e usando o fluxo padrao: {ignored}")
+
+    index_csv = DEFAULT_INDEX_CSV
+    content_csv = DEFAULT_CONTENT_CSV
+    markdown_dir = DEFAULT_MARKDOWN_DIR
+
+    session = build_session()
+    site_count, first_page_df = infer_site_count(
+        session=session,
+        step=DEFAULT_STEP,
+        timeout=DEFAULT_TIMEOUT,
+    )
+    first_page_df = ensure_index_columns(first_page_df)
+
+    df_index = load_or_create_index(index_csv)
+    manifest = prepare_manifest_df(load_existing_manifest(content_csv))
+    manifest_lookup = build_manifest_lookup(manifest)
+    inventory = build_existing_news_inventory(markdown_dir, manifest_lookup)
+
+    local_count = len(inventory.records)
+    print(f"[sync] noticias no site: {site_count}")
+    print(f"[sync] markdowns locais: {local_count}")
+
+    site_rows_to_download = pd.DataFrame(columns=INDEX_COLUMNS)
+    site_rows_appended = 0
+    if site_count > local_count:
+        missing_count_estimate = site_count - local_count
+        pages_to_scan = max(1, math.ceil(missing_count_estimate / DEFAULT_STEP))
+        print(f"[sync] diferenca estimada: {missing_count_estimate}")
+        print(f"[sync] paginas iniciais a verificar: {pages_to_scan}")
+
+        recent_site_rows = collect_recent_site_rows(
+            session=session,
+            pages_to_scan=pages_to_scan,
+            step=DEFAULT_STEP,
+            timeout=DEFAULT_TIMEOUT,
+            sleep_seconds=DEFAULT_SLEEP,
+            first_page_df=first_page_df,
+        )
+        site_rows_to_download = collect_site_rows_missing_locally(
+            recent_site_rows,
+            manifest_lookup,
+            inventory,
+            markdown_dir,
+        )
+        if site_rows_to_download.empty:
+            print("[sync] nenhum titulo novo encontrado na janela inicial. Vou continuar a busca nas paginas seguintes.")
+            site_rows_to_download = find_missing_site_rows_progressively(
+                session=session,
+                missing_count_estimate=missing_count_estimate,
+                manifest_lookup=manifest_lookup,
+                inventory=inventory,
+                markdown_dir=markdown_dir,
+                step=DEFAULT_STEP,
+                timeout=DEFAULT_TIMEOUT,
+                sleep_seconds=DEFAULT_SLEEP,
+                first_page_df=first_page_df,
+            )
+        df_index, site_rows_appended = append_site_rows_to_index(df_index, site_rows_to_download)
+        print(f"[sync] novas noticias identificadas no site: {len(site_rows_to_download)}")
+        if not site_rows_to_download.empty:
+            manifest = download_new_site_articles(
+                session=session,
+                df_site_rows=site_rows_to_download,
+                manifest=manifest,
+                content_csv=content_csv,
+                markdown_dir=markdown_dir,
+                timeout=DEFAULT_TIMEOUT,
+                sleep_seconds=DEFAULT_SLEEP,
+            )
+            manifest_lookup = build_manifest_lookup(manifest)
+            inventory = build_existing_news_inventory(markdown_dir, manifest_lookup)
+    else:
+        print("[sync] nenhuma coleta nova sera feita porque a contagem do site nao supera a contagem local.")
+
+    df_index, local_rows_appended = append_missing_local_rows_to_index(df_index, inventory, manifest, markdown_dir)
+    df_index = ensure_index_columns(df_index)
+
+    ensure_parent(index_csv)
+    df_index.to_csv(index_csv, index=False, encoding="utf-8-sig")
+    save_manifest(content_csv, manifest)
+
+    print(f"[sync] linhas novas anexadas ao indice a partir do site: {site_rows_appended}")
+    print(f"[sync] linhas novas anexadas ao indice a partir dos markdowns locais: {local_rows_appended}")
+    print(f"[sync] indice salvo em: {index_csv.resolve()}")
+    print(f"[sync] manifesto salvo em: {content_csv.resolve()}")
+    print(f"[sync] markdown dir: {markdown_dir.resolve()}")
 
 
 if __name__ == "__main__":

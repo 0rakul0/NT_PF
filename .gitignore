@@ -6,6 +6,9 @@ __pycache__/
 .vscode/
 
 .streamlit/secrets.toml
+.env
+.env.*
+!.env.example
 
 .DS_Store
 Thumbs.db
@@ -15,4 +18,6 @@ data/pf_operacoes_index_check.csv
 data/pf_operacoes_conteudos.csv
 data/noticias_markdown/
 data/analise_qualitativa/*.csv
+data/analise_qualitativa/*.jsonl
 data/analise_qualitativa/*.md
+scripts/data/

@@ -1,4 +1,0 @@
-beautifulsoup4==4.14.3
-requests==2.33.0
-lxml==6.0.2
-docling==2.82.0

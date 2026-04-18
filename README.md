@@ -45,8 +45,17 @@ NT_PF/
 |   `-- reference/
 |       `-- brazil_states.geojson
 |-- scripts/
+|   |-- pf_llm_metadata.py
+|   |-- pf_llm_models.py
+|   |-- project_config.py
 |   |-- pf_operacoes_pipeline.py
 |   `-- pf_analise_qualitativa.py
+|-- setup.ps1
+|-- pyproject.toml
+|-- uv.lock
+|-- requirements-runtime.txt
+|-- requirements-extraction.txt
+|-- requirements-lock.txt
 |-- streamlit_app.py
 |-- requirements.txt
 `-- .gitignore
@@ -55,31 +64,37 @@ NT_PF/
 ## Reproducibilidade
 
 - Ambiente validado com Python 3.13.12.
-- As dependencias do projeto estao fixadas em [requirements.txt](requirements.txt) para facilitar a recriacao do ambiente.
+- Os perfis de dependencias ficam separados em quatro arquivos para reduzir conflito e deixar cada uso mais claro:
+  - [requirements-runtime.txt](requirements-runtime.txt): analise, dashboard e LLM.
+  - [requirements-extraction.txt](requirements-extraction.txt): coleta e extracao.
+  - [requirements.txt](requirements.txt): ambiente completo, agregando runtime + extraction.
+  - [requirements-lock.txt](requirements-lock.txt): lockfile do ambiente validado localmente.
+- O fluxo principal agora usa [pyproject.toml](pyproject.toml) e `uv.lock` com dois perfis:
+  - dependencias base no `[project.dependencies]`
+  - coleta e extracao no grupo `extraction`
+- As constantes compartilhadas do projeto ficam centralizadas em [scripts/project_config.py](scripts/project_config.py), incluindo caminhos, defaults de scraping, defaults da LLM e referencias geograficas reaproveitadas pelo pipeline e pelo app.
 - O manifesto `data/pf_operacoes_conteudos.csv` pode registrar extracoes com falha; a etapa de analise consome apenas registros com `status=ok` e markdown realmente disponivel.
 
 ## Como executar
 
-Crie o ambiente virtual e instale as dependencias:
+Com `uv`, o setup mais simples fica assim:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+uv sync --group extraction
 ```
 
-Se voce for levar o projeto para outra maquina, prefira usar o bootstrap local e o lockfile do ambiente validado, porque isso reduz bastante conflito de bibliotecas:
+Se preferir o bootstrap do repositorio, use:
 
 ```powershell
-.\setup_local.ps1
+.\setup.ps1
 ```
 
 Esse script:
 
-- procura um Python 3.13
-- cria `.venv`
-- atualiza `pip`, `setuptools` e `wheel`
-- instala `requirements-lock.txt` quando ele existir
-- roda `pip check` no final
+- procura um Python 3.13 ou 3.12
+- usa `uv sync` quando `uv` e `pyproject.toml` estiverem disponiveis
+- usa `uv.lock` quando ele existir
+- cai para o fluxo legado com `pip` apenas como fallback
 
 Se der conflito em outra maquina, o primeiro ponto para conferir e a versao do Python. O ambiente deste projeto foi validado com `Python 3.13.12`, mas as dependencias principais usadas para analise local tambem aceitam `Python 3.12`.
 
@@ -90,7 +105,7 @@ Se a outra maquina ja vai receber os arquivos locais prontos em `data/noticias_m
 Nesse caso, use o setup leve:
 
 ```powershell
-.\setup_runtime.ps1
+.\setup.ps1 -Profile runtime
 ```
 
 Ele instala apenas o necessario para:
@@ -98,7 +113,7 @@ Ele instala apenas o necessario para:
 - rodar `run_local.py`
 - gerar os artefatos analiticos
 - abrir `streamlit_app.py`
-- usar a LLM local com `ollama`
+- usar a LLM com `ollama` ou `groq`
 
 Esse e o caminho mais indicado quando houver conflito de bibliotecas em outra maquina.
 
@@ -107,17 +122,19 @@ Esse e o caminho mais indicado quando houver conflito de bibliotecas em outra ma
 Se a outra maquina tambem vai coletar e extrair noticias do portal, use o setup de extracao completa:
 
 ```powershell
-.\setup_extraction.ps1
+.\setup.ps1 -Profile extraction
 ```
 
-Esse fluxo instala em etapas:
+Esse fluxo instala o ambiente completo definido em `requirements.txt`, que agrega a base de analise, o dashboard, os provedores de LLM e a pilha de extracao.
 
-- base de analise e dashboard
-- cliente local do `ollama`
-- pilha de extracao com `beautifulsoup4`, `requests`, `lxml` e `docling`
-- par compativel `pydantic==2.12.5` + `pydantic_core==2.41.5` antes do restante
+Se voce quiser usar diretamente o `uv` sem passar pelo script:
 
-Essa instalacao em etapas costuma ser mais estavel em Python 3.12 do que tentar resolver tudo de uma vez com um unico `pip install -r requirements.txt`.
+```powershell
+uv sync
+uv sync --group extraction
+```
+
+O primeiro comando instala a base de analise, dashboard e LLM. O segundo adiciona a pilha de coleta e extracao.
 
 ### Modo local sem argumentos
 
@@ -152,6 +169,14 @@ $env:PF_SKIP_LLM="1"
 ### Etapa 1: sincronizar a base automaticamente
 
 ```powershell
+.\.venv\Scripts\python.exe .\scripts\pf_operacoes_pipeline.py
+```
+
+Esse e o modo mais simples: sem argumentos, o script assume `sync` e usa os caminhos padrao do repositorio.
+
+Se quiser explicitar o mesmo fluxo manualmente:
+
+```powershell
 .\.venv\Scripts\python.exe .\scripts\pf_operacoes_pipeline.py sync --index-csv .\data\pf_operacoes_index.csv --content-csv .\data\pf_operacoes_conteudos.csv --markdown-dir .\data\noticias_markdown
 ```
 
@@ -162,24 +187,35 @@ Se quiser rodar as etapas separadamente, os comandos antigos `collect` e `extrac
 ### Etapa 2: gerar a analise qualitativa
 
 ```powershell
-.\.venv\Scripts\python.exe .\scripts\pf_analise_qualitativa.py --output-dir .\data\analise_qualitativa
+.\.venv\Scripts\python.exe .\scripts\pf_analise_qualitativa.py
 ```
 
-### Etapa 2b: gerar metadados estruturados com LLM local
+Sem argumentos, o script usa os caminhos padrao do repositorio e salva a saida em `data/analise_qualitativa`.
 
-O projeto tambem pode ler cada noticia em markdown e separar duas camadas: `metadata_extraido`, lido diretamente do arquivo, e `inferencia_llm`, usada apenas para interpretar o corpo da noticia. O script `scripts/pf_llm_metadata.py` agora usa o cliente oficial `ollama`, com saida estruturada guiada por schema Pydantic.
+### Etapa 2b: gerar metadados estruturados com LLM
+
+O projeto tambem pode ler cada noticia em markdown e separar duas camadas: `metadata_extraido`, lido diretamente do arquivo, e `inferencia_llm`, usada apenas para interpretar o corpo da noticia. O script `scripts/pf_llm_metadata.py` usa schema Pydantic para validar a saida e aceita dois provedores:
+
+- `ollama`: padrao local
+- `groq`: via API compativel com OpenAI
+
+Por padrao, o provider funciona em modo `auto`: tenta o provider preferido disponivel e, se houver falha de configuracao ou execucao, cai para o outro.
 
 ```powershell
 .\.venv\Scripts\python.exe .\scripts\pf_llm_metadata.py
 ```
 
-Por padrao, ele usa estas constantes internas:
+Sem argumentos, o script usa `data/noticias_markdown` como entrada e salva os artefatos em `data/analise_qualitativa`.
+
+Por padrao, ele usa estes valores:
 
 - `data/noticias_markdown` como entrada
 - `data/analise_qualitativa/metadados_llm_noticias.jsonl` como JSONL
 - `data/analise_qualitativa/metadados_llm_noticias.csv` como CSV tabular
-- `gemma4:e4b` como modelo
+- `gemma3n:e2b` como modelo quando `PF_LLM_PROVIDER=ollama`
+- `llama-3.3-70b-versatile` como modelo quando `PF_LLM_PROVIDER=groq`
 - `http://localhost:11434` como host do Ollama
+- `https://api.groq.com/openai/v1` como base URL da Groq
 
 Se quiser limitar o processamento sem voltar ao uso de argumentos, basta definir a variavel de ambiente antes da execucao:
 
@@ -187,6 +223,34 @@ Se quiser limitar o processamento sem voltar ao uso de argumentos, basta definir
 $env:PF_LLM_LIMIT="5"
 .\.venv\Scripts\python.exe .\scripts\pf_llm_metadata.py
 ```
+
+Se quiser usar a Groq API com a sua chave:
+
+```powershell
+$env:PF_LLM_PROVIDER="groq"
+$env:GROQ_API_KEY="gsk_sua_chave_aqui"
+$env:PF_LLM_MODEL="llama-3.3-70b-versatile"
+.\.venv\Scripts\python.exe .\scripts\pf_llm_metadata.py
+```
+
+Se preferir rodar o pipeline inteiro com Groq:
+
+```powershell
+$env:PF_LLM_PROVIDER="groq"
+$env:GROQ_API_KEY="gsk_sua_chave_aqui"
+.\.venv\Scripts\python.exe .\run_local.py
+```
+
+Variaveis uteis:
+
+- `PF_LLM_PROVIDER`: `auto`, `ollama` ou `groq`
+- `PF_LLM_MODEL`: troca o modelo sem editar codigo
+- `PF_OLLAMA_MODEL`: troca especificamente o modelo de fallback/local
+- `PF_GROQ_MODEL`: troca especificamente o modelo da Groq
+- `PF_LLM_BASE_URL`: sobrescreve a URL base do provider
+- `PF_LLM_API_KEY`: alternativa generica a `GROQ_API_KEY`
+- `PF_LLM_LIMIT`: limita quantos markdowns serao processados
+- `PF_SKIP_LLM=1`: pula a etapa da LLM em `run_local.py`
 
 Os contratos oficiais dessa saida ficam nas classes `NoticiaMetadataExtraido`, `NoticiaLLMInference` e `NoticiaEnriquecida`, definidas em `scripts/pf_llm_models.py`. A ideia e usar a LLM apenas para inferir identidade canonica, crimes mais presentes e modus operandi, deixando titulo, datas, tags e demais metadados estruturais como leitura direta do markdown.
 
@@ -284,7 +348,9 @@ Este repositorio foi preparado para subir ao GitHub sem levar o volume inteiro d
 - `data/pf_operacoes_conteudos.csv`
 - `data/noticias_markdown/`
 - `data/analise_qualitativa/*.csv`
+- `data/analise_qualitativa/*.jsonl`
 - `data/analise_qualitativa/*.md`
+- `scripts/data/`
 
 O arquivo `data/reference/brazil_states.geojson` continua versionado porque e uma referencia estatica usada pelo mapa do painel.
 

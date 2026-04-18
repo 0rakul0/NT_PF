@@ -18,11 +18,22 @@ from sklearn.metrics import silhouette_score
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import Normalizer
 
-
-DEFAULT_INDEX_CSV = Path("data/pf_operacoes_index.csv")
-DEFAULT_CONTENT_CSV = Path("data/pf_operacoes_conteudos.csv")
-DEFAULT_OUTPUT_DIR = Path("data/analise_qualitativa")
-DEFAULT_LLM_METADATA_JSONL = DEFAULT_OUTPUT_DIR / "metadados_llm_noticias.jsonl"
+try:
+    from project_config import (
+        ANALYSIS_DIR as DEFAULT_OUTPUT_DIR,
+        BRAZIL_STATES,
+        CONTENT_CSV as DEFAULT_CONTENT_CSV,
+        INDEX_CSV as DEFAULT_INDEX_CSV,
+        LLM_METADATA_JSONL as DEFAULT_LLM_METADATA_JSONL,
+    )
+except ModuleNotFoundError:
+    from scripts.project_config import (
+        ANALYSIS_DIR as DEFAULT_OUTPUT_DIR,
+        BRAZIL_STATES,
+        CONTENT_CSV as DEFAULT_CONTENT_CSV,
+        INDEX_CSV as DEFAULT_INDEX_CSV,
+        LLM_METADATA_JSONL as DEFAULT_LLM_METADATA_JSONL,
+    )
 
 
 def fold_text(value: str) -> str:
@@ -107,36 +118,6 @@ MODUS_PATTERNS = {
     "desarticulacao_rede": ["desarticular", "desarticulaÃ§Ã£o", "esquema criminoso", "quadrilha", "rede criminosa"],
     "combate_financeiro": ["movimentacao financeira", "movimentaÃ§Ã£o financeira", "contas bancarias", "contas bancÃ¡rias", "sigilo bancario", "sigilo bancÃ¡rio"],
 }
-
-BRAZIL_STATES = [
-    {"uf": "AC", "state": "Acre", "capital": "Rio Branco", "lat": -9.97499, "lon": -67.8243},
-    {"uf": "AL", "state": "Alagoas", "capital": "Maceio", "lat": -9.64985, "lon": -35.70895},
-    {"uf": "AP", "state": "Amapa", "capital": "Macapa", "lat": 0.03493, "lon": -51.0694},
-    {"uf": "AM", "state": "Amazonas", "capital": "Manaus", "lat": -3.11903, "lon": -60.0217},
-    {"uf": "BA", "state": "Bahia", "capital": "Salvador", "lat": -12.9718, "lon": -38.5011},
-    {"uf": "CE", "state": "Ceara", "capital": "Fortaleza", "lat": -3.73186, "lon": -38.5267},
-    {"uf": "DF", "state": "Distrito Federal", "capital": "Brasilia", "lat": -15.7797, "lon": -47.9297},
-    {"uf": "ES", "state": "Espirito Santo", "capital": "Vitoria", "lat": -20.3155, "lon": -40.3128},
-    {"uf": "GO", "state": "Goias", "capital": "Goiania", "lat": -16.6864, "lon": -49.2643},
-    {"uf": "MA", "state": "Maranhao", "capital": "Sao Luis", "lat": -2.53874, "lon": -44.2825},
-    {"uf": "MT", "state": "Mato Grosso", "capital": "Cuiaba", "lat": -15.6014, "lon": -56.0974},
-    {"uf": "MS", "state": "Mato Grosso do Sul", "capital": "Campo Grande", "lat": -20.4697, "lon": -54.6201},
-    {"uf": "MG", "state": "Minas Gerais", "capital": "Belo Horizonte", "lat": -19.9167, "lon": -43.9345},
-    {"uf": "PA", "state": "Para", "capital": "Belem", "lat": -1.45583, "lon": -48.5044},
-    {"uf": "PB", "state": "Paraiba", "capital": "Joao Pessoa", "lat": -7.11532, "lon": -34.861},
-    {"uf": "PR", "state": "Parana", "capital": "Curitiba", "lat": -25.4284, "lon": -49.2733},
-    {"uf": "PE", "state": "Pernambuco", "capital": "Recife", "lat": -8.05389, "lon": -34.8811},
-    {"uf": "PI", "state": "Piaui", "capital": "Teresina", "lat": -5.08917, "lon": -42.8019},
-    {"uf": "RJ", "state": "Rio de Janeiro", "capital": "Rio de Janeiro", "lat": -22.9068, "lon": -43.1729},
-    {"uf": "RN", "state": "Rio Grande do Norte", "capital": "Natal", "lat": -5.79448, "lon": -35.211},
-    {"uf": "RS", "state": "Rio Grande do Sul", "capital": "Porto Alegre", "lat": -30.0346, "lon": -51.2177},
-    {"uf": "RO", "state": "Rondonia", "capital": "Porto Velho", "lat": -8.76077, "lon": -63.8999},
-    {"uf": "RR", "state": "Roraima", "capital": "Boa Vista", "lat": 2.82384, "lon": -60.6753},
-    {"uf": "SC", "state": "Santa Catarina", "capital": "Florianopolis", "lat": -27.5949, "lon": -48.5482},
-    {"uf": "SP", "state": "Sao Paulo", "capital": "Sao Paulo", "lat": -23.5505, "lon": -46.6333},
-    {"uf": "SE", "state": "Sergipe", "capital": "Aracaju", "lat": -10.9472, "lon": -37.0731},
-    {"uf": "TO", "state": "Tocantins", "capital": "Palmas", "lat": -10.184, "lon": -48.3336},
-]
 
 STATE_LOOKUP = {item["uf"]: item for item in BRAZIL_STATES}
 STATE_NAME_TO_UF = {item["state"].lower(): item["uf"] for item in BRAZIL_STATES}
