@@ -67,6 +67,58 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
+Se voce for levar o projeto para outra maquina, prefira usar o bootstrap local e o lockfile do ambiente validado, porque isso reduz bastante conflito de bibliotecas:
+
+```powershell
+.\setup_local.ps1
+```
+
+Esse script:
+
+- procura um Python 3.13
+- cria `.venv`
+- atualiza `pip`, `setuptools` e `wheel`
+- instala `requirements-lock.txt` quando ele existir
+- roda `pip check` no final
+
+Se der conflito em outra maquina, o primeiro ponto para conferir e a versao do Python. O ambiente deste projeto foi validado com `Python 3.13.12`, mas as dependencias principais usadas para analise local tambem aceitam `Python 3.12`.
+
+### Modo leve para outra maquina
+
+Se a outra maquina ja vai receber os arquivos locais prontos em `data/noticias_markdown`, `data/pf_operacoes_index.csv` e `data/pf_operacoes_conteudos.csv`, voce nao precisa instalar a pilha completa de coleta com `docling`.
+
+Nesse caso, use o setup leve:
+
+```powershell
+.\setup_runtime.ps1
+```
+
+Ele instala apenas o necessario para:
+
+- rodar `run_local.py`
+- gerar os artefatos analiticos
+- abrir `streamlit_app.py`
+- usar a LLM local com `ollama`
+
+Esse e o caminho mais indicado quando houver conflito de bibliotecas em outra maquina.
+
+### Modo com extracao completa
+
+Se a outra maquina tambem vai coletar e extrair noticias do portal, use o setup de extracao completa:
+
+```powershell
+.\setup_extraction.ps1
+```
+
+Esse fluxo instala em etapas:
+
+- base de analise e dashboard
+- cliente local do `ollama`
+- pilha de extracao com `beautifulsoup4`, `requests`, `lxml` e `docling`
+- par compativel `pydantic==2.12.5` + `pydantic_core==2.41.5` antes do restante
+
+Essa instalacao em etapas costuma ser mais estavel em Python 3.12 do que tentar resolver tudo de uma vez com um unico `pip install -r requirements.txt`.
+
 ### Modo local sem argumentos
 
 Se os arquivos locais ja estiverem presentes em `data/noticias_markdown`, `data/pf_operacoes_index.csv` e `data/pf_operacoes_conteudos.csv`, voce pode rodar o pipeline inteiro sem passar argumentos:
