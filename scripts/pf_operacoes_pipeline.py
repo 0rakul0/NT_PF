@@ -4,7 +4,6 @@ import hashlib
 import html
 import math
 import re
-import sys
 import time
 import unicodedata
 from dataclasses import dataclass
@@ -1018,10 +1017,6 @@ def download_new_site_articles(
 
 
 def main() -> None:
-    if sys.argv[1:]:
-        ignored = " ".join(sys.argv[1:])
-        print(f"[sync] ignorando argumentos extras e usando o fluxo padrao: {ignored}")
-
     index_csv = DEFAULT_INDEX_CSV
     content_csv = DEFAULT_CONTENT_CSV
     markdown_dir = DEFAULT_MARKDOWN_DIR

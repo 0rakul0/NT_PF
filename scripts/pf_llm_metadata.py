@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import re
@@ -18,6 +17,16 @@ except ModuleNotFoundError:
     OpenAI = None
 
 try:
+    from pf_regex_classifier import (
+        DEFAULT_CONFIDENCE_THRESHOLD,
+        RegexClassification,
+        canonical_label,
+        classify_news_body,
+        clean_learned_rules_file,
+        improve_regex_from_llm,
+        known_crime_labels,
+        known_modus_labels,
+    )
     from pf_llm_models import NoticiaEnriquecida, NoticiaLLMInference, NoticiaMetadataExtraido
     from project_config import (
         ANALYSIS_DIR,
@@ -30,6 +39,16 @@ try:
         get_llm_settings,
     )
 except ModuleNotFoundError:
+    from scripts.pf_regex_classifier import (
+        DEFAULT_CONFIDENCE_THRESHOLD,
+        RegexClassification,
+        canonical_label,
+        classify_news_body,
+        clean_learned_rules_file,
+        improve_regex_from_llm,
+        known_crime_labels,
+        known_modus_labels,
+    )
     from scripts.pf_llm_models import NoticiaEnriquecida, NoticiaLLMInference, NoticiaMetadataExtraido
     from scripts.project_config import (
         ANALYSIS_DIR,
@@ -65,6 +84,8 @@ DATAFRAME_COLUMNS = [
     "classificacao",
     "crimes_mais_presentes",
     "modus_operandi",
+    "fonte_classificacao",
+    "confianca_regex",
 ]
 
 
@@ -76,6 +97,8 @@ class RuntimeConfig:
     output_csv: Path
     limit: int | None
     llm_settings: LLMSettings
+    regex_enabled: bool
+    regex_threshold: float
 
 
 @dataclass(frozen=True)
@@ -83,6 +106,9 @@ class TokenUsage:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
+
+
+ZERO_TOKEN_USAGE = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
 
 def resolve_project_path(path: Path | None, default: Path) -> Path:
@@ -114,22 +140,6 @@ def infer_provider_from_base_url(base_url: str) -> str | None:
     return None
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(add_help=True)
-    parser.add_argument("--provider", choices=["auto", "ollama", "groq"], default=None)
-    parser.add_argument("--model", default=None)
-    parser.add_argument("--base-url", default=None)
-    parser.add_argument("--input-dir", type=Path, default=None)
-    parser.add_argument("--output-jsonl", type=Path, default=None)
-    parser.add_argument("--output-csv", type=Path, default=None)
-    parser.add_argument("--limit", type=int, default=None)
-    args, unknown = parser.parse_known_args(argv)
-    if unknown:
-        ignored = " ".join(unknown)
-        print(f"[llm] ignorando argumentos nao reconhecidos: {ignored}")
-    return args
-
-
 def build_provider_order(preferred_provider: str, has_groq_key: bool) -> tuple[str, ...]:
     if preferred_provider == "groq":
         return ("groq", "ollama")
@@ -140,33 +150,43 @@ def build_provider_order(preferred_provider: str, has_groq_key: bool) -> tuple[s
     return ("ollama", "groq")
 
 
-def resolve_runtime_config(args: argparse.Namespace) -> RuntimeConfig:
+def resolve_runtime_config(
+    provider: str | None = None,
+    model: str | None = None,
+    base_url: str | None = None,
+    input_dir: Path | str | None = None,
+    output_jsonl: Path | str | None = None,
+    output_csv: Path | str | None = None,
+    limit: int | None = None,
+    disable_regex: bool | None = None,
+    regex_threshold: float | None = None,
+) -> RuntimeConfig:
     llm_settings = LLM_SETTINGS
     preferred_provider = llm_settings.preferred_provider
-    provider_hint = args.provider or preferred_provider
+    provider_hint = provider or preferred_provider
 
-    inferred_provider = infer_provider_from_base_url(args.base_url or "")
-    if args.provider is None and inferred_provider:
+    inferred_provider = infer_provider_from_base_url(base_url or "")
+    if provider is None and inferred_provider:
         provider_hint = inferred_provider
 
     groq_settings = llm_settings.groq
     ollama_settings = llm_settings.ollama
 
-    if args.model:
+    if model:
         if provider_hint == "groq":
-            groq_settings = replace(groq_settings, model_name=args.model)
+            groq_settings = replace(groq_settings, model_name=model)
         elif provider_hint == "ollama":
-            ollama_settings = replace(ollama_settings, model_name=args.model)
+            ollama_settings = replace(ollama_settings, model_name=model)
         elif inferred_provider == "groq":
-            groq_settings = replace(groq_settings, model_name=args.model)
+            groq_settings = replace(groq_settings, model_name=model)
         else:
-            ollama_settings = replace(ollama_settings, model_name=args.model)
+            ollama_settings = replace(ollama_settings, model_name=model)
 
-    if args.base_url:
+    if base_url:
         if provider_hint == "groq" or inferred_provider == "groq":
-            groq_settings = replace(groq_settings, base_url=normalize_groq_base_url(args.base_url))
+            groq_settings = replace(groq_settings, base_url=normalize_groq_base_url(base_url))
         else:
-            ollama_settings = replace(ollama_settings, base_url=normalize_ollama_base_url(args.base_url))
+            ollama_settings = replace(ollama_settings, base_url=normalize_ollama_base_url(base_url))
 
     provider_order = build_provider_order(provider_hint, has_groq_key=bool(groq_settings.api_key))
     resolved_llm_settings = replace(
@@ -177,24 +197,36 @@ def resolve_runtime_config(args: argparse.Namespace) -> RuntimeConfig:
         ollama=ollama_settings,
     )
 
-    output_jsonl = resolve_project_path(args.output_jsonl, DEFAULT_OUTPUT_JSONL)
-    output_csv = resolve_project_path(
-        args.output_csv,
-        output_jsonl.with_suffix(".csv") if args.output_jsonl is not None else DEFAULT_OUTPUT_CSV,
+    output_jsonl_path = Path(output_jsonl) if output_jsonl is not None else None
+    output_csv_path = Path(output_csv) if output_csv is not None else None
+    resolved_output_jsonl = resolve_project_path(output_jsonl_path, DEFAULT_OUTPUT_JSONL)
+    resolved_output_csv = resolve_project_path(
+        output_csv_path,
+        resolved_output_jsonl.with_suffix(".csv") if output_jsonl_path is not None else DEFAULT_OUTPUT_CSV,
     )
-    output_dir = output_jsonl.parent
-    limit = args.limit
+    output_dir = resolved_output_jsonl.parent
     if limit is None:
         limit_raw = os.getenv("PF_LLM_LIMIT", "").strip()
         limit = int(limit_raw) if limit_raw.isdigit() else None
+    if regex_threshold is None:
+        regex_threshold_raw = os.getenv("PF_REGEX_CONFIDENCE_THRESHOLD", "").strip().replace(",", ".")
+        try:
+            regex_threshold = float(regex_threshold_raw) if regex_threshold_raw else DEFAULT_CONFIDENCE_THRESHOLD
+        except ValueError:
+            regex_threshold = DEFAULT_CONFIDENCE_THRESHOLD
+
+    regex_disabled_env = os.getenv("PF_DISABLE_REGEX_CLASSIFIER", "").strip().lower() in {"1", "true", "yes"}
+    regex_disabled = regex_disabled_env if disable_regex is None else disable_regex
 
     return RuntimeConfig(
-        markdown_dir=resolve_project_path(args.input_dir, DEFAULT_MARKDOWN_DIR),
+        markdown_dir=resolve_project_path(Path(input_dir) if input_dir is not None else None, DEFAULT_MARKDOWN_DIR),
         output_dir=output_dir,
-        output_jsonl=output_jsonl,
-        output_csv=output_csv,
+        output_jsonl=resolved_output_jsonl,
+        output_csv=resolved_output_csv,
         limit=limit,
         llm_settings=resolved_llm_settings,
+        regex_enabled=not regex_disabled,
+        regex_threshold=regex_threshold,
     )
 
 
@@ -283,11 +315,15 @@ def build_extracted_metadata(parsed_news: dict[str, Any]) -> NoticiaMetadataExtr
 
 def build_prompt(news_body: str) -> str:
     schema_json = json.dumps(NoticiaLLMInference.model_json_schema(), ensure_ascii=False, indent=2)
+    crime_labels = ", ".join(known_crime_labels())
+    modus_labels = ", ".join(known_modus_labels())
     return f"""
 Leia apenas o corpo da noticia abaixo e devolva somente um JSON valido.
 
 Os metadados estruturais ja foram extraidos em outra etapa.
 Nao repita titulo, data, tags, dateline nem nome de operacao.
+O classificador regex tentou classificar antes de voce e nao atingiu confianca suficiente.
+Use os mesmos criterios do regex: priorize crimes explicitos, modus operandi objetivo e evidencias textuais recorrentes.
 
 Sua tarefa e inferir somente:
 - identidade_canonica
@@ -298,12 +334,25 @@ Sua tarefa e inferir somente:
 Use exatamente este schema:
 {schema_json}
 
+Labels de crimes ja conhecidos pelo regex, que devem ser preferidos quando fizerem sentido:
+{crime_labels}
+
+Labels de modus operandi ja conhecidos pelo regex, que devem ser preferidos quando fizerem sentido:
+{modus_labels}
+
+Aliases obrigatorios:
+- crime_organizado e associacao_criminosa devem virar organizacao_criminosa.
+- sequestro_bens deve virar bloqueio_bens.
+- falsificacao_documental deve virar falsidade_documental.
+- integacao_forcas_seguranca ou integracao_forcas_seguranca devem virar cooperacao_interagencias.
+
 Regras:
 - identidade_canonica deve ser lowercase com underscores.
 - todos os labels devem usar apenas ascii simples, sem acentos, sem cedilha e sem caracteres especiais.
 - classificacao deve ser um de: "Por crime", "Com operacao nomeada", "Outras".
-- crimes_mais_presentes deve trazer labels canonicos e curtos.
-- modus_operandi deve trazer labels canonicos e curtos.
+- crimes_mais_presentes deve usar somente labels conhecidos acima.
+- modus_operandi deve usar somente labels conhecidos acima.
+- nao crie label novo; se a descricao for mais especifica, escolha o label conhecido mais proximo.
 - quando o crime principal estiver claro, prefira uma identidade iniciando com "crime_".
 - nao escreva explicacoes fora do JSON.
 
@@ -431,6 +480,27 @@ def coerce_list_value(value: object) -> list[str]:
     return parts or [text]
 
 
+def coerce_label_list(value: object) -> list[str]:
+    labels = []
+    for item in coerce_list_value(value):
+        label = canonical_label(item)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def canonical_identity(value: str, crimes: list[str]) -> str:
+    identity = normalize_object_key(value)
+    if identity.startswith("crime_"):
+        suffix = canonical_label(identity.removeprefix("crime_"))
+        if not suffix:
+            return identity
+        return suffix if suffix.startswith("crime_") else f"crime_{suffix}"
+    if crimes and (not identity or identity.startswith("operacao_")):
+        return crimes[0] if crimes[0].startswith("crime_") else f"crime_{crimes[0]}"
+    return identity
+
+
 def unwrap_payload(payload: Any) -> Any:
     current = payload
     for _ in range(3):
@@ -479,11 +549,14 @@ def coerce_inference_payload(payload: Any) -> dict[str, Any]:
             modus = normalized_payload[key]
             break
 
+    crime_labels = coerce_label_list(crimes)
+    modus_labels = coerce_label_list(modus)
+
     return {
-        "identidade_canonica": identidade,
+        "identidade_canonica": canonical_identity(identidade, crime_labels),
         "classificacao": classificacao,
-        "crimes_mais_presentes": coerce_list_value(crimes),
-        "modus_operandi": coerce_list_value(modus),
+        "crimes_mais_presentes": crime_labels,
+        "modus_operandi": modus_labels,
     }
 
 
@@ -620,15 +693,40 @@ def run_model(llm_settings: LLMSettings, news_body: str) -> tuple[NoticiaLLMInfe
     )
 
 
-def build_jsonl_record(file_name: str, registro: NoticiaEnriquecida) -> dict[str, Any]:
+def build_regex_metadata(regex_result: RegexClassification, accepted: bool) -> dict[str, Any]:
+    return {
+        "accepted": accepted,
+        "confidence": round(regex_result.confidence, 3),
+        "source": regex_result.source,
+        "operation_name": regex_result.operation_name,
+        "matched_rules": regex_result.matched_rules,
+    }
+
+
+def build_jsonl_record(
+    file_name: str,
+    registro: NoticiaEnriquecida,
+    regex_result: RegexClassification | None = None,
+    source: str = "llm",
+    learned_regex_rules: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    regex_metadata = build_regex_metadata(regex_result, accepted=source == "regex") if regex_result else {}
     return {
         "arquivo": file_name,
         "metadata_extraido": registro.metadata_extraido.model_dump(),
         "inferencia_llm": registro.inferencia_llm.model_dump(),
+        "fonte_classificacao": source,
+        "regex_classificacao": regex_metadata,
+        "regex_rules_aprendidas": learned_regex_rules or [],
     }
 
 
-def build_dataframe_row(file_name: str, registro: NoticiaEnriquecida) -> dict[str, Any]:
+def build_dataframe_row(
+    file_name: str,
+    registro: NoticiaEnriquecida,
+    regex_result: RegexClassification | None = None,
+    source: str = "llm",
+) -> dict[str, Any]:
     metadata = registro.metadata_extraido
     inferencia = registro.inferencia_llm
     return {
@@ -644,6 +742,8 @@ def build_dataframe_row(file_name: str, registro: NoticiaEnriquecida) -> dict[st
         "classificacao": inferencia.classificacao,
         "crimes_mais_presentes": inferencia.crimes_mais_presentes,
         "modus_operandi": inferencia.modus_operandi,
+        "fonte_classificacao": source,
+        "confianca_regex": round(regex_result.confidence, 3) if regex_result else 0.0,
     }
 
 
@@ -674,6 +774,10 @@ def build_dataframe_row_from_record(record: dict[str, Any]) -> dict[str, Any]:
         "classificacao": str(inferencia_llm.get("classificacao", "")).strip(),
         "crimes_mais_presentes": inferencia_llm.get("crimes_mais_presentes", []) if isinstance(inferencia_llm.get("crimes_mais_presentes", []), list) else [],
         "modus_operandi": inferencia_llm.get("modus_operandi", []) if isinstance(inferencia_llm.get("modus_operandi", []), list) else [],
+        "fonte_classificacao": str(record.get("fonte_classificacao", "llm")).strip() or "llm",
+        "confianca_regex": float(record.get("regex_classificacao", {}).get("confidence", 0.0) or 0.0)
+        if isinstance(record.get("regex_classificacao", {}), dict)
+        else 0.0,
     }
 
 
@@ -721,8 +825,28 @@ def save_outputs(output_dir: Path, output_jsonl: Path, output_csv: Path, datafra
     csv_ready.to_csv(output_csv, index=False, encoding="utf-8-sig")
 
 
-def main(argv: list[str] | None = None) -> pd.DataFrame:
-    runtime_config = resolve_runtime_config(parse_args(argv))
+def main(
+    provider: str | None = None,
+    model: str | None = None,
+    base_url: str | None = None,
+    input_dir: Path | str | None = None,
+    output_jsonl: Path | str | None = None,
+    output_csv: Path | str | None = None,
+    limit: int | None = None,
+    disable_regex: bool | None = None,
+    regex_threshold: float | None = None,
+) -> pd.DataFrame:
+    runtime_config = resolve_runtime_config(
+        provider=provider,
+        model=model,
+        base_url=base_url,
+        input_dir=input_dir,
+        output_jsonl=output_jsonl,
+        output_csv=output_csv,
+        limit=limit,
+        disable_regex=disable_regex,
+        regex_threshold=regex_threshold,
+    )
     markdown_dir = runtime_config.markdown_dir
     markdown_files_all = tuple(sorted(markdown_dir.glob(MARKDOWN_PATTERN)))
     if not markdown_dir.exists():
@@ -743,6 +867,17 @@ def main(argv: list[str] | None = None) -> pd.DataFrame:
     )
     print(f"Preferencia LLM: {runtime_config.llm_settings.preferred_provider}")
     print(f"Ordem de tentativa: {ordered_providers}")
+    if runtime_config.regex_enabled:
+        clean_stats = clean_learned_rules_file()
+        print(f"Classificador regex habilitado com limiar {runtime_config.regex_threshold:.2f}")
+        if clean_stats["before"]:
+            print(
+                "[regex] regras aprendidas limpas: "
+                f"{clean_stats['before']} -> {clean_stats['after']} "
+                f"(removidas={clean_stats['removed']})"
+            )
+    else:
+        print("Classificador regex desabilitado; todas as noticias novas vao para a LLM.")
 
     if processed_titles:
         print(f"Titulos ja processados encontrados: {len(processed_titles)}")
@@ -757,10 +892,36 @@ def main(argv: list[str] | None = None) -> pd.DataFrame:
             continue
 
         metadata_extraido = build_extracted_metadata(parsed_news)
-        inferencia_llm, provider_used, model_used, token_usage = run_model(
-            llm_settings=runtime_config.llm_settings,
-            news_body=str(parsed_news["corpo"]),
-        )
+        regex_result: RegexClassification | None = None
+        source = "llm"
+        provider_used = ""
+        model_used = ""
+        token_usage = ZERO_TOKEN_USAGE
+        learned_regex_rules: list[dict[str, str]] = []
+
+        if runtime_config.regex_enabled:
+            regex_result = classify_news_body(
+                str(parsed_news["corpo"]),
+                tags=parsed_news.get("tags", []),
+                confidence_threshold=runtime_config.regex_threshold,
+            )
+
+        if regex_result and regex_result.inference is not None:
+            inferencia_llm = regex_result.inference
+            provider_used = "regex"
+            model_used = "pf_regex_classifier"
+            source = "regex"
+        else:
+            inferencia_llm, provider_used, model_used, token_usage = run_model(
+                llm_settings=runtime_config.llm_settings,
+                news_body=str(parsed_news["corpo"]),
+            )
+            if runtime_config.regex_enabled:
+                learned_regex_rules = improve_regex_from_llm(
+                    str(parsed_news["corpo"]),
+                    inferencia_llm,
+                    title=str(parsed_news.get("titulo", "")),
+                )
         registro = NoticiaEnriquecida(
             metadata_extraido=metadata_extraido,
             inferencia_llm=inferencia_llm,
@@ -769,15 +930,28 @@ def main(argv: list[str] | None = None) -> pd.DataFrame:
         total_completion_tokens += token_usage.completion_tokens
         total_tokens += token_usage.total_tokens
 
-        dataframe_rows.append(build_dataframe_row(markdown_file.name, registro))
-        jsonl_records.append(build_jsonl_record(markdown_file.name, registro))
+        dataframe_rows.append(build_dataframe_row(markdown_file.name, registro, regex_result=regex_result, source=source))
+        jsonl_records.append(
+            build_jsonl_record(
+                markdown_file.name,
+                registro,
+                regex_result=regex_result,
+                source=source,
+                learned_regex_rules=learned_regex_rules,
+            )
+        )
         if title_key:
             processed_titles.add(title_key)
 
+        regex_info = ""
+        if regex_result:
+            regex_info = f" | regex_conf={regex_result.confidence:.2f}"
+        if learned_regex_rules:
+            regex_info = f"{regex_info} | regex_aprendeu={len(learned_regex_rules)}"
         print(
             f"[{index}/{len(markdown_files)}] {markdown_file.name} | "
             f"provider={provider_used} | modelo={model_used} | "
-            f"tokens={format_token_usage(token_usage)}"
+            f"tokens={format_token_usage(token_usage)}{regex_info}"
         )
         print(registro.to_readable_block())
         print()

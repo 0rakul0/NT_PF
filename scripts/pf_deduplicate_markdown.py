@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import argparse
 import hashlib
+import os
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -84,22 +84,18 @@ def choose_canonical_path(paths: list[Path], manifest_reference_counts: Counter[
     return min(paths, key=lambda path: filename_score(path, manifest_reference_counts[path]))
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Consolida markdowns duplicados com conteudo identico e remove os arquivos redundantes."
-    )
-    parser.add_argument("--content-csv", type=Path, default=DEFAULT_CONTENT_CSV)
-    parser.add_argument("--markdown-dir", type=Path, default=DEFAULT_MARKDOWN_DIR)
-    parser.add_argument("--dry-run", action="store_true")
-    return parser
+def main(
+    content_csv: Path | str | None = None,
+    markdown_dir: Path | str | None = None,
+    dry_run: bool | None = None,
+) -> None:
+    content_csv_path = Path(content_csv or os.getenv("PF_CONTENT_CSV", "") or DEFAULT_CONTENT_CSV)
+    markdown_dir_path = Path(markdown_dir or os.getenv("PF_MARKDOWN_DIR", "") or DEFAULT_MARKDOWN_DIR)
+    if dry_run is None:
+        dry_run = os.getenv("PF_DEDUPE_DRY_RUN", "").strip().lower() in {"1", "true", "yes"}
 
-
-def main(argv: list[str] | None = None) -> None:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-
-    content_csv = args.content_csv.resolve() if not args.content_csv.is_absolute() else args.content_csv
-    markdown_dir = args.markdown_dir.resolve() if not args.markdown_dir.is_absolute() else args.markdown_dir
+    content_csv = content_csv_path.resolve() if not content_csv_path.is_absolute() else content_csv_path
+    markdown_dir = markdown_dir_path.resolve() if not markdown_dir_path.is_absolute() else markdown_dir_path
 
     manifest = load_manifest(content_csv)
     markdown_dir.mkdir(parents=True, exist_ok=True)
@@ -138,11 +134,11 @@ def main(argv: list[str] | None = None) -> None:
                 f"linhas_manifesto_atualizadas={duplicate_rows}"
             )
 
-            if not args.dry_run and duplicate_path.exists():
+            if not dry_run and duplicate_path.exists():
                 duplicate_path.unlink()
             deleted_files.append(duplicate_path)
 
-    if args.dry_run:
+    if dry_run:
         print(f"[dedupe] dry-run: {len(deleted_files)} arquivos seriam removidos.")
         print(f"[dedupe] dry-run: {manifest_updates} linhas do manifesto seriam atualizadas.")
         return

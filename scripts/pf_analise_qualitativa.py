@@ -1,8 +1,8 @@
 ﻿from __future__ import annotations
 
-import argparse
 import json
 import math
+import os
 import re
 import unicodedata
 from collections import Counter, defaultdict
@@ -164,18 +164,44 @@ class AnalysisArtifacts:
     semantic_series: pd.DataFrame
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Analise qualitativa e semantica das noticias de operacoes da PF."
+@dataclass(frozen=True)
+class AnalysisConfig:
+    index_csv: Path = DEFAULT_INDEX_CSV
+    content_csv: Path = DEFAULT_CONTENT_CSV
+    output_dir: Path = DEFAULT_OUTPUT_DIR
+    llm_metadata_jsonl: Path = DEFAULT_LLM_METADATA_JSONL
+    neighbors: int = 6
+    series_threshold: float = 0.70
+    random_state: int = 42
+
+
+def build_analysis_config(
+    index_csv: Path | str | None = None,
+    content_csv: Path | str | None = None,
+    output_dir: Path | str | None = None,
+    llm_metadata_jsonl: Path | str | None = None,
+    neighbors: int | None = None,
+    series_threshold: float | None = None,
+    random_state: int | None = None,
+) -> AnalysisConfig:
+    env_neighbors = os.getenv("PF_ANALYSIS_NEIGHBORS", "").strip()
+    env_series_threshold = os.getenv("PF_ANALYSIS_SERIES_THRESHOLD", "").strip().replace(",", ".")
+    env_random_state = os.getenv("PF_ANALYSIS_RANDOM_STATE", "").strip()
+    return AnalysisConfig(
+        index_csv=Path(index_csv or os.getenv("PF_INDEX_CSV", "") or DEFAULT_INDEX_CSV),
+        content_csv=Path(content_csv or os.getenv("PF_CONTENT_CSV", "") or DEFAULT_CONTENT_CSV),
+        output_dir=Path(output_dir or os.getenv("PF_ANALYSIS_OUTPUT_DIR", "") or DEFAULT_OUTPUT_DIR),
+        llm_metadata_jsonl=Path(llm_metadata_jsonl or os.getenv("PF_LLM_METADATA_JSONL", "") or DEFAULT_LLM_METADATA_JSONL),
+        neighbors=neighbors if neighbors is not None else int(env_neighbors) if env_neighbors.isdigit() else 6,
+        series_threshold=(
+            series_threshold
+            if series_threshold is not None
+            else float(env_series_threshold)
+            if env_series_threshold
+            else 0.70
+        ),
+        random_state=random_state if random_state is not None else int(env_random_state) if env_random_state.isdigit() else 42,
     )
-    parser.add_argument("--index-csv", type=Path, default=DEFAULT_INDEX_CSV)
-    parser.add_argument("--content-csv", type=Path, default=DEFAULT_CONTENT_CSV)
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--llm-metadata-jsonl", type=Path, default=DEFAULT_LLM_METADATA_JSONL)
-    parser.add_argument("--neighbors", type=int, default=6)
-    parser.add_argument("--series-threshold", type=float, default=0.70)
-    parser.add_argument("--random-state", type=int, default=42)
-    return parser.parse_args(argv)
 
 
 def ensure_dir(path: Path) -> None:
@@ -1360,13 +1386,13 @@ def write_report(
     output_file.write_text("\n".join(lines), encoding="utf-8")
 
 
-def run_analysis(args: argparse.Namespace) -> AnalysisArtifacts:
-    output_dir = args.output_dir
+def run_analysis(config: AnalysisConfig) -> AnalysisArtifacts:
+    output_dir = config.output_dir
     ensure_dir(output_dir)
 
-    df = load_corpus(args.index_csv, args.content_csv, llm_metadata_jsonl=args.llm_metadata_jsonl)
-    vectorizer, tfidf_matrix, embeddings = build_semantic_space(df["texto_cluster_hibrido"], random_state=args.random_state)
-    df["cluster_id"] = assign_clusters(embeddings, random_state=args.random_state)
+    df = load_corpus(config.index_csv, config.content_csv, llm_metadata_jsonl=config.llm_metadata_jsonl)
+    vectorizer, tfidf_matrix, embeddings = build_semantic_space(df["texto_cluster_hibrido"], random_state=config.random_state)
+    df["cluster_id"] = assign_clusters(embeddings, random_state=config.random_state)
 
     top_terms = top_terms_by_cluster(tfidf_matrix, vectorizer, df["cluster_id"].to_numpy())
     cluster_df = cluster_summary(df, top_terms=top_terms)
@@ -1388,16 +1414,16 @@ def run_analysis(args: argparse.Namespace) -> AnalysisArtifacts:
     )
     df["cluster_canonico_display_label"] = df["cluster_canonico_id"].map(canonical_label_map)
 
-    neighbors_df = nearest_neighbors(df, embeddings, n_neighbors=args.neighbors)
+    neighbors_df = nearest_neighbors(df, embeddings, n_neighbors=config.neighbors)
     recurring_pairs = neighbors_df[
         (neighbors_df["gap_days"].fillna(0) >= 30)
         & (neighbors_df["same_cluster"])
         & (
-            (neighbors_df["cosine_similarity"] >= max(args.series_threshold, 0.90))
+            (neighbors_df["cosine_similarity"] >= max(config.series_threshold, 0.90))
             | (
                 neighbors_df["source_operation_name"].fillna("").ne("")
                 & (neighbors_df["source_operation_name"] == neighbors_df["target_operation_name"])
-                & (neighbors_df["cosine_similarity"] >= args.series_threshold)
+                & (neighbors_df["cosine_similarity"] >= config.series_threshold)
             )
         )
     ].sort_values(["cosine_similarity", "gap_days"], ascending=[False, False]).reset_index(drop=True)
@@ -1497,14 +1523,30 @@ def run_analysis(args: argparse.Namespace) -> AnalysisArtifacts:
     )
 
 
-def main(argv: list[str] | None = None) -> None:
-    args = parse_args(argv)
-    artifacts = run_analysis(args)
+def main(
+    index_csv: Path | str | None = None,
+    content_csv: Path | str | None = None,
+    output_dir: Path | str | None = None,
+    llm_metadata_jsonl: Path | str | None = None,
+    neighbors: int | None = None,
+    series_threshold: float | None = None,
+    random_state: int | None = None,
+) -> None:
+    config = build_analysis_config(
+        index_csv=index_csv,
+        content_csv=content_csv,
+        output_dir=output_dir,
+        llm_metadata_jsonl=llm_metadata_jsonl,
+        neighbors=neighbors,
+        series_threshold=series_threshold,
+        random_state=random_state,
+    )
+    artifacts = run_analysis(config)
     print(f"[analysis] noticias: {len(artifacts.corpus)}")
     print(f"[analysis] clusters: {artifacts.corpus['cluster_id'].nunique()}")
     print(f"[analysis] clusters_canonicos: {len(artifacts.canonical_cluster_summary)}")
     print(f"[analysis] series_semanticas_legacy: {len(artifacts.semantic_series)}")
-    print(f"[analysis] saida: {args.output_dir.resolve()}")
+    print(f"[analysis] saida: {config.output_dir.resolve()}")
 
 
 if __name__ == "__main__":
