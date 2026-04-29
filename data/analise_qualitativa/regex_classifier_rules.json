@@ -333,8 +333,16 @@
     "kind": "crime",
     "classificador": "injuria",
     "source": "llm_feedback",
-    "uses": 1,
+    "uses": 2,
     "patterns_do_classificador": [
+      {
+        "pattern_do_classificador": "\\banimus\\w*\\b.{0,240}\\binjuria\\w*\\b.{0,240}\\binjuriandi\\w*\\b.{0,240}\\bhonra\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Animus Injuriandi apura crime contra à honra de parlamentar em rede social"
+        ]
+      },
       {
         "pattern_do_classificador": "\\bparte\\w*\\b.{0,240}\\banimus\\w*\\b.{0,240}\\binjuria\\w*\\b.{0,240}\\binjuriandi\\w*\\b",
         "weight": 1.4,
@@ -583,7 +591,7 @@
     "kind": "crime",
     "classificador": "trafico_drogas",
     "source": "llm_feedback",
-    "uses": 21,
+    "uses": 22,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bcamicua\\w*\\b.{0,240}\\bobjetivo\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
@@ -623,6 +631,14 @@
         "uses": 1,
         "examples": [
           "FICCO/GO e Polícia Penal reprimem crime de tráfico de drogas nos estados de GO e MS"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bficco\\w*\\b.{0,240}\\bdeflagra\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas"
         ]
       },
       {
@@ -760,11 +776,11 @@
       "FICCO/ES faz operação de repressão ao tráfico de drogas",
       "FICCO/AC deflagra operação contra o tráfico de drogas",
       "FICCO/GO e Polícia Penal reprimem crime de tráfico de drogas nos estados de GO e MS",
+      "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas",
       "FICCO/AP deflagra operação contra tráfico interestadual de drogas no PA e no AP",
       "FICCO/MG desarticula organização criminosa especializada em tráfico de drogas no Triângulo Mineiro",
       "Força Tarefa de Segurança Pública combate tráfico de drogas e organização criminosa",
-      "FICCO/MG mira esquema de tráfico e lavagem de dinheiro no Triângulo Mineiro",
-      "FICCO/RR faz operação contra grupo criminoso em Roraima e em Santa Catarina"
+      "FICCO/MG mira esquema de tráfico e lavagem de dinheiro no Triângulo Mineiro"
     ]
   },
   {
@@ -809,7 +825,7 @@
     "kind": "modus",
     "classificador": "busca_apreensao",
     "source": "llm_feedback",
-    "uses": 112,
+    "uses": 123,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bapos\\w*\\b.{0,240}\\brealizacao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
@@ -879,7 +895,7 @@
       {
         "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bdata\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Operação Contágio II investiga fraudes em procedimentos licitatórios em Plácido de Castro/AC"
         ]
@@ -945,7 +961,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 4,
+        "uses": 5,
         "examples": [
           "Ação conjunta combate tráfico de drogas e crime organizado",
           "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas",
@@ -981,7 +997,7 @@
       {
         "pattern_do_classificador": "\\bcumpriram\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Operação Contra-ataque investiga invasões ao site da Justiça Federal em Sergipe"
         ]
@@ -989,7 +1005,7 @@
       {
         "pattern_do_classificador": "\\bcumpriu\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Operação da PF combate fraudes ao Auxílio Brasil"
         ]
@@ -997,7 +1013,7 @@
       {
         "pattern_do_classificador": "\\bcumpriu\\w*\\b.{0,240}\\btarde\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Operação Inverted Jenny investiga uso de selos falsos em agências franqueadas dos Correios"
         ]
@@ -1005,7 +1021,7 @@
       {
         "pattern_do_classificador": "\\bcuritiba\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\balcool\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Operação Acqua Gel da PF apura produção e comercialização de álcool gel adulterado no Paraná"
         ]
@@ -1108,9 +1124,17 @@
         ]
       },
       {
+        "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "FICCO/AM cumpre mandados contra crime organizado no âmbito da Operação Força Integrada"
+        ]
+      },
+      {
         "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bsendo\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 4,
+        "uses": 5,
         "examples": [
           "FICCO/AP deflagra operação contra tráfico interestadual de drogas no PA e no AP",
           "FICCO/RR faz operação contra grupo criminoso em Roraima e em Santa Catarina",
@@ -1407,7 +1431,7 @@
       {
         "pattern_do_classificador": "\\bparticipacao\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Operação Força Extra desarticula esquema de venda ilegal de anabolizantes em SP e ES"
         ]
@@ -1453,6 +1477,14 @@
         ]
       },
       {
+        "pattern_do_classificador": "\\bquatro\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Operação Mãe-Terra combate importação e comercialização ilegal de agrotóxicos de origem estrangeira"
+        ]
+      },
+      {
         "pattern_do_classificador": "\\bseis\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 2,
@@ -1480,7 +1512,7 @@
       {
         "pattern_do_classificador": "\\btodo\\w*\\b.{0,240}\\bcumpridos\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 3,
         "examples": [
           "Desvio de Recursos públicos: PF e MPF realizam operação em Alagoas",
           "Operação Francamente combate às fraudes na comercialização de caminhonetes na Zona Franca de Manaus"
@@ -1582,7 +1614,7 @@
     "kind": "modus",
     "classificador": "cumprimento_mandado",
     "source": "llm_feedback",
-    "uses": 23,
+    "uses": 24,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bcapim\\w*\\b.{0,240}\\bgrosso\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
@@ -1738,6 +1770,14 @@
         ]
       },
       {
+        "pattern_do_classificador": "\\bparticipacao\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Operação Força Extra desarticula esquema de venda ilegal de anabolizantes em SP e ES"
+        ]
+      },
+      {
         "pattern_do_classificador": "\\brealizadas\\w*\\b.{0,240}\\bdiligencias\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
         "uses": 1,
@@ -1798,12 +1838,12 @@
     "kind": "modus",
     "classificador": "fiscalizacao",
     "source": "llm_feedback",
-    "uses": 4,
+    "uses": 5,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bfiscalizacao\\w*\\b.{0,240}\\binterdicao\\w*\\b.{0,240}\\btres\\w*\\b.{0,240}\\balojamentos\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Força-tarefa retira adolescentes de trabalho infantil em fazendas no Pará"
         ]
@@ -1882,14 +1922,30 @@
     "kind": "modus",
     "classificador": "prisao",
     "source": "llm_feedback",
-    "uses": 5,
+    "uses": 7,
     "patterns_do_classificador": [
+      {
+        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bprisao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas"
+        ]
+      },
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bprisao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
           "Ação conjunta combate tráfico de drogas e crime organizado"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bsendo\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bprisao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "FICCO/AM cumpre mandados contra crime organizado no âmbito da Operação Força Integrada"
         ]
       },
       {
@@ -1926,7 +1982,9 @@
       }
     ],
     "examples": [
+      "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas",
       "Ação conjunta combate tráfico de drogas e crime organizado",
+      "FICCO/AM cumpre mandados contra crime organizado no âmbito da Operação Força Integrada",
       "FICCO/MG apreende aproximadamente 150 kg de maconha",
       "Em ação conjunta, FICCO/BA e FICCO/SP deflagram operação e prendem líder de facção",
       "FICCO/RN investiga grupo criminoso que teve 243 kg de skunk apreendidos no RN",

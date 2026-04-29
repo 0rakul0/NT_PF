@@ -585,7 +585,7 @@ def rescue_inference_with_regex(
     fallback_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
 ) -> RegexClassification | None:
     rescue_result = classify_news_body(
-        combined_news_text(parsed_news),
+        build_llm_context(parsed_news),
         tags=parsed_news.get("tags", []),
         confidence_threshold=fallback_threshold,
     )
@@ -907,12 +907,11 @@ def main(
         model_used = ""
         token_usage = ZERO_TOKEN_USAGE
         learned_regex_rules: list[dict[str, str]] = []
-        full_news_text = combined_news_text(parsed_news)
         llm_context = build_llm_context(parsed_news)
 
         if runtime_config.regex_enabled:
             regex_result = classify_news_body(
-                full_news_text,
+                llm_context,
                 tags=parsed_news.get("tags", []),
                 confidence_threshold=runtime_config.regex_threshold,
             )
@@ -929,7 +928,7 @@ def main(
             )
             if runtime_config.regex_enabled and inference_needs_regex_rescue(
                 inferencia_llm,
-                full_news_text,
+                llm_context,
             ):
                 rescue_result = rescue_inference_with_regex(parsed_news)
                 if rescue_result and rescue_result.inference is not None:
@@ -940,7 +939,7 @@ def main(
                     source = "regex_rescue"
             if runtime_config.regex_enabled:
                 learned_regex_rules = improve_regex_from_llm(
-                    full_news_text,
+                    llm_context,
                     inferencia_llm,
                     title=str(parsed_news.get("titulo", "")),
                 )
