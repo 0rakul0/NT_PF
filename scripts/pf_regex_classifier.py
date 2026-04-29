@@ -92,6 +92,109 @@ NON_CRIME_LABELS = {
     "resgate_vitimas",
     "suspensao_atividades",
 }
+IGNORED_TAGS = {
+    "destaque",
+    "operacao_pf",
+    "pf",
+    "policia_federal",
+}
+TAG_RULE_DEFS: tuple[tuple[str, tuple[str, ...], float], ...] = (
+    (
+        "crimes_ambientais",
+        (
+            r"\bouros?\b",
+            r"\bgarimpos?\b",
+            r"\bgarimpos? ilegais?\b",
+            r"\bminerios?\b",
+            r"\bmineracao\b",
+            r"\bmadeira\b",
+            r"\bmadeira ilegal\b",
+            r"\bcomercio ilegal de madeira\b",
+            r"\bexploracao ilegal de madeira\b",
+            r"\bmeio ambiente\b",
+            r"\bcrimes? ambientais?\b",
+            r"\bpesca\b",
+            r"\bpesca ilegal\b",
+            r"\bgrilagem de terras?\b",
+            r"\bagrotoxicos?\b",
+        ),
+        2.4,
+    ),
+    (
+        "crime_eleitoral",
+        (
+            r"\bcrime eleitoral\b",
+            r"\bcrimes eleitorais\b",
+            r"\bfraude eleitoral\b",
+            r"\bcorrupcao eleitoral\b",
+            r"\beleicoes?\b",
+            r"\beleitoral\b",
+            r"\bcampanha eleitoral\b",
+        ),
+        2.2,
+    ),
+    (
+        "fraude_previdenciaria",
+        (
+            r"\binss\b",
+            r"\bprevidencia\b",
+            r"\bprevidenciario\b",
+            r"\bprevidenciaria\b",
+            r"\bfraudes previdenciarias\b",
+            r"\bauxilio emergencial\b",
+            r"\bbeneficio emergencial\b",
+            r"\bseguro-desemprego\b",
+            r"\bbolsa familia\b",
+        ),
+        2.2,
+    ),
+    (
+        "exploracao_pessoas",
+        (
+            r"\btrabalho escravo\b",
+            r"\btrabalho analogo a escravidao\b",
+            r"\btrabalho analogo ao de escravo\b",
+            r"\btrafico internacional de pessoas\b",
+            r"\btrafico de pessoas\b",
+            r"\btrafico internacional de orgaos humanos\b",
+        ),
+        2.2,
+    ),
+    (
+        "crimes_contra_crianca",
+        (
+            r"\bpornografia infantil\b",
+            r"\babuso sexual\b",
+            r"\babuso infantojuvenil\b",
+            r"\bexploracao sexual infantojuvenil\b",
+            r"\bviolencia sexual infantil\b",
+            r"\bcrimes contra menores\b",
+            r"\bcriancas e adolescentes\b",
+        ),
+        2.2,
+    ),
+    (
+        "radiodifusao_irregular",
+        (
+            r"\bradio clandestina\b",
+            r"\bradios clandestinas\b",
+            r"\bradiodifusao\b",
+        ),
+        2.0,
+    ),
+    (
+        "desenvolvimento_clandestino_atividade_telecomunicacao",
+        (
+            r"\btelecomunicacoes?\b",
+            r"\batividade clandestina de telecomunicacao\b",
+            r"\btelecomunicacao clandestina\b",
+        ),
+        2.0,
+    ),
+)
+BAD_LEARNED_LABEL_TERMS = {
+    "comercializacao_medicamentos_nao_autorizados": {"seguro", "seguros", "seguradora"},
+}
 SENSITIVE_LABEL_EVIDENCE = {
     "crimes_contra_crianca": (
         r"\babuso sexual\b",
@@ -109,8 +212,8 @@ SPECIFIC_CRIME_PRIORITY = {
     "pornografia_infantil": 91,
     "abuso_sexual_infantil": 90,
     "trafico_drogas": 88,
+    "crimes_ambientais": 87,
     "lavagem_dinheiro": 86,
-    "crimes_ambientais": 84,
     "contrabando_descaminho": 82,
     "crimes_armas": 81,
     "posse_irregular_arma_fogo": 81,
@@ -155,6 +258,7 @@ def build_regex_rules(rule_defs: tuple[tuple[str, tuple[str, ...], float], ...])
 
 CRIME_RULES = build_regex_rules(CRIME_RULE_DEFS)
 MODUS_RULES = build_regex_rules(MODUS_RULE_DEFS)
+TAG_RULES = build_regex_rules(TAG_RULE_DEFS)
 
 
 OPERATION_RE = re.compile(
@@ -185,21 +289,21 @@ def prioritize_crimes(crimes: list[str], matches: list[dict[str, object]]) -> li
     specific = [crime for crime in crimes if crime not in GENERIC_CRIME_LABELS]
     if specific and crimes and crimes[0] in GENERIC_CRIME_LABELS:
         top_specific = max(
-            specific,
-            key=lambda crime: (
-                SPECIFIC_CRIME_PRIORITY.get(crime, 0),
-                match_scores.get(crime, 0.0),
-            ),
-        )
+              specific,
+              key=lambda crime: (
+                  match_scores.get(crime, 0.0),
+                  SPECIFIC_CRIME_PRIORITY.get(crime, 0),
+              ),
+          )
         crimes = [top_specific, *[crime for crime in crimes if crime != top_specific]]
 
     crimes = sorted(
         crimes,
-        key=lambda crime: (
-            0 if crime in GENERIC_CRIME_LABELS and len(crimes) > 1 else 1,
-            SPECIFIC_CRIME_PRIORITY.get(crime, 0),
-            match_scores.get(crime, 0.0),
-        ),
+          key=lambda crime: (
+              0 if crime in GENERIC_CRIME_LABELS and len(crimes) > 1 else 1,
+              match_scores.get(crime, 0.0),
+              SPECIFIC_CRIME_PRIORITY.get(crime, 0),
+          ),
         reverse=True,
     )
     return crimes
@@ -286,6 +390,17 @@ def merge_match_scores(
     return sorted(merged.values(), key=lambda item: float(item["score"]), reverse=True)
 
 
+def normalize_tags(tags: Iterable[str] | None) -> list[str]:
+    normalized: list[str] = []
+    for tag in tags or []:
+        folded = fold_text(str(tag)).strip()
+        slug = normalize_slug(folded)
+        if not folded or slug in IGNORED_TAGS:
+            continue
+        normalized.append(folded)
+    return normalized
+
+
 def learned_rules_path(path: Path | str | None = None) -> Path:
     if path is not None:
         return Path(path)
@@ -328,9 +443,10 @@ def clear_learned_rules_cache(path: Path | str | None = None) -> None:
     LEARNED_RULES_CACHE.pop(resolved_path, None)
 
 
-def known_crime_labels(path: Path | str | None = None) -> list[str]:
+def known_crime_labels(path: Path | str | None = None, include_learned: bool = True) -> list[str]:
     labels = {canonical_label(rule.label) for rule in CRIME_RULES}
-    labels.update(canonical_label(rule.label) for rule in load_learned_rules(path=path, kind="crime"))
+    if include_learned:
+        labels.update(canonical_label(rule.label) for rule in load_learned_rules(path=path, kind="crime"))
     return sorted(label for label in labels if label not in NON_CRIME_LABELS)
 
 
@@ -397,12 +513,12 @@ def classify_news_body(
     learned_rules_file: Path | str | None = None,
 ) -> RegexClassification:
     normalized = fold_text(news_body)
-    normalized_tags = fold_text(" ".join(str(tag) for tag in tags or []))
+    normalized_tags = " ".join(normalize_tags(tags))
     crime_rules = (*CRIME_RULES, *load_learned_rules(path=learned_rules_file, kind="crime"))
     modus_rules = (*MODUS_RULES, *load_learned_rules(path=learned_rules_file, kind="modus"))
     body_crime_matches = score_rules(normalized, crime_rules)
     body_modus_matches = score_rules(normalized, modus_rules)
-    tag_crime_matches = score_rules(normalized_tags, crime_rules) if normalized_tags else []
+    tag_crime_matches = score_rules(normalized_tags, (*TAG_RULES, *crime_rules)) if normalized_tags else []
     tag_modus_matches = score_rules(normalized_tags, modus_rules) if normalized_tags else []
     crime_matches = only_crime_matches(merge_match_scores(body_crime_matches, tag_crime_matches))
     modus_matches = merge_match_scores(body_modus_matches, tag_modus_matches)
@@ -551,7 +667,13 @@ def normalize_flat_learned_rule_record(record: dict[str, object]) -> dict[str, o
         return None
     if kind == "crime" and label in NON_CRIME_LABELS:
         return None
+    if kind == "crime":
+        static_crime_labels = {canonical_label(rule.label) for rule in CRIME_RULES}
+        if label not in static_crime_labels:
+            return None
     pattern_terms = re.findall(r"\\b([a-z0-9]{3,})", pattern.lower())
+    if kind == "crime" and BAD_LEARNED_LABEL_TERMS.get(label, set()).intersection(pattern_terms):
+        return None
     alpha_terms = [
         term
         for term in pattern_terms

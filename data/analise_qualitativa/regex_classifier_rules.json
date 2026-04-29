@@ -1,189 +1,342 @@
 [
   {
     "kind": "crime",
-    "classificador": "corrupcao_desvio",
+    "classificador": "comercializacao_medicamentos_nao_autorizados",
     "source": "llm_feedback",
     "uses": 1,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bnatal\\w*\\b.{0,240}\\bchupim\\w*\\b.{0,240}\\bdesvio\\w*\\b.{0,240}\\bcorrupcao\\w*\\b",
+        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bcomercializacao\\w*\\b.{0,240}\\bmedicamentos\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação da PF combate no RN desvios em financiamentos do Pronaf"
+          "PF deflagra Operação Slim em São Paulo"
         ]
       }
     ],
     "examples": [
-      "Operação da PF combate no RN desvios em financiamentos do Pronaf"
+      "PF deflagra Operação Slim em São Paulo"
     ]
   },
   {
     "kind": "crime",
     "classificador": "crime_eleitoral",
     "source": "llm_feedback",
-    "uses": 4,
+    "uses": 8,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bbelem\\w*\\b.{0,240}\\bterca\\w*\\b.{0,240}\\bconatibus\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "pattern_do_classificador": "\\bcaluniosa\\w*\\b.{0,240}\\bcumprindo\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\beleitoral\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Conatibus investiga falsidade ideológica eleitoral e lavagem de capitais"
+          "PF cumpre mandado de busca e apreensão por crime ocorrido na eleição de 2024"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bcinco\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "pattern_do_classificador": "\\bcampanhas\\w*\\b.{0,240}\\beleitora\\w*\\b.{0,240}\\beleitorais\\w*\\b.{0,240}\\bsufragio\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/CE deflagra Operação Promessa Vazia contra crimes eleitorais em Santa Quitéria"
+          "PF investiga irregularidades em campanhas eleitorais"
         ]
       },
       {
-        "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\boito\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "pattern_do_classificador": "\\beleitoral\\w*\\b.{0,240}\\balagoas\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Cícero II investiga esquema de fraudes nas eleições de 2018"
+          "PF faz operação de repressão a crime eleitoral em Alagoas"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\borganizado\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "pattern_do_classificador": "\\bpiaui\\w*\\b.{0,240}\\bfraude\\w*\\b.{0,240}\\beleitoral\\w*\\b.{0,240}\\bfake\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/MG combate crimes eleitorais em Argirita/MG"
+          "PF investiga a contratação de serviços de disparo automático de mensagens via aplicativo de mensagens, para fins eleitorais, pelo Governo do Estado do Piauí"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bpocone\\w*\\b.{0,240}\\bdiobelia\\w*\\b.{0,240}\\bobjetivo\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF faz operações contra crimes praticados nas eleições de 2024"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bsuspeita\\w*\\b.{0,240}\\birregularidades\\w*\\b.{0,240}\\bcampanha\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF investiga suspeita de irregularidades em campanha eleitoral de partido em Minas Gerais"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\btitulo\\w*\\b.{0,240}\\bdeflagra\\w*\\b.{0,240}\\beleitora\\w*\\b.{0,240}\\bjaneiro\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Polícia Federal deflagra Operação \"$UFRÁGIO\" para investigar esquema de crimes eleitorais no Rio de Janeiro."
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bvoto\\w*\\b.{0,240}\\blivre\\w*\\b.{0,240}\\bcumpre\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF combate a possível prática de crimes que poderiam comprometer as eleições no Município de Agrestina/PE"
         ]
       }
     ],
     "examples": [
-      "Operação Conatibus investiga falsidade ideológica eleitoral e lavagem de capitais",
-      "FICCO/CE deflagra Operação Promessa Vazia contra crimes eleitorais em Santa Quitéria",
-      "Operação Cícero II investiga esquema de fraudes nas eleições de 2018",
-      "FICCO/MG combate crimes eleitorais em Argirita/MG"
+      "PF cumpre mandado de busca e apreensão por crime ocorrido na eleição de 2024",
+      "PF investiga irregularidades em campanhas eleitorais",
+      "PF faz operação de repressão a crime eleitoral em Alagoas",
+      "PF investiga a contratação de serviços de disparo automático de mensagens via aplicativo de mensagens, para fins eleitorais, pelo Governo do Estado do Piauí",
+      "PF faz operações contra crimes praticados nas eleições de 2024",
+      "PF investiga suspeita de irregularidades em campanha eleitoral de partido em Minas Gerais",
+      "Polícia Federal deflagra Operação \"$UFRÁGIO\" para investigar esquema de crimes eleitorais no Rio de Janeiro.",
+      "PF combate a possível prática de crimes que poderiam comprometer as eleições no Município de Agrestina/PE"
     ]
   },
   {
     "kind": "crime",
     "classificador": "crimes_ambientais",
     "source": "llm_feedback",
-    "uses": 3,
+    "uses": 5,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bjustica\\w*\\b.{0,240}\\bdeterminou\\w*\\b.{0,240}\\bainda\\w*\\b.{0,240}\\bambientais\\w*\\b",
+        "pattern_do_classificador": "\\bacoes\\w*\\b.{0,240}\\bfazem\\w*\\b.{0,240}\\bparte\\w*\\b.{0,240}\\bambientais\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Bezerro de Ouro desarticula grupo criminoso que atua em extração ilícita de ouro em terras indígenas no Pará"
+          "PF intensifica combate ao desmatamento e incêndios florestais no Acre e sul do Amazonas"
         ]
       },
       {
-        "pattern_do_classificador": "\\bsudema\\w*\\b.{0,240}\\btrabalho\\w*\\b.{0,240}\\brecursos\\w*\\b.{0,240}\\bambienta\\w*\\b",
+        "pattern_do_classificador": "\\baves\\w*\\b.{0,240}\\bviatura\\w*\\b.{0,240}\\bibama\\w*\\b.{0,240}\\bambienta\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Jampa Verde 2 combate extração ilegal de minérios em município paraibano"
+          "PF faz busca para recuperar aves furtadas em viatura do IBAMA"
         ]
       },
       {
-        "pattern_do_classificador": "\\btrabalho\\w*\\b.{0,240}\\bmira\\w*\\b.{0,240}\\bambientais\\w*\\b.{0,240}\\bocupacao\\w*\\b",
+        "pattern_do_classificador": "\\bdestaque\\w*\\b.{0,240}\\bilicitos\\w*\\b.{0,240}\\bambientais\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Ação conjunta visa garantir proteção ambiental em Paranaguá"
+          "PF intensifica fiscalização na Unidade de Conservação Reserva Biológica do Jaru para impedir invasões"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bexpedicao\\w*\\b.{0,240}\\bautorizacoes\\w*\\b.{0,240}\\bambientais\\w*\\b.{0,240}\\bbombinhas\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF investiga expedição irregular de autorizações ambientais em Bombinhas/SC"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bibama\\w*\\b.{0,240}\\bmadeireiras\\w*\\b.{0,240}\\brondonia\\w*\\b.{0,240}\\bambienta\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e Ibama realizam operação conjunta em madeireiras em Rondônia"
         ]
       }
     ],
     "examples": [
-      "Operação Bezerro de Ouro desarticula grupo criminoso que atua em extração ilícita de ouro em terras indígenas no Pará",
-      "Jampa Verde 2 combate extração ilegal de minérios em município paraibano",
-      "Ação conjunta visa garantir proteção ambiental em Paranaguá"
+      "PF intensifica combate ao desmatamento e incêndios florestais no Acre e sul do Amazonas",
+      "PF faz busca para recuperar aves furtadas em viatura do IBAMA",
+      "PF intensifica fiscalização na Unidade de Conservação Reserva Biológica do Jaru para impedir invasões",
+      "PF investiga expedição irregular de autorizações ambientais em Bombinhas/SC",
+      "PF e Ibama realizam operação conjunta em madeireiras em Rondônia"
     ]
   },
   {
     "kind": "crime",
     "classificador": "crimes_contra_crianca",
     "source": "llm_feedback",
-    "uses": 2,
+    "uses": 7,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bbelem\\w*\\b.{0,240}\\bdirty\\w*\\b.{0,240}\\bcrianca\\w*\\b.{0,240}\\bconteudo\\w*\\b",
+        "pattern_do_classificador": "\\bcrianca\\w*\\b.{0,240}\\bcriancas\\w*\\b.{0,240}\\badolescentes\\w*\\b.{0,240}\\bpraticados\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Dirty Share investiga suspeito de compartilhamento de imagens pornográficas envolvendo menores de idade"
+          "PF investiga crimes contra crianças e adolescentes praticados na internet"
         ]
       },
       {
-        "pattern_do_classificador": "\\bsegue\\w*\\b.{0,240}\\bforte\\w*\\b.{0,240}\\benfrentamento\\w*\\b.{0,240}\\bcrianca\\w*\\b",
+        "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bdesta\\w*\\b.{0,240}\\bfase\\w*\\b.{0,240}\\bcrianca\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação da PF combate abuso sexual infantojuvenil no Rio Grande do Norte"
+          "PF prende 165 foragidos por crimes sexuais e fraudes na Operação Muros de Jerusálem"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bteimosia\\w*\\b.{0,240}\\binvestigar\\w*\\b.{0,240}\\bcrianca\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra Operação Teimosia II para investigar casos de compartilhamento de imagens de abusos sexuais contra crianças e adolescentes"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bindividuo\\w*\\b.{0,240}\\bpreso\\w*\\b.{0,240}\\bflagrante\\w*\\b.{0,240}\\bcrianca\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF realiza nova ação de repressão aos crimes de abuso infantojuvenil em Foz do Iguaçu"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\binvestigado\\w*\\b.{0,240}\\bteria\\w*\\b.{0,240}\\bpraticado\\w*\\b.{0,240}\\bcrianca\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF investiga crimes contra menores na internet"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\breprime\\w*\\b.{0,240}\\barmazenamento\\w*\\b.{0,240}\\bcompartilhamento\\w*\\b.{0,240}\\bcrianca\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF reprime crimes de armazenamento e compartilhamento de arquivos com abusos sexuais de crianças e adolescentes na Internet"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bsuspeitos\\w*\\b.{0,240}\\bpoderao\\w*\\b.{0,240}\\bresponder\\w*\\b.{0,240}\\bcrianca\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra operação para combater abuso infantojuvenil praticado na internet em Goiás"
         ]
       }
     ],
     "examples": [
-      "Operação Dirty Share investiga suspeito de compartilhamento de imagens pornográficas envolvendo menores de idade",
-      "Operação da PF combate abuso sexual infantojuvenil no Rio Grande do Norte"
+      "PF investiga crimes contra crianças e adolescentes praticados na internet",
+      "PF prende 165 foragidos por crimes sexuais e fraudes na Operação Muros de Jerusálem",
+      "PF deflagra Operação Teimosia II para investigar casos de compartilhamento de imagens de abusos sexuais contra crianças e adolescentes",
+      "PF realiza nova ação de repressão aos crimes de abuso infantojuvenil em Foz do Iguaçu",
+      "PF investiga crimes contra menores na internet",
+      "PF reprime crimes de armazenamento e compartilhamento de arquivos com abusos sexuais de crianças e adolescentes na Internet",
+      "PF deflagra operação para combater abuso infantojuvenil praticado na internet em Goiás"
     ]
   },
   {
     "kind": "crime",
     "classificador": "crimes_sistema_financeiro",
     "source": "llm_feedback",
-    "uses": 1,
+    "uses": 3,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bnatal\\w*\\b.{0,240}\\bdestinada\\w*\\b.{0,240}\\bsistema\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
+        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bquinta\\w*\\b.{0,240}\\bsistema\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação da PF apura crime contra o Sistema Financeiro Nacional em Natal"
+          "PF deflagra Operação Inseguros no interior do estado do Rio de Janeiro"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\binvestigados\\w*\\b.{0,240}\\bsistema\\w*\\b.{0,240}\\bfinanceiro\\w*\\b.{0,240}\\bnacional\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra operação para combater fraudes com criptomoedas"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bquarta\\w*\\b.{0,240}\\bterceira\\w*\\b.{0,240}\\bsistema\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra 3ª fase da Operação Barco de Papel"
         ]
       }
     ],
     "examples": [
-      "Operação da PF apura crime contra o Sistema Financeiro Nacional em Natal"
+      "PF deflagra Operação Inseguros no interior do estado do Rio de Janeiro",
+      "PF deflagra operação para combater fraudes com criptomoedas",
+      "PF deflagra 3ª fase da Operação Barco de Papel"
     ]
   },
   {
     "kind": "crime",
     "classificador": "desenvolvimento_clandestino_atividade_telecomunicacao",
     "source": "llm_feedback",
-    "uses": 1,
+    "uses": 4,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\benvolvidos\\w*\\b.{0,240}\\bdesenvol\\w*\\b.{0,240}\\bclandest\\w*\\b.{0,240}\\btelecomunicacao\\w*\\b",
+        "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bdesenvolvimento\\w*\\b.{0,240}\\bclandestino\\w*\\b.{0,240}\\btelecomu\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação da PF combate interferências de rádios piratas nas comunicações do Aeroporto de Brasília"
+          "PF combate radiodifusão clandestina em Mato Grosso"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bescopo\\w*\\b.{0,240}\\bdesenvolvimento\\w*\\b.{0,240}\\bclandestino\\w*\\b.{0,240}\\btelecomu\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Polícia Federal deflagra operação \"FM Ilegal\" para fechamento de rádios clandestinas no interior do Maranhão"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\breceptacao\\w*\\b.{0,240}\\batividades\\w*\\b.{0,240}\\bclandest\\w*\\b.{0,240}\\btelecomunicacao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Polícia Federal combate crimes de receptação e atividades clandestinas de telecomunicação"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\btelecomunicacoes\\w*\\b.{0,240}\\bdesenvol\\w*\\b.{0,240}\\bclandest\\w*\\b.{0,240}\\btelecomunicacao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF cumpre mandado de busca e apreensão contra clandestinidade em telecomunicações"
         ]
       }
     ],
     "examples": [
-      "Operação da PF combate interferências de rádios piratas nas comunicações do Aeroporto de Brasília"
+      "PF combate radiodifusão clandestina em Mato Grosso",
+      "Polícia Federal deflagra operação \"FM Ilegal\" para fechamento de rádios clandestinas no interior do Maranhão",
+      "Polícia Federal combate crimes de receptação e atividades clandestinas de telecomunicação",
+      "PF cumpre mandado de busca e apreensão contra clandestinidade em telecomunicações"
     ]
   },
   {
     "kind": "crime",
     "classificador": "falsificacoes",
     "source": "llm_feedback",
-    "uses": 1,
+    "uses": 2,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\beleazar\\w*\\b.{0,240}\\blazaro\\w*\\b.{0,240}\\bqual\\w*\\b.{0,240}\\bfalsific\\w*\\b",
+        "pattern_do_classificador": "\\bfalsific\\w*\\b.{0,240}\\bfalsificacao\\w*\\b.{0,240}\\bdiplomas\\w*\\b.{0,240}\\bsuperior\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Eleazar combate fraudes no saque de precatórios"
+          "PF combate falsificação de diplomas de nível superior em Santa Catarina"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bterras\\w*\\b.{0,240}\\bbalcao\\w*\\b.{0,240}\\bnegocios\\w*\\b.{0,240}\\bfalsific\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF combate invasão de terras na Floresta Amazônica"
         ]
       }
     ],
     "examples": [
-      "Operação Eleazar combate fraudes no saque de precatórios"
+      "PF combate falsificação de diplomas de nível superior em Santa Catarina",
+      "PF combate invasão de terras na Floresta Amazônica"
     ]
   },
   {
@@ -193,613 +346,54 @@
     "uses": 1,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bpolicial\\w*\\b.{0,240}\\bdesta\\w*\\b.{0,240}\\bfraude\\w*\\b.{0,240}\\bpreviden\\w*\\b",
+        "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bfraude\\w*\\b.{0,240}\\bfraudes\\w*\\b.{0,240}\\bpreviden\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação da PF combate fraudes previdenciárias no RN"
+          "PF deflagra operação para combate a fraudes contra a Previdência Social"
         ]
       }
     ],
     "examples": [
-      "Operação da PF combate fraudes previdenciárias no RN"
+      "PF deflagra operação para combate a fraudes contra a Previdência Social"
     ]
   },
   {
     "kind": "crime",
     "classificador": "homicidio",
     "source": "llm_feedback",
-    "uses": 13,
+    "uses": 1,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\balvo\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
+        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bpossiveis\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Em ação conjunta, FICCO/BA e FICCO/SP deflagram operação e prendem líder de facção"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bapos\\w*\\b.{0,240}\\bcompartilhamento\\w*\\b.{0,240}\\binformacoes\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Em ação conjunta, PF captura foragido e apreende diversas armas de fogo em Barreiras"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bcomo\\w*\\b.{0,240}\\bobjetivo\\w*\\b.{0,240}\\bavancar\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Ação conjunta resulta na deflagração de operação para avançar nas investigações relacionadas a homicídios"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bcriminoso\\w*\\b.{0,240}\\bconsiderado\\w*\\b.{0,240}\\balta\\w*\\b.{0,240}\\bhomicidios\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/BA prende líder de facção criminosa atuante no sudoeste baiano"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\borganizado\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/SC prende suspeito de homicídio em Florianópolis/SC"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bordens\\w*\\b.{0,240}\\bjudiciais\\w*\\b.{0,240}\\brelacionadas\\w*\\b.{0,240}\\bhomicidios\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/BA e SEAP deflagram operação visando cumprir mandados no Sistema Prisional da Bahia"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bpartir\\w*\\b.{0,240}\\bjaneiro\\w*\\b.{0,240}\\bconflitos\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Guerra e Paz cumpre 77 mandados para reprimir conflitos indígenas na Reserva do Carreteiro"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bpreso\\w*\\b.{0,240}\\bresponder\\w*\\b.{0,240}\\bpelos\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Em ação conjunta, FICCO/BA prende líder de facção criminosa atuante no sudoeste da BA"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bquinta\\w*\\b.{0,240}\\bcapim\\w*\\b.{0,240}\\bgrosso\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/BA deflagra operação em combate ao crime organizado no interior da Bahia"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\brealizadas\\w*\\b.{0,240}\\bdiligencias\\w*\\b.{0,240}\\bsentido\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/SE cumpre mandados de prisão contra foragidos da justiça"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bresultou\\w*\\b.{0,240}\\bprisoes\\w*\\b.{0,240}\\bpessoas\\w*\\b.{0,240}\\bhomicidios\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/PE cumpre mais de 100 mandados de prisão no âmbito da Operação Paz"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\brevelou\\w*\\b.{0,240}\\btambem\\w*\\b.{0,240}\\binvestigados\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/RN deflagra operação contra casal suspeito de liderar organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bsuspeito\\w*\\b.{0,240}\\balvo\\w*\\b.{0,240}\\bprioritario\\w*\\b.{0,240}\\bhomicidio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MG combate crimes violentos em Governador Valadares"
+          "PF cumpre mandados em investigação do caso Marielle Franco"
         ]
       }
     ],
     "examples": [
-      "Em ação conjunta, FICCO/BA e FICCO/SP deflagram operação e prendem líder de facção",
-      "Em ação conjunta, PF captura foragido e apreende diversas armas de fogo em Barreiras",
-      "Ação conjunta resulta na deflagração de operação para avançar nas investigações relacionadas a homicídios",
-      "FICCO/BA prende líder de facção criminosa atuante no sudoeste baiano",
-      "FICCO/SC prende suspeito de homicídio em Florianópolis/SC",
-      "FICCO/BA e SEAP deflagram operação visando cumprir mandados no Sistema Prisional da Bahia",
-      "Operação Guerra e Paz cumpre 77 mandados para reprimir conflitos indígenas na Reserva do Carreteiro",
-      "Em ação conjunta, FICCO/BA prende líder de facção criminosa atuante no sudoeste da BA",
-      "FICCO/BA deflagra operação em combate ao crime organizado no interior da Bahia",
-      "FICCO/SE cumpre mandados de prisão contra foragidos da justiça"
+      "PF cumpre mandados em investigação do caso Marielle Franco"
     ]
   },
   {
     "kind": "crime",
-    "classificador": "injuria",
-    "source": "llm_feedback",
-    "uses": 2,
-    "patterns_do_classificador": [
-      {
-        "pattern_do_classificador": "\\banimus\\w*\\b.{0,240}\\binjuria\\w*\\b.{0,240}\\binjuriandi\\w*\\b.{0,240}\\bhonra\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Animus Injuriandi apura crime contra à honra de parlamentar em rede social"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bparte\\w*\\b.{0,240}\\banimus\\w*\\b.{0,240}\\binjuria\\w*\\b.{0,240}\\binjuriandi\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Animus Injuriandi apura crime contra à honra de parlamentar em rede social"
-        ]
-      }
-    ],
-    "examples": [
-      "Animus Injuriandi apura crime contra à honra de parlamentar em rede social"
-    ]
-  },
-  {
-    "kind": "crime",
-    "classificador": "lavagem_dinheiro",
-    "source": "llm_feedback",
-    "uses": 8,
-    "patterns_do_classificador": [
-      {
-        "pattern_do_classificador": "\\balem\\w*\\b.{0,240}\\bdessas\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/PB investiga organização criminosa que atua em João Pessoa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bquinta\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/CE deflagra segunda fase da Operação Extramuros no Ceará"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdiante\\w*\\b.{0,240}\\bfatos\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/RJ deflagra operação para apurar fraudes em postos de combustíveis"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bestado\\w*\\b.{0,240}\\bgoias\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/GO reprime crimes de lavagem de dinheiro"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bficco\\w*\\b.{0,240}\\bdesta\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MS combate crimes de lavagem de dinheiro e tráfico de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MG deflagra operação no combate à lavagem de dinheiro"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\binvestigacoes\\w*\\b.{0,240}\\bdetalharam\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AM desarticula núcleo de comando do crime organizado no Amazonas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bministerio\\w*\\b.{0,240}\\bpublico\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação da PF bloqueia mais de R$ 130 milhões oriundos de crime envolvendo criptoativos"
-        ]
-      }
-    ],
-    "examples": [
-      "FICCO/PB investiga organização criminosa que atua em João Pessoa",
-      "FICCO/CE deflagra segunda fase da Operação Extramuros no Ceará",
-      "FICCO/RJ deflagra operação para apurar fraudes em postos de combustíveis",
-      "FICCO/GO reprime crimes de lavagem de dinheiro",
-      "FICCO/MS combate crimes de lavagem de dinheiro e tráfico de drogas",
-      "FICCO/MG deflagra operação no combate à lavagem de dinheiro",
-      "FICCO/AM desarticula núcleo de comando do crime organizado no Amazonas",
-      "Operação da PF bloqueia mais de R$ 130 milhões oriundos de crime envolvendo criptoativos"
-    ]
-  },
-  {
-    "kind": "crime",
-    "classificador": "organizacao_criminosa",
-    "source": "llm_feedback",
-    "uses": 17,
-    "patterns_do_classificador": [
-      {
-        "pattern_do_classificador": "\\bcriminos\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bsaude\\w*\\b.{0,240}\\bmunicipal\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "A Polícia Federal desarticula esquema de desvios de Recursos do Fundo Municipal de Saúde em Araguaína/TO."
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bequipes\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/RO realiza operação para coibir tortura"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforagida\\w*\\b.{0,240}\\blocalizada\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/GO captura foragida de operação contra organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bacre\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AC atua contra operadores financeiros de grupo criminoso"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bdistrito\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/DF cumpre 30 mandados de prisão preventiva contra integrantes de facções"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\borganiza\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 2,
-        "examples": [
-          "FICCO/DF desarticula organização criminosa que dava suporte a líder de facção baiana preso no DF",
-          "FICCO/PB desarticula comando de organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\borganiza\\w*\\b.{0,240}\\bacre\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AC combate facções criminosas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\borganiza\\w*\\b.{0,240}\\bdistrito\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/DF deflagra operação contra facção criminosa atuante no DF e Entorno"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b.{0,240}\\bestao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO combate organizações criminosas no Acre"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bidentificou\\w*\\b.{0,240}\\bgrupo\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Força-Tarefa cumpre mandados para investigar membros de organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\binvestigacoes\\w*\\b.{0,240}\\bapontam\\w*\\b.{0,240}\\bcriminosa\\w*\\b.{0,240}\\borganiza\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/BA deflagra operação contra organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bobjetivo\\w*\\b.{0,240}\\bdesarticular\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/CE deflagra Operação DEFCON 3 contra organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bquarta\\w*\\b.{0,240}\\bnafta\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/RJ deflagra operação para apurar fraudes em postos de combustíveis"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\brepresenta\\w*\\b.{0,240}\\bseguranca\\w*\\b.{0,240}\\borganiza\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MT deflagra operação contra facção criminosa em Sorriso"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bteve\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b.{0,240}\\brealizado\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Ação conjunta combate tráfico de drogas e crime organizado"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\btodos\\w*\\b.{0,240}\\bpoderao\\w*\\b.{0,240}\\borganizacao\\w*\\b.{0,240}\\bcriminosa\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/PA cumpre 33 mandados de prisão em oito estados"
-        ]
-      }
-    ],
-    "examples": [
-      "A Polícia Federal desarticula esquema de desvios de Recursos do Fundo Municipal de Saúde em Araguaína/TO.",
-      "FICCO/RO realiza operação para coibir tortura",
-      "FICCO/GO captura foragida de operação contra organização criminosa",
-      "FICCO/AC atua contra operadores financeiros de grupo criminoso",
-      "FICCO/DF cumpre 30 mandados de prisão preventiva contra integrantes de facções",
-      "FICCO/DF desarticula organização criminosa que dava suporte a líder de facção baiana preso no DF",
-      "FICCO/PB desarticula comando de organização criminosa",
-      "FICCO/AC combate facções criminosas",
-      "FICCO/DF deflagra operação contra facção criminosa atuante no DF e Entorno",
-      "FICCO combate organizações criminosas no Acre"
-    ]
-  },
-  {
-    "kind": "crime",
-    "classificador": "trafico_drogas",
-    "source": "llm_feedback",
-    "uses": 22,
-    "patterns_do_classificador": [
-      {
-        "pattern_do_classificador": "\\bcamicua\\w*\\b.{0,240}\\bobjetivo\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "PF combate grupo criminoso que promovia tráfico de drogas em aldeia indígena"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bcriminosas\\w*\\b.{0,240}\\bpresos\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/GO e Polícia Penal investigam \"pombo-correio\" de facção criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/ES faz operação de repressão ao tráfico de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bestado\\w*\\b.{0,240}\\bacre\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AC deflagra operação contra o tráfico de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bestado\\w*\\b.{0,240}\\bgoias\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/GO e Polícia Penal reprimem crime de tráfico de drogas nos estados de GO e MS"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bficco\\w*\\b.{0,240}\\bdeflagra\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AP deflagra operação contra tráfico interestadual de drogas no PA e no AP"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MG desarticula organização criminosa especializada em tráfico de drogas no Triângulo Mineiro"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bidentificou\\w*\\b.{0,240}\\bdiversos\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Força Tarefa de Segurança Pública combate tráfico de drogas e organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\binvestigacoes\\w*\\b.{0,240}\\bevidenciou\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MG mira esquema de tráfico e lavagem de dinheiro no Triângulo Mineiro"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\binvestigacoes\\w*\\b.{0,240}\\bindicam\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/RR faz operação contra grupo criminoso em Roraima e em Santa Catarina"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\binvestigados\\w*\\b.{0,240}\\bintegram\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/GO deflagra operação contra tráfico de drogas no Sudoeste Goiano"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bmedidas\\w*\\b.{0,240}\\bcautelares\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Força-Tarefa do Sistema Único de Segurança Pública da Paraíba mira tráfico de drogas e venda de armas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bminas\\w*\\b.{0,240}\\bgerais\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MG captura condenado por tráfico de drogas no âmbito da Operação Força Integrada"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bobjetivo\\w*\\b.{0,240}\\bcombater\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/PI desarticula organização criminosa voltada ao tráfico de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bobjetivo\\w*\\b.{0,240}\\bdesarticulacao\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/DF e PM/GO deflagram operação para desarticular associação criminosa voltada ao tráfico de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bordens\\w*\\b.{0,240}\\bjudiciais\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/BA e SEAP deflagram operação visando cumprir mandados no Sistema Prisional da Bahia"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bparticipacao\\w*\\b.{0,240}\\bficco\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/Ilhéus, PM/BA e PC/BA, em operação integrada, cumprem mandados judiciais em Aurelino Leal"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bpreso\\w*\\b.{0,240}\\bresponder\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Em ação conjunta, FICCO/BA prende líder de facção criminosa atuante no sudoeste da BA"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\brespondera\\w*\\b.{0,240}\\bpelos\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FTSP cumpre mandado contra o tráfico de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bteve\\w*\\b.{0,240}\\binicio\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AC prende foragidos da Justiça em operação conjunta com o GAECO/AM"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bteve\\w*\\b.{0,240}\\bobjetivo\\w*\\b.{0,240}\\btrafico\\w*\\b.{0,240}\\bdrogas\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Forças de segurança do estado da Paraíba deflagraram operação de combate ao tráfico de drogas e crimes patrimoniais"
-        ]
-      }
-    ],
-    "examples": [
-      "PF combate grupo criminoso que promovia tráfico de drogas em aldeia indígena",
-      "FICCO/GO e Polícia Penal investigam \"pombo-correio\" de facção criminosa",
-      "FICCO/ES faz operação de repressão ao tráfico de drogas",
-      "FICCO/AC deflagra operação contra o tráfico de drogas",
-      "FICCO/GO e Polícia Penal reprimem crime de tráfico de drogas nos estados de GO e MS",
-      "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas",
-      "FICCO/AP deflagra operação contra tráfico interestadual de drogas no PA e no AP",
-      "FICCO/MG desarticula organização criminosa especializada em tráfico de drogas no Triângulo Mineiro",
-      "Força Tarefa de Segurança Pública combate tráfico de drogas e organização criminosa",
-      "FICCO/MG mira esquema de tráfico e lavagem de dinheiro no Triângulo Mineiro"
-    ]
-  },
-  {
-    "kind": "modus",
-    "classificador": "atuacao_conjunta_interinstitucional",
+    "classificador": "radiodifusao_irregular",
     "source": "llm_feedback",
     "uses": 1,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bessa\\w*\\b.{0,240}\\binterinstitucional\\w*\\b.{0,240}\\breforca\\w*\\b.{0,240}\\bcompartilhamento\\w*\\b",
+        "pattern_do_classificador": "\\bpaulo\\w*\\b.{0,240}\\bradiodifusao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/PB desarticula comando de organização criminosa"
+          "PF cumpre mandado de busca e apreensão para reprimir crime contra os serviços de telecomunicações"
         ]
       }
     ],
     "examples": [
-      "FICCO/PB desarticula comando de organização criminosa"
+      "PF cumpre mandado de busca e apreensão para reprimir crime contra os serviços de telecomunicações"
     ]
   },
   {
@@ -809,145 +403,189 @@
     "uses": 1,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bjustica\\w*\\b.{0,240}\\btambem\\w*\\b.{0,240}\\bbloqueio\\w*\\b.{0,240}\\bbens\\w*\\b",
+        "pattern_do_classificador": "\\bjustica\\w*\\b.{0,240}\\bdeterminou\\w*\\b.{0,240}\\bbloqueio\\w*\\b.{0,240}\\bbens\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Em ação conjunta, PF combate crimes tributários"
+          "PF investiga irregularidades na execução de contratos destinados ao fornecimento de alimentos"
         ]
       }
     ],
     "examples": [
-      "Em ação conjunta, PF combate crimes tributários"
+      "PF investiga irregularidades na execução de contratos destinados ao fornecimento de alimentos"
     ]
   },
   {
     "kind": "modus",
     "classificador": "busca_apreensao",
     "source": "llm_feedback",
-    "uses": 123,
+    "uses": 134,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bapos\\w*\\b.{0,240}\\brealizacao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\balem\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Dissimulare para desarticular grupo que desviava objetos em trâmite nos Correios"
+          "PF reprime crimes de armazenamento e compartilhamento de arquivos com abusos sexuais de crianças e adolescentes na Internet"
         ]
       },
       {
-        "pattern_do_classificador": "\\baproximadamente\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\baraguaina\\w*\\b",
+        "pattern_do_classificador": "\\bapos\\w*\\b.{0,240}\\bidentificar\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "A Polícia Federal desarticula esquema de desvios de Recursos do Fundo Municipal de Saúde em Araguaína/TO."
+          "PF combate comércio irregular de materiais arqueológicos"
         ]
       },
       {
-        "pattern_do_classificador": "\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bbelo\\w*\\b.{0,240}\\bhorizonte\\w*\\b",
+        "pattern_do_classificador": "\\bapreensao\\w*\\b.{0,240}\\brealizada\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bbusca\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Em ação conjunta, PF combate crimes tributários"
+          "PF e PRF apreendem equipamentos discretos de comunicação na véspera do Enem em Alagoas"
         ]
       },
       {
-        "pattern_do_classificador": "\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\birmaos\\w*\\b",
+        "pattern_do_classificador": "\\bassim\\w*\\b.{0,240}\\bdeterminacao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/MS combate crimes de lavagem de dinheiro e tráfico de drogas"
+          "PF deflagra 9ª fase da Operação Sisamnes"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcapim\\w*\\b.{0,240}\\bgrosso\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bsete\\w*\\b.{0,240}\\bindigena\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/BA deflagra operação em combate ao crime organizado no interior da Bahia"
+          "PF deflagra operação em Aldeia Indígena, no Oeste de Santa Catarina"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcinco\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 2,
-        "examples": [
-          "FICCO/AM desarticula núcleo de comando do crime organizado no Amazonas",
-          "FICCO/GO deflagra operação contra tráfico de drogas no Sudoeste Goiano"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bconta\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "PF combate grupo criminoso que promovia tráfico de drogas em aldeia indígena"
+          "PF deflagra Operação Elétron para combater fraudes em agência reguladora"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcriminosa\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 8,
+        "examples": [
+          "PF cumpre mandado de busca e apreensão contra clandestinidade em telecomunicações",
+          "PF cumpre mandado de busca e apreensão em investigação sobre possível perseguição a ministro do STF",
+          "PF cumpre mandado de busca e apreensão em Salvador/BA em investigação contra tráfico",
+          "PF cumpre mandado de busca e apreensão para reprimir crime contra os serviços de telecomunicações",
+          "PF cumpre mandado de busca e apreensão por crime ocorrido na eleição de 2024",
+          "PF cumpre mandado de busca e apreensão por fraudes contra a CEF",
+          "PF deflagra segunda fase da Operação Unha e Carne",
+          "PF realiza nova fase da Operação Disco de Ouro em Roraima"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 5,
+        "examples": [
+          "PF cumpre mandados de busca e apreensão em continuidade à Operação Bisturi",
+          "PF cumpre mandados de busca e apreensão e outras medidas judiciais em Macapá/AP",
+          "Polícia Federal cumpre mandados de busca e apreensão contra servidor do INSS",
+          "Polícia Federal cumpre mandados de busca e apreensão expedidos pelo STF",
+          "Polícia Federal deflagra Operação Ponte Petro Jua para investigar crimes contra o funcionamento de serviços de utilidade pública"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bquinta\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/RN deflagra operação contra casal suspeito de liderar organização criminosa"
+          "PF combate crime de fraude processual"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bdata\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bterca\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 1,
         "examples": [
-          "Operação Contágio II investiga fraudes em procedimentos licitatórios em Plácido de Castro/AC"
+          "PF deflagra operação contra rede clandestina de bebidas"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumprem\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra operação para reprimir desvio de objetos dos Correios"
         ]
       },
       {
         "pattern_do_classificador": "\\bcumprem\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
-          "FICCO combate organizações criminosas no Acre"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bcumprem\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/PB investiga organização criminosa que atua em João Pessoa"
+          "PF deflagra operação para reprimir fraudes ao Seguro DPVAT",
+          "PF e PGR cumprem 30 mandados de busca e apreensão",
+          "PF faz operação contra crimes fazendários"
         ]
       },
       {
         "pattern_do_classificador": "\\bcumprido\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
+        "uses": 7,
+        "examples": [
+          "PF combate falsificação de diplomas de nível superior em Santa Catarina",
+          "PF combate fraude à Caixa Econômica no interior de Sergipe",
+          "PF deflagra operação em combate ao abuso infantojuvenil",
+          "PF investiga crimes contra crianças e adolescentes praticados na internet",
+          "PF mira esquema de fraude na aquisição de veículos",
+          "PF reprime o tráfico internacional de pessoas em Roraima",
+          "Polícia Federal deflagra operação de combate a fraudes contra benefícios emergenciais"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bainda\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Contritio Fiduciae investiga fraudes na obtenção de auxílio emergencial"
+          "PF, em ação integrada, apreende grande quantidade de vinhos"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bmunicipio\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra operação para desarticular comercialização de insumos irregulares para tatuagem"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bsanta\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e Receita Federal reprimem o comércio ilegal de eletrônicos"
         ]
       },
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bcinco\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 3,
         "examples": [
-          "FICCO/AC combate facções criminosas",
-          "FICCO/CE deflagra Operação Promessa Vazia contra crimes eleitorais em Santa Quitéria"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bdata\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Equidna investiga fraude em contrato de gestão da Prefeitura de Piquete/SP"
+          "PF combate invasão de terras na Floresta Amazônica",
+          "PF deflagra operação para investigar disseminação de doença em espécie ameaçada de extinção",
+          "PF investiga fraude processual"
         ]
       },
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 3,
         "examples": [
-          "FICCO/AM combate atuação de julgamento paralelo de facção criminosa",
-          "FICCO/ES realiza operação para combater organização criminosa com atuação em Viana e Cariacica, no Espírito Santo"
+          "PF deflagra operação para combate a fraudes contra a Previdência Social",
+          "Polícia Federal apura exploração sexual em Jataí/GO",
+          "Polícia Federal deflagra Operação Restituir para recuperar documentos de processo judicial"
         ]
       },
       {
@@ -955,27 +593,56 @@
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/AC deflagra operação contra o tráfico de drogas"
+          "PF reprime saques fraudulentos de créditos judiciais cometidos em diversos estados"
         ]
       },
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 5,
+        "uses": 9,
         "examples": [
-          "Ação conjunta combate tráfico de drogas e crime organizado",
-          "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas",
-          "Forças de Segurança combatem distribuição e venda ilegal de cigarros no Rio Grande do Norte e na Paraíba",
-          "Operação Balada Livre combate tráfico de drogas em Ponta Porã/MS e Porto Alegre/RS"
+          "PF deflagra a Operação Game Over para apurar a prática de fraudes em desfavor do INSS",
+          "PF deflagra operação contra fraudes em contratações na saúde",
+          "PF deflagra operação para combater abuso infantojuvenil praticado na internet em Goiás",
+          "PF deflagra Operação Slim em São Paulo",
+          "PF e Ministério Público Federal realizam operação para identificar outros responsáveis pelo \"apagão\" no Amapá em 2020",
+          "PF interdita pousadas em unidade de conservação",
+          "PF investiga irregularidades na compra de respiradores para tratamento do Covid-19",
+          "Polícia Federal combate crime envolvendo recursos destinados à saúde",
+          "Polícia Federal deflagra operação em investigação de crimes de exploração de prestígio"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bnove\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra operação contra fraudes tributárias no Rio de Janeiro/RJ"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\boito\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF apura possível esquema de venda de sentenças judiciais"
         ]
       },
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra operação para combater divulgação de \"pornografia de vingança\""
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bsete\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
         "uses": 2,
         "examples": [
-          "Operação fecha três serrarias em Nova Esperança do Piriá",
-          "Operação Food Education investiga fraudes em procedimentos licitatórios de aquisição de merenda escolar no Município de Florínea/SP"
+          "PF faz operação contra fraudes no seguro DPVAT",
+          "PF investiga suspeita de irregularidades em campanha eleitoral de partido em Minas Gerais"
         ]
       },
       {
@@ -983,112 +650,81 @@
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Academus investiga compra e venda de revalidação de diplomas"
+          "PF investiga possíveis crimes de assédio e importunação sexual ocorridos nas dependências da corporação"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumpriram\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bcumprimento\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação da PF combate abuso sexual infantojuvenil no Rio Grande do Norte"
+          "PF investiga uso de imagens falsas para liberar financiamentos da Caixa em Pirapozinho/SP"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumpriram\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e PC/PI prendem foragido por crimes sexuais em Minas Gerais"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpriu\\w*\\b.{0,240}\\bdesta\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 2,
         "examples": [
-          "Operação Contra-ataque investiga invasões ao site da Justiça Federal em Sergipe"
+          "PF cumpre mandados em investigação sobre movimentações financeiras suspeitas em Dourados",
+          "PF deflagra Operação Memória contra o extravio de patrimônio público no TRT da 10ª Região"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumpriu\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bcumpriu\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF cumpre mandados do STF"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bnegra\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra Operação Luz Negra e cumpre mandados de buscas e apreensão, no Paraná"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bdentre\\w*\\b.{0,240}\\bordens\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF desarticula esquema criminoso em órgão responsável pela gestão da saúde indígena no MT"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bdessa\\w*\\b.{0,240}\\bsegunda\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF investiga irregularidades na execução de contratos destinados ao fornecimento de alimentos"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bterca\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 2,
         "examples": [
-          "Operação da PF combate fraudes ao Auxílio Brasil"
+          "PF deflagra Operação Arancia, contra fraudadores da Previdência Social",
+          "Polícia Federal deflagra segunda fase da Operação Para Bellum"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumpriu\\w*\\b.{0,240}\\btarde\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 2,
-        "examples": [
-          "Operação Inverted Jenny investiga uso de selos falsos em agências franqueadas dos Correios"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bcuritiba\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\balcool\\w*\\b",
-        "weight": 1.4,
-        "uses": 2,
-        "examples": [
-          "Operação Acqua Gel da PF apura produção e comercialização de álcool gel adulterado no Paraná"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdecorre\\w*\\b.{0,240}\\bmais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bdiligencias\\w*\\b.{0,240}\\bcumprido\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Dúctil II combate desvios de recursos públicos destinados à aquisição de materiais usados no combate à pandemia da Covid-19"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesdobramento\\w*\\b.{0,240}\\bfragmento\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/DF deflagra operação contra facção criminosa atuante no DF e Entorno"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bdeflagrada\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/Ilhéus, PM/BA e PC/BA, em operação integrada, cumprem mandados judiciais em Aurelino Leal"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/ES faz operação de repressão ao tráfico de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bquarta\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Falso Pretor prende homem que se passava por policial federal em Sinop/MT"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bquinta\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 2,
-        "examples": [
-          "FICCO/CE deflagra segunda fase da Operação Extramuros no Ceará",
-          "Operação da PF investiga empresa de energia por fraude em financiamento"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdestinou\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Dirty Share investiga suspeito de compartilhamento de imagens pornográficas envolvendo menores de idade"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdiligencias\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AM cumpre mandados contra crime organizado no âmbito da Operação Força Integrada"
+          "PF e ANATEL deflagram operação em combate a rádios transmissoras clandestinas no RJ"
         ]
       },
       {
@@ -1096,39 +732,23 @@
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Ave Rara combate crimes ambientais em Pernambuco"
+          "PF deflagra operação contra vazamento de provas do ENEM"
         ]
       },
       {
-        "pattern_do_classificador": "\\bequipes\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bestado\\w*\\b.{0,240}\\bjustica\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/RO realiza operação para coibir tortura"
+          "PF e Ministério Público do Estado do Piauí cumprem mandado judicial em desfavor de promotor de justiça"
         ]
       },
       {
-        "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bestado\\w*\\b",
+        "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bempresas\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Conatibus investiga falsidade ideológica eleitoral e lavagem de capitais"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bcumprem\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AL reprime o contrabando de cigarros na região de Arapiraca/AL"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AM cumpre mandados contra crime organizado no âmbito da Operação Força Integrada"
+          "PF faz operação para apurar crime de difamação eleitoral cometido por meio de inteligência artificial"
         ]
       },
       {
@@ -1136,36 +756,70 @@
         "weight": 1.4,
         "uses": 5,
         "examples": [
-          "FICCO/AP deflagra operação contra tráfico interestadual de drogas no PA e no AP",
-          "FICCO/RR faz operação contra grupo criminoso em Roraima e em Santa Catarina",
-          "Operação Arnold prende homem que comercializava substâncias proibidas utilizando os Correios",
-          "Operação da PF combate no RN desvios em financiamentos do Pronaf"
+          "PF deflagra a segunda fase da Operação Insanidade",
+          "PF deflagra as fases III e IV da Operação Patronos na Bahia",
+          "PF e ANATEL deflagram operação para reprimir rádios clandestinas",
+          "PF mira esquema de pirâmide financeira no Rio Grande do Norte",
+          "Polícia Federal investiga comércio ilegal de medicamentos emagrecedores na cidade de Maceió/AL"
         ]
       },
       {
-        "pattern_do_classificador": "\\bexpedidos\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\betapa\\w*\\b.{0,240}\\bequipe\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/DF e PM/GO deflagram operação para desarticular associação criminosa voltada ao tráfico de drogas"
+          "PF investiga crimes contra menores na internet"
         ]
       },
       {
-        "pattern_do_classificador": "\\bexpedidos\\w*\\b.{0,240}\\bvara\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bexecuta\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Abusu Fiducia investiga esquema de desvio de valores da Caixa Econômica"
+          "Polícia Federal cumpre mandados judiciais por determinação do Supremo Tribunal Federal - STF"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bexecutou\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bpaulo\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF apura fraude virtual na contratação de financiamento de veículos"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bexpedidos\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e Receita Federal combatem fraude à União em Minas Gerais"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bexpedidos\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra Operação Dom Pedro II para recuperar obras do patrimônio público"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bfase\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF mira fraudes contra a Caixa Econômica"
         ]
       },
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumprem\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 3,
+        "uses": 4,
         "examples": [
-          "FICCO/RJ deflagra operação em combate a fraudes postais",
-          "Operação Caminho das Pedras combate importação irregular de pedras preciosas e semipreciosas",
-          "Operação Ludibrio desarticula esquema de fraudes na concessão de Auxílio Emergencial no Piauí"
+          "PF deflagra 3ª fase da Operação Barco de Papel",
+          "PF faz operações contra crimes praticados nas eleições de 2024",
+          "PF investiga irregularidades em processo licitatório da Superintendência Estadual do Ministério da Saúde no Rio de Janeiro",
+          "Polícia Federal deflagra 3ª, 4ª e 5ª fases da Operação Acesso Negado"
         ]
       },
       {
@@ -1173,15 +827,24 @@
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Cícero II investiga esquema de fraudes nas eleições de 2018"
+          "PF deflagra Segunda Fase da Operação Panaceia no Oiapoque/AP"
         ]
       },
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumpriram\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
+        "uses": 2,
+        "examples": [
+          "PF desencadeia Operação Levante e combate prática de crimes em ambientes virtuais",
+          "PF investiga reprime o comércio ilegal de colmeias em Goiás"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bdelegacia\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação da PF combate interferências de rádios piratas nas comunicações do Aeroporto de Brasília"
+          "PF deflagra Operação Inseguros no interior do estado do Rio de Janeiro"
         ]
       },
       {
@@ -1189,115 +852,81 @@
         "weight": 1.4,
         "uses": 2,
         "examples": [
-          "Operação Bumerangue reprime estelionato contra os Correios em GO, PA e DF",
-          "Operação Heavy Fuel combate formação de cartel entre postos de combustíveis da zona sul do Rio Grande do Sul"
+          "Operação Retificatio investiga fraudes em declarações de Imposto de Renda em Santa Catarina",
+          "PF faz operação de repressão a crime eleitoral em Alagoas"
         ]
       },
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bestao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 4,
-        "examples": [
-          "Operação 600 desarticula esquema de fraudes no Auxílio Emergencial no Pará",
-          "Operação da PF apura crime contra o Sistema Financeiro Nacional em Natal",
-          "Operação da PF combate fraudes previdenciárias no RN",
-          "Operação Godela II combate fraudes em financiamentos de veículos no RN"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Lacuna combate fraudes no sistema de crédito de reposição florestal no Amapá"
+          "PF deflagra operação para combater fraudes com criptomoedas"
         ]
       },
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
-          "Operação Contaminatus combate contrabando de cigarros e agrotóxicos em cinco estados"
+          "PF deflagra a 2ª fase da Operação Barco de Papel",
+          "PF investiga saque fraudulento em FGTS"
         ]
       },
       {
-        "pattern_do_classificador": "\\bflorianopolis\\w*\\b.{0,240}\\bcumpriu\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bservidores\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Animus Injuriandi apura crime contra à honra de parlamentar em rede social"
+          "PF combate radiodifusão clandestina em Mato Grosso"
         ]
       },
       {
-        "pattern_do_classificador": "\\bfora\\w*\\b.{0,240}\\bcumpridos\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bhermes\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/RJ deflagra operação para apurar fraudes em postos de combustíveis"
+          "PF deflagra operação contra envio de dinheiro falso pelos Correios"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bamazonas\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bignem\\w*\\b.{0,240}\\bpontins\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/AM desarticula núcleo jurídico e operacional de facção criminosa no Amazonas"
+          "PF deflagra operação em Lucas do Rio Verde e Nova Mutum, no Mato Grosso"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "pattern_do_classificador": "\\binveridico\\w*\\b.{0,240}\\bcumpre\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/MG combate crimes eleitorais em Argirita/MG"
+          "PF investiga criação de perfil falso do ministro da Justiça em rede social"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bficco\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bjuizo\\w*\\b.{0,240}\\bvara\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/MS deflagra operação para desarticular depósito de drogas e armas em Campo Grande"
+          "PF combate o comércio ilegal de explosivos"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 4,
-        "examples": [
-          "FICCO/GO cumpre mandados de busca em endereços de advogada",
-          "FICCO/MG combate crimes violentos em Governador Valadares",
-          "FICCO/MS combate lavagem de dinheiro ligada a facção criminosa em Campo Grande/MS",
-          "FICCO/PA cumpre 33 mandados de prisão em oito estados"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 3,
-        "examples": [
-          "FICCO/MG desarticula organização criminosa especializada em tráfico de drogas no Triângulo Mineiro",
-          "FICCO/MT deflagra operação contra facção criminosa em Sorriso",
-          "FICCO/PI combate esquema criminoso de tráfico de drogas em Parnaíba"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\btarefa\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 4,
-        "examples": [
-          "Força-Tarefa cumpre mandados para investigar facção criminosa atuante no Amapá",
-          "Força-Tarefa cumpre mandados para investigar membros de organização criminosa",
-          "Força Tarefa de Segurança Pública combate tráfico de drogas e organização criminosa",
-          "FTSP cumpre mandado contra o tráfico de drogas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bintegrantes\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bjustica\\w*\\b.{0,240}\\bsantarem\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/GO e Polícia Penal reprimem crime de tráfico de drogas nos estados de GO e MS"
+          "Polícia Federal deflagra operação CEHARITAUÁ de repressão à comercialização de materiais arqueológicos"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\blondrina\\w*\\b.{0,240}\\bcumpriu\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF combate crimes contra a previdência na 2ª fase da Operação Recidiva"
         ]
       },
       {
@@ -1305,135 +934,79 @@
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Florestas de Papel combate exploração ilícita de madeiras na Amazônia"
+          "PF apura possível manipulação de partida do campeonato brasileiro de futebol da série A"
         ]
       },
       {
-        "pattern_do_classificador": "\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bexpedidos\\w*\\b",
+        "pattern_do_classificador": "\\bmais\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Brasil e Paraguai deflagram na data de hoje a Operação DAKOVO, de combate ao tráfico internacional de armas"
+          "PF e PGR deflagram segunda etapa da Operação Q.I."
         ]
       },
       {
-        "pattern_do_classificador": "\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bimoveis\\w*\\b",
+        "pattern_do_classificador": "\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bcumprido\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Boi Bandido combate grilagem de terras públicas no município de Assis Brasil/AC"
+          "PF deflagra segunda fase da operação Mente Sã, que reprime o uso e comércio de drogas no campus da Universidade Federal de Santa Maria"
         ]
       },
       {
-        "pattern_do_classificador": "\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bprisao\\w*\\b",
+        "pattern_do_classificador": "\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bespirito\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/RN investiga grupo criminoso que teve 243 kg de skunk apreendidos no RN"
+          "PF investiga homem que fingia ser servidor do MPF"
         ]
       },
       {
-        "pattern_do_classificador": "\\bmandados\\w*\\b.{0,240}\\bcinco\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bcumpridos\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Godela investiga fraudes em financiamentos de veículos no RN"
+          "PF investiga advogado por fraude no levantamento de precatórios e RPVS"
         ]
       },
       {
-        "pattern_do_classificador": "\\bmandados\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bministerio\\w*\\b.{0,240}\\bagricultura\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/PI desarticula organização criminosa voltada ao tráfico de drogas"
+          "PF deflagra Operação Terra Limpa para apurar importação e fabricação irregular de agrotóxicos"
         ]
       },
       {
-        "pattern_do_classificador": "\\bmandados\\w*\\b.{0,240}\\bprisao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bnova\\w*\\b.{0,240}\\bfase\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/MG mira esquema de tráfico e lavagem de dinheiro no Triângulo Mineiro"
+          "PF aprofunda investigação sobre \"áudio fake\" utilizado em campanha eleitoral"
         ]
       },
       {
-        "pattern_do_classificador": "\\bmateriais\\w*\\b.{0,240}\\bilicitos\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bnovo\\w*\\b.{0,240}\\bcabresto\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/BA desmonta esconderijos de fuzil e drogas no sul da Bahia"
+          "PF deflagra operação para coibir a prática de crimes com o objetivo de tumultuar a lisura das eleições em Itaíba/PE"
         ]
       },
       {
-        "pattern_do_classificador": "\\bmedidas\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bopostos\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/PB desarticula comando de organização criminosa"
+          "Polícia Federal desencadeia operação Opostos em Alagoas"
         ]
       },
       {
-        "pattern_do_classificador": "\\bminas\\w*\\b.{0,240}\\bgerais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bparticipacao\\w*\\b.{0,240}\\bcinco\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Em ação conjunta, FICCO/BA prende líder de facção criminosa atuante no sudoeste da BA"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bmobilizadas\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AC prende foragidos da Justiça em operação conjunta com o GAECO/AM"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bmobilizou\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bmunicipio\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Bezerro de Ouro desarticula grupo criminoso que atua em extração ilícita de ouro em terras indígenas no Pará"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bocasiao\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Ação conjunta resulta na deflagração de operação para avançar nas investigações relacionadas a homicídios"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bocorreu\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AP combate esquema de corrupção envolvendo facção criminosa e membros do alto escalão do serviço público do Amapá"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bpalmas\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bimovel\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Grilos do Cerrado investiga fraudes de financiamento rural na região central do Tocantins"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bparaiba\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Força-Tarefa do Sistema Único de Segurança Pública da Paraíba mira tráfico de drogas e venda de armas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bparticipacao\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 2,
-        "examples": [
-          "Operação Força Extra desarticula esquema de venda ilegal de anabolizantes em SP e ES"
+          "PF deflagra Operação Teimosia II para investigar casos de compartilhamento de imagens de abusos sexuais contra crianças e adolescentes"
         ]
       },
       {
@@ -1441,573 +1014,511 @@
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Força-Tarefa de Segurança Pública do Acre combate facções criminosas"
+          "PF investiga extração e comércio ilegal de granito"
         ]
       },
       {
-        "pattern_do_classificador": "\\bparticipam\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bsanta\\w*\\b",
+        "pattern_do_classificador": "\\bpessoa\\w*\\b.{0,240}\\bpresa\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Guerra e Paz cumpre 77 mandados para reprimir conflitos indígenas na Reserva do Carreteiro"
+          "PF realiza nova ação de repressão aos crimes de abuso infantojuvenil em Foz do Iguaçu"
         ]
       },
       {
-        "pattern_do_classificador": "\\bpartir\\w*\\b.{0,240}\\brepresentacao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bpolicias\\w*\\b.{0,240}\\bcumprem\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/RN combate tráfico de drogas no Rio Grande do Norte"
+          "PF faz operação contra mulher que se passava por outra para receber benefícios governamentais"
         ]
       },
       {
-        "pattern_do_classificador": "\\bpolicias\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bgoiania\\w*\\b",
+        "pattern_do_classificador": "\\bponta\\w*\\b.{0,240}\\bpora\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/GO reprime crimes de lavagem de dinheiro"
+          "Operação Warehouse II investiga desvio de mercadorias apreendidas de depósito em Ponta Porã"
         ]
       },
       {
-        "pattern_do_classificador": "\\bpolicias\\w*\\b.{0,240}\\bprisao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bquarta\\w*\\b.{0,240}\\bnorte\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/GO e Polícia Penal investigam \"pombo-correio\" de facção criminosa"
+          "Polícia Federal deflagra Operação Horizonte no Rio Grande do Norte"
         ]
       },
       {
-        "pattern_do_classificador": "\\bquatro\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bquinta\\w*\\b.{0,240}\\bcumpriu\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Mãe-Terra combate importação e comercialização ilegal de agrotóxicos de origem estrangeira"
+          "PF mira suspeitos do ataque ao assentamento do MST em Tremembé/SP"
         ]
       },
       {
-        "pattern_do_classificador": "\\bseis\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
-        "weight": 1.4,
-        "uses": 2,
-        "examples": [
-          "FICCO/DF desarticula organização criminosa que dava suporte a líder de facção baiana preso no DF",
-          "FICCO/GO e Polícia Civil/GO fazem operação conjunta"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bsendo\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bbelo\\w*\\b",
+        "pattern_do_classificador": "\\bquinta\\w*\\b.{0,240}\\bfantasma\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/MG deflagra operação no combate à lavagem de dinheiro"
+          "PF investiga veiculação de imagens relacionadas ao nazismo"
         ]
       },
       {
-        "pattern_do_classificador": "\\bserra\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\brealiza\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\btrabalho\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Forças de segurança do estado da Paraíba deflagraram operação de combate ao tráfico de drogas e crimes patrimoniais"
+          "Polícia Federal realiza busca e apreensão contra crimes de trabalho análogo à escravidão e assédio sexual."
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\brealizou\\w*\\b.{0,240}\\bnessa\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF desarticula comércio ilegal de medicamentos em Campo Grande/MS"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\brepresenta\\w*\\b.{0,240}\\bcontinuidade\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF prende foragidas em continuidade a investigação por tortura em Guajará-Mirim/RO"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bsegunda\\w*\\b.{0,240}\\bcangucu\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Polícia Federal deflagra operação contra caça ilegal"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bsegunda\\w*\\b.{0,240}\\betapa\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra nova etapa da Operação Iscariotes"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bsuspeito\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF cumpre mandado de prisão preventiva em desfavor de investigado na 9ª fase da Operação Calvário"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\btambem\\w*\\b.{0,240}\\bautorizados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF prende suspeito de planejar ataques violentos no Pará"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bterca\\w*\\b.{0,240}\\bmiqueias\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF combate fraudes em contratações emergenciais em Roraima"
         ]
       },
       {
         "pattern_do_classificador": "\\btodo\\w*\\b.{0,240}\\bcumpridos\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 3,
+        "uses": 1,
         "examples": [
-          "Desvio de Recursos públicos: PF e MPF realizam operação em Alagoas",
-          "Operação Francamente combate às fraudes na comercialização de caminhonetes na Zona Franca de Manaus"
+          "Polícia Federal deflagra operação para combater fraudes no auxílio emergencial em Cuiabá/MT"
         ]
       },
       {
-        "pattern_do_classificador": "\\btotal\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\btodo\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/BA deflagra operação contra organização criminosa"
+          "PF investiga fraude à execução praticada por empresas sediadas em Jambeiro/SP e região"
         ]
       },
       {
-        "pattern_do_classificador": "\\btrabalho\\w*\\b.{0,240}\\bparticipacao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\btodo\\w*\\b.{0,240}\\bsendo\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Engalobados investiga fraudes na contratação de empresas para o fornecimento de testes de COVID-19 e locação de equipamentos laboratoriais"
+          "PF deflagra a Operação Tracker no Mato Grosso do Sul"
         ]
       },
       {
-        "pattern_do_classificador": "\\btres\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bcidade\\w*\\b",
+        "pattern_do_classificador": "\\btres\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação da PF bloqueia mais de R$ 130 milhões oriundos de crime envolvendo criptoativos"
+          "PF investiga irregularidades em campanhas eleitorais"
         ]
       },
       {
-        "pattern_do_classificador": "\\bvisa\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bvisa\\w*\\b.{0,240}\\bcumprir\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 2,
+        "examples": [
+          "PF combate o tráfico internacional de pessoa",
+          "PF investiga tráfico internacional de órgãos humanos"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bvoto\\w*\\b.{0,240}\\blivre\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/CE deflagra Operação DEFCON 3 contra organização criminosa"
+          "PF combate a possível prática de crimes que poderiam comprometer as eleições no Município de Agrestina/PE"
         ]
       }
     ],
     "examples": [
-      "Operação Dissimulare para desarticular grupo que desviava objetos em trâmite nos Correios",
-      "A Polícia Federal desarticula esquema de desvios de Recursos do Fundo Municipal de Saúde em Araguaína/TO.",
-      "Em ação conjunta, PF combate crimes tributários",
-      "FICCO/MS combate crimes de lavagem de dinheiro e tráfico de drogas",
-      "FICCO/BA deflagra operação em combate ao crime organizado no interior da Bahia",
-      "FICCO/AM desarticula núcleo de comando do crime organizado no Amazonas",
-      "FICCO/GO deflagra operação contra tráfico de drogas no Sudoeste Goiano",
-      "PF combate grupo criminoso que promovia tráfico de drogas em aldeia indígena",
-      "FICCO/RN deflagra operação contra casal suspeito de liderar organização criminosa",
-      "Operação Contágio II investiga fraudes em procedimentos licitatórios em Plácido de Castro/AC"
-    ]
-  },
-  {
-    "kind": "modus",
-    "classificador": "combate_financeiro",
-    "source": "llm_feedback",
-    "uses": 4,
-    "patterns_do_classificador": [
-      {
-        "pattern_do_classificador": "\\bdisfarcar\\w*\\b.{0,240}\\blucros\\w*\\b.{0,240}\\bilicitos\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AM desarticula núcleo de comando do crime organizado no Amazonas"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\borganizado\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/PB desarticula comando de organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bministerio\\w*\\b.{0,240}\\bpublico\\w*\\b.{0,240}\\bdesta\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação da PF bloqueia mais de R$ 130 milhões oriundos de crime envolvendo criptoativos"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\breferida\\w*\\b.{0,240}\\bobjetivo\\w*\\b.{0,240}\\bdesarticular\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/PB investiga organização criminosa que atua em João Pessoa"
-        ]
-      }
-    ],
-    "examples": [
-      "FICCO/AM desarticula núcleo de comando do crime organizado no Amazonas",
-      "FICCO/PB desarticula comando de organização criminosa",
-      "Operação da PF bloqueia mais de R$ 130 milhões oriundos de crime envolvendo criptoativos",
-      "FICCO/PB investiga organização criminosa que atua em João Pessoa"
+      "PF reprime crimes de armazenamento e compartilhamento de arquivos com abusos sexuais de crianças e adolescentes na Internet",
+      "PF combate comércio irregular de materiais arqueológicos",
+      "PF e PRF apreendem equipamentos discretos de comunicação na véspera do Enem em Alagoas",
+      "PF deflagra 9ª fase da Operação Sisamnes",
+      "PF deflagra operação em Aldeia Indígena, no Oeste de Santa Catarina",
+      "PF deflagra Operação Elétron para combater fraudes em agência reguladora",
+      "PF cumpre mandado de busca e apreensão contra clandestinidade em telecomunicações",
+      "PF cumpre mandado de busca e apreensão em investigação sobre possível perseguição a ministro do STF",
+      "PF cumpre mandado de busca e apreensão em Salvador/BA em investigação contra tráfico",
+      "PF cumpre mandado de busca e apreensão para reprimir crime contra os serviços de telecomunicações"
     ]
   },
   {
     "kind": "modus",
     "classificador": "cumprimento_mandado",
     "source": "llm_feedback",
-    "uses": 24,
+    "uses": 15,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bcapim\\w*\\b.{0,240}\\bgrosso\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "pattern_do_classificador": "\\bcgcs\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/BA deflagra operação em combate ao crime organizado no interior da Bahia"
+          "PF prende 165 foragidos por crimes sexuais e fraudes na Operação Muros de Jerusálem"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcaptura\\w*\\b.{0,240}\\brealizada\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "pattern_do_classificador": "\\bcooperacao\\w*\\b.{0,240}\\btrabalho\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/CE prende foragido do Pará em Jijoca de Jericoacoara/CE"
+          "Polícia Federal realiza busca e apreensão contra crimes de trabalho análogo à escravidão e assédio sexual."
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bguaira\\w*\\b.{0,240}\\bmato\\w*\\b",
+        "pattern_do_classificador": "\\bcumprimento\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Contaminatus combate contrabando de cigarros e agrotóxicos em cinco estados"
+          "PF investiga uso de imagens falsas para liberar financiamentos da Caixa em Pirapozinho/SP"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bcinco\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Godela investiga fraudes em financiamentos de veículos no RN"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bprisao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MG mira esquema de tráfico e lavagem de dinheiro no Triângulo Mineiro"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesdobramento\\w*\\b.{0,240}\\bfragmento\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/DF deflagra operação contra facção criminosa atuante no DF e Entorno"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bdeflagrada\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/Ilhéus, PM/BA e PC/BA, em operação integrada, cumprem mandados judiciais em Aurelino Leal"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bquarta\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Falso Pretor prende homem que se passava por policial federal em Sinop/MT"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bquinta\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bterca\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
         "uses": 2,
         "examples": [
-          "FICCO/CE deflagra segunda fase da Operação Extramuros no Ceará",
-          "Operação da PF investiga empresa de energia por fraude em financiamento"
+          "PF deflagra Operação Arancia, contra fraudadores da Previdência Social",
+          "Polícia Federal deflagra segunda fase da Operação Para Bellum"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bexpedidos\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bcumprimento\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e Receita Federal combatem fraude à União em Minas Gerais"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF investiga saque fraudulento em FGTS"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\btres\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra Segunda Fase da Operação Panaceia no Oiapoque/AP"
         ]
       },
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bderam\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
-          "Operação Bumerangue reprime estelionato contra os Correios em GO, PA e DF"
+          "PF faz operação de repressão a crime eleitoral em Alagoas",
+          "PF prende foragido da Justiça em Redenção/PA"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bamazonas\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "pattern_do_classificador": "\\bopostos\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bprisao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/AM desarticula núcleo jurídico e operacional de facção criminosa no Amazonas"
+          "Polícia Federal desencadeia operação Opostos em Alagoas"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\beleitoral\\w*\\b",
+        "pattern_do_classificador": "\\bparticipacao\\w*\\b.{0,240}\\bmais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/MG combate crimes eleitorais em Argirita/MG"
+          "PF investiga extração e comércio ilegal de granito"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "pattern_do_classificador": "\\bquarta\\w*\\b.{0,240}\\bnorte\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/MS combate lavagem de dinheiro ligada a facção criminosa em Campo Grande/MS"
+          "Polícia Federal deflagra Operação Horizonte no Rio Grande do Norte"
         ]
       },
       {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\btarefa\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "pattern_do_classificador": "\\brealizou\\w*\\b.{0,240}\\bnessa\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FTSP cumpre mandado contra o tráfico de drogas"
+          "PF desarticula comércio ilegal de medicamentos em Campo Grande/MS"
         ]
       },
       {
-        "pattern_do_classificador": "\\bindividuo\\w*\\b.{0,240}\\bhavia\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
+        "pattern_do_classificador": "\\bsegunda\\w*\\b.{0,240}\\betapa\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/RS captura foragido durante ação conjunta em Capivari do Sul/RS"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bmedidas\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/PB desarticula comando de organização criminosa"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bmobilizadas\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AC prende foragidos da Justiça em operação conjunta com o GAECO/AM"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bmobilizados\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bprisao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/DF cumpre 30 mandados de prisão preventiva contra integrantes de facções"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bpalmas\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bimovel\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Grilos do Cerrado investiga fraudes de financiamento rural na região central do Tocantins"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bparticipacao\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Força Extra desarticula esquema de venda ilegal de anabolizantes em SP e ES"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\brealizadas\\w*\\b.{0,240}\\bdiligencias\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/SE cumpre mandados de prisão contra foragidos da justiça"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bserra\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Forças de segurança do estado da Paraíba deflagraram operação de combate ao tráfico de drogas e crimes patrimoniais"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\btodo\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Apate desarticula associação criminosa que fraudava auxílio emergencial"
+          "PF deflagra nova etapa da Operação Iscariotes"
         ]
       }
     ],
     "examples": [
-      "FICCO/BA deflagra operação em combate ao crime organizado no interior da Bahia",
-      "FICCO/CE prende foragido do Pará em Jijoca de Jericoacoara/CE",
-      "Operação Contaminatus combate contrabando de cigarros e agrotóxicos em cinco estados",
-      "Operação Godela investiga fraudes em financiamentos de veículos no RN",
-      "FICCO/MG mira esquema de tráfico e lavagem de dinheiro no Triângulo Mineiro",
-      "FICCO/DF deflagra operação contra facção criminosa atuante no DF e Entorno",
-      "FICCO/Ilhéus, PM/BA e PC/BA, em operação integrada, cumprem mandados judiciais em Aurelino Leal",
-      "Operação Falso Pretor prende homem que se passava por policial federal em Sinop/MT",
-      "FICCO/CE deflagra segunda fase da Operação Extramuros no Ceará",
-      "Operação da PF investiga empresa de energia por fraude em financiamento"
-    ]
-  },
-  {
-    "kind": "modus",
-    "classificador": "exames_periciais",
-    "source": "llm_feedback",
-    "uses": 1,
-    "patterns_do_classificador": [
-      {
-        "pattern_do_classificador": "\\bdiante\\w*\\b.{0,240}\\bdisso\\w*\\b.{0,240}\\bexames\\w*\\b.{0,240}\\bpericiais\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Operação Acqua Gel da PF apura produção e comercialização de álcool gel adulterado no Paraná"
-        ]
-      }
-    ],
-    "examples": [
-      "Operação Acqua Gel da PF apura produção e comercialização de álcool gel adulterado no Paraná"
+      "PF prende 165 foragidos por crimes sexuais e fraudes na Operação Muros de Jerusálem",
+      "Polícia Federal realiza busca e apreensão contra crimes de trabalho análogo à escravidão e assédio sexual.",
+      "PF investiga uso de imagens falsas para liberar financiamentos da Caixa em Pirapozinho/SP",
+      "PF deflagra Operação Arancia, contra fraudadores da Previdência Social",
+      "Polícia Federal deflagra segunda fase da Operação Para Bellum",
+      "PF e Receita Federal combatem fraude à União em Minas Gerais",
+      "PF investiga saque fraudulento em FGTS",
+      "PF deflagra Segunda Fase da Operação Panaceia no Oiapoque/AP",
+      "PF faz operação de repressão a crime eleitoral em Alagoas",
+      "PF prende foragido da Justiça em Redenção/PA"
     ]
   },
   {
     "kind": "modus",
     "classificador": "fiscalizacao",
     "source": "llm_feedback",
-    "uses": 5,
+    "uses": 17,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bfiscalizacao\\w*\\b.{0,240}\\binterdicao\\w*\\b.{0,240}\\btres\\w*\\b.{0,240}\\balojamentos\\w*\\b",
-        "weight": 1.4,
-        "uses": 2,
-        "examples": [
-          "Força-tarefa retira adolescentes de trabalho infantil em fazendas no Pará"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bgladiador\\w*\\b.{0,240}\\bimplicara\\w*\\b.{0,240}\\bacoes\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
+        "pattern_do_classificador": "\\bacoes\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bocorreram\\w*\\b.{0,240}\\bjaneiro\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Gladiador investiga atividade fraudulenta de comercialização da Carteira Nacional de Vigilante"
+          "PF e ANATEL fecham três rádios clandestinas"
         ]
       },
       {
-        "pattern_do_classificador": "\\boutra\\w*\\b.{0,240}\\bcarreta\\w*\\b.{0,240}\\bconduzida\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
+        "pattern_do_classificador": "\\batua\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bpostos\\w*\\b.{0,240}\\bcombustiveis\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/PR prende dois suspeitos por contrabando de mais de 600 caixas de cigarros em Santa Terezinha de Itaipu"
+          "PF atua na fiscalização de postos de combustíveis em 11 estados e no DF"
         ]
       },
       {
-        "pattern_do_classificador": "\\btransacoes\\w*\\b.{0,240}\\brealizadas\\w*\\b.{0,240}\\baplicativos\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
+        "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bprodutos\\w*\\b.{0,240}\\bquimicos\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/AM desarticula núcleo de comando do crime organizado no Amazonas"
+          "PF deflagra operação de fiscalização de produtos químicos em Minas Gerais"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bgeral\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bprodutos\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Polícia Federal deflagra Operação Geral de fiscalização de produtos químicos em Minas Gerais"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bfiscalizacao\\w*\\b.{0,240}\\balcancou\\w*\\b.{0,240}\\bbarra\\w*\\b.{0,240}\\bpirai\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e ANATEL fecham duas rádios clandestinas"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bfiscalizacao\\w*\\b.{0,240}\\bfronteira\\w*\\b.{0,240}\\bintegrada\\w*\\b.{0,240}\\bmato\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF participa de operação integrada de segurança na fronteira em Mato Grosso do Sul"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bnacional\\w*\\b.{0,240}\\bpetroleo\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF deflagra Operação Vem Diesel 2 para fiscalizar estabelecimentos ligados à venda de gás de botijão"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bibama\\w*\\b.{0,240}\\bmilitar\\w*\\b.{0,240}\\bambiental\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e Ibama realizam operação conjunta em madeireiras em Rondônia"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bintegracao\\w*\\b.{0,240}\\borgaos\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bvisa\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF, Receita, Polícia Civil e Vigiagro deflagram Operação Aliança no Galeão/RJ"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bintensifica\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bbancaria\\w*\\b.{0,240}\\bregiao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Polícia Federal intensifica fiscalização bancária na região oeste do Paraná"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bintensifica\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bunidade\\w*\\b.{0,240}\\bconservacao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF intensifica fiscalização na Unidade de Conservação Reserva Biológica do Jaru para impedir invasões"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bmapa\\w*\\b.{0,240}\\bfiscaliz\\w*\\b.{0,240}\\bfiscalizacoes\\w*\\b.{0,240}\\bacoes\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e MAPA dão continuidade às fiscalizações em indústrias de bebidas"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\btrabalho\\w*\\b.{0,240}\\banalogo\\w*\\b.{0,240}\\bescravidao\\w*\\b.{0,240}\\bfiscaliz\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF identifica 17 trabalhadores em situação de trabalho análogo à escravidão"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\btrabalho\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bmato\\w*\\b.{0,240}\\bgrosso\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "Polícia Federal, Receita Federal, MAPA e ANP realizam a Operação Alquimia"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bultimas\\w*\\b.{0,240}\\bduas\\w*\\b.{0,240}\\bsemanas\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF atua em combate ao trabalho análogo à escravidão no interior de São Paulo"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bvistoria\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bnovo\\w*\\b.{0,240}\\bsistema\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF fiscaliza instrutores de armamento e tiro credenciados, em clubes de tiro"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bvistoriadas\\w*\\b.{0,240}\\bbagagens\\w*\\b.{0,240}\\bmais\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e PM/AL realizam operação de segurança pública em navio cruzeiro no Porto de Maceió/AL"
         ]
       }
     ],
     "examples": [
-      "Força-tarefa retira adolescentes de trabalho infantil em fazendas no Pará",
-      "Operação Gladiador investiga atividade fraudulenta de comercialização da Carteira Nacional de Vigilante",
-      "FICCO/PR prende dois suspeitos por contrabando de mais de 600 caixas de cigarros em Santa Terezinha de Itaipu",
-      "FICCO/AM desarticula núcleo de comando do crime organizado no Amazonas"
-    ]
-  },
-  {
-    "kind": "modus",
-    "classificador": "lavagem_dinheiro",
-    "source": "llm_feedback",
-    "uses": 1,
-    "patterns_do_classificador": [
-      {
-        "pattern_do_classificador": "\\btambem\\w*\\b.{0,240}\\bidentificou\\w*\\b.{0,240}\\blavagem\\w*\\b.{0,240}\\bdinheiro\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/RN investiga grupo criminoso que teve 243 kg de skunk apreendidos no RN"
-        ]
-      }
-    ],
-    "examples": [
-      "FICCO/RN investiga grupo criminoso que teve 243 kg de skunk apreendidos no RN"
-    ]
-  },
-  {
-    "kind": "modus",
-    "classificador": "organizacao_criminosa",
-    "source": "llm_feedback",
-    "uses": 1,
-    "patterns_do_classificador": [
-      {
-        "pattern_do_classificador": "\\bpartir\\w*\\b.{0,240}\\banalise\\w*\\b.{0,240}\\bcriminosa\\w*\\b.{0,240}\\borganizacao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/RN investiga grupo criminoso que teve 243 kg de skunk apreendidos no RN"
-        ]
-      }
-    ],
-    "examples": [
-      "FICCO/RN investiga grupo criminoso que teve 243 kg de skunk apreendidos no RN"
+      "PF e ANATEL fecham três rádios clandestinas",
+      "PF atua na fiscalização de postos de combustíveis em 11 estados e no DF",
+      "PF deflagra operação de fiscalização de produtos químicos em Minas Gerais",
+      "Polícia Federal deflagra Operação Geral de fiscalização de produtos químicos em Minas Gerais",
+      "PF e ANATEL fecham duas rádios clandestinas",
+      "PF participa de operação integrada de segurança na fronteira em Mato Grosso do Sul",
+      "PF deflagra Operação Vem Diesel 2 para fiscalizar estabelecimentos ligados à venda de gás de botijão",
+      "PF e Ibama realizam operação conjunta em madeireiras em Rondônia",
+      "PF, Receita, Polícia Civil e Vigiagro deflagram Operação Aliança no Galeão/RJ",
+      "Polícia Federal intensifica fiscalização bancária na região oeste do Paraná"
     ]
   },
   {
     "kind": "modus",
     "classificador": "prisao",
     "source": "llm_feedback",
-    "uses": 7,
+    "uses": 2,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bprisao\\w*\\b",
+        "pattern_do_classificador": "\\bresultou\\w*\\b.{0,240}\\bfechamento\\w*\\b.{0,240}\\bradios\\w*\\b.{0,240}\\bprisao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas"
+          "PF e Anatel deflagram Operação Onda Livre III contra rádios clandestinas"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bprisao\\w*\\b",
+        "pattern_do_classificador": "\\btodo\\w*\\b.{0,240}\\bprocedimento\\w*\\b.{0,240}\\bgeral\\w*\\b.{0,240}\\bprisao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Ação conjunta combate tráfico de drogas e crime organizado"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bsendo\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bprisao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/AM cumpre mandados contra crime organizado no âmbito da Operação Força Integrada"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bminas\\w*\\b.{0,240}\\bgerais\\w*\\b.{0,240}\\bprisao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/MG apreende aproximadamente 150 kg de maconha"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bintegrada\\w*\\b.{0,240}\\brealizada\\w*\\b.{0,240}\\bsudeste\\w*\\b.{0,240}\\bprisao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "Em ação conjunta, FICCO/BA e FICCO/SP deflagram operação e prendem líder de facção"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bpartir\\w*\\b.{0,240}\\brepresentacao\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bprisao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/RN investiga grupo criminoso que teve 243 kg de skunk apreendidos no RN"
-        ]
-      },
-      {
-        "pattern_do_classificador": "\\bvisa\\w*\\b.{0,240}\\bcumprir\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bprisao\\w*\\b",
-        "weight": 1.4,
-        "uses": 1,
-        "examples": [
-          "FICCO/CE deflagra Operação DEFCON 3 contra organização criminosa"
+          "PF realiza a extradição de dois argentinos acusados de violência doméstica e feminicídio em seu país"
         ]
       }
     ],
     "examples": [
-      "FICCO/GO deflagra operação contra grupo criminoso voltado ao tráfico interestadual de drogas",
-      "Ação conjunta combate tráfico de drogas e crime organizado",
-      "FICCO/AM cumpre mandados contra crime organizado no âmbito da Operação Força Integrada",
-      "FICCO/MG apreende aproximadamente 150 kg de maconha",
-      "Em ação conjunta, FICCO/BA e FICCO/SP deflagram operação e prendem líder de facção",
-      "FICCO/RN investiga grupo criminoso que teve 243 kg de skunk apreendidos no RN",
-      "FICCO/CE deflagra Operação DEFCON 3 contra organização criminosa"
+      "PF e Anatel deflagram Operação Onda Livre III contra rádios clandestinas",
+      "PF realiza a extradição de dois argentinos acusados de violência doméstica e feminicídio em seu país"
     ]
   },
   {
     "kind": "modus",
-    "classificador": "processos_punitivos",
+    "classificador": "suspensao_atividades",
     "source": "llm_feedback",
     "uses": 1,
     "patterns_do_classificador": [
       {
-        "pattern_do_classificador": "\\bgladiador\\w*\\b.{0,240}\\bimplicara\\w*\\b.{0,240}\\bprocessos\\w*\\b.{0,240}\\bpunitivos\\w*\\b",
+        "pattern_do_classificador": "\\besses\\w*\\b.{0,240}\\bmotivos\\w*\\b.{0,240}\\bsuspensao\\w*\\b.{0,240}\\batividades\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
-          "Operação Gladiador investiga atividade fraudulenta de comercialização da Carteira Nacional de Vigilante"
+          "PF interdita pousadas em unidade de conservação"
         ]
       }
     ],
     "examples": [
-      "Operação Gladiador investiga atividade fraudulenta de comercialização da Carteira Nacional de Vigilante"
+      "PF interdita pousadas em unidade de conservação"
     ]
   }
 ]

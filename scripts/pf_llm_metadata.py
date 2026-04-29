@@ -319,7 +319,7 @@ def build_prompt(contexto: str) -> str:
     categories_json = json.dumps(
         {
             "classificacao": ["Por crime", "Com operacao nomeada", "Outras"],
-            "crimes_mais_presentes": known_crime_labels(),
+            "crimes_mais_presentes": known_crime_labels(include_learned=False),
             "modus_operandi": known_modus_labels(),
         },
         ensure_ascii=False,
@@ -459,10 +459,13 @@ def coerce_list_value(value: object) -> list[str]:
 
 
 def coerce_label_list(value: object, *, crime: bool = False) -> list[str]:
+    allowed_crime_labels = set(known_crime_labels(include_learned=False)) if crime else set()
     labels = []
     for item in coerce_list_value(value):
         label = canonical_label(item)
         if crime and label in NON_CRIME_LABELS:
+            continue
+        if crime and label not in allowed_crime_labels:
             continue
         if label and label not in labels:
             labels.append(label)
@@ -470,12 +473,13 @@ def coerce_label_list(value: object, *, crime: bool = False) -> list[str]:
 
 
 def canonical_identity(value: str, crimes: list[str]) -> str:
+    allowed_crime_labels = set(known_crime_labels(include_learned=False))
     identity = normalize_object_key(value)
     if identity.startswith("crime_"):
         suffix = canonical_label(identity.removeprefix("crime_"))
         if not suffix:
             return identity
-        if suffix in NON_CRIME_LABELS:
+        if suffix in NON_CRIME_LABELS or suffix not in allowed_crime_labels:
             return crimes[0] if crimes and crimes[0].startswith("crime_") else f"crime_{crimes[0]}" if crimes else "noticia_sem_crime_especifico"
         if suffix.startswith("crimes_"):
             return suffix
@@ -538,7 +542,11 @@ def coerce_inference_payload(payload: Any) -> dict[str, Any]:
     crime_labels = coerce_label_list(crimes, crime=True)
     modus_labels = coerce_label_list(modus)
     canonical_identidade = canonical_identity(identidade, crime_labels)
-    if canonical_identidade == "noticia_sem_crime_especifico" and not crime_labels:
+    if not crime_labels:
+        identity_label = canonical_label(canonical_identidade.removeprefix("crime_"))
+        if identity_label in set(known_crime_labels(include_learned=False)):
+            crime_labels = [identity_label]
+    if not crime_labels and (canonical_identidade == "noticia_sem_crime_especifico" or classificacao == "Por crime"):
         classificacao = "Outras"
 
     return {
