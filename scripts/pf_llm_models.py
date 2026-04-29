@@ -115,7 +115,7 @@ class NoticiaLLMInference(BaseModel):
     def align_identity(self) -> "NoticiaLLMInference":
         if self.classificacao == "Por crime" and self.crimes_mais_presentes:
             first_crime = self.crimes_mais_presentes[0]
-            if not self.identidade_canonica.startswith("crime_"):
+            if not self.identidade_canonica.startswith(("crime_", "crimes_")):
                 self.identidade_canonica = f"crime_{first_crime}"
 
         if not self.identidade_canonica:

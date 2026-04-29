@@ -9,7 +9,11 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from ollama import Client
+
+try:
+    from ollama import Client
+except ModuleNotFoundError:
+    Client = None
 
 try:
     from openai import OpenAI
@@ -19,11 +23,13 @@ except ModuleNotFoundError:
 try:
     from pf_regex_classifier import (
         DEFAULT_CONFIDENCE_THRESHOLD,
+        NON_CRIME_LABELS,
         RegexClassification,
         canonical_label,
         classify_news_body,
         clean_learned_rules_file,
         improve_regex_from_llm,
+        inference_needs_regex_rescue,
         known_crime_labels,
         known_modus_labels,
     )
@@ -41,11 +47,13 @@ try:
 except ModuleNotFoundError:
     from scripts.pf_regex_classifier import (
         DEFAULT_CONFIDENCE_THRESHOLD,
+        NON_CRIME_LABELS,
         RegexClassification,
         canonical_label,
         classify_news_body,
         clean_learned_rules_file,
         improve_regex_from_llm,
+        inference_needs_regex_rescue,
         known_crime_labels,
         known_modus_labels,
     )
@@ -133,21 +141,13 @@ def infer_provider_from_base_url(base_url: str) -> str | None:
     normalized = base_url.strip().lower()
     if not normalized:
         return None
-    if "groq.com" in normalized:
-        return "groq"
     if "11434" in normalized or "ollama" in normalized or "localhost" in normalized or "127.0.0.1" in normalized:
         return "ollama"
     return None
 
 
 def build_provider_order(preferred_provider: str, has_groq_key: bool) -> tuple[str, ...]:
-    if preferred_provider == "groq":
-        return ("groq", "ollama")
-    if preferred_provider == "ollama":
-        return ("ollama", "groq")
-    if has_groq_key:
-        return ("groq", "ollama")
-    return ("ollama", "groq")
+    return ("ollama",)
 
 
 def resolve_runtime_config(
@@ -162,33 +162,20 @@ def resolve_runtime_config(
     regex_threshold: float | None = None,
 ) -> RuntimeConfig:
     llm_settings = LLM_SETTINGS
-    preferred_provider = llm_settings.preferred_provider
-    provider_hint = provider or preferred_provider
+    provider_hint = "ollama"
 
     inferred_provider = infer_provider_from_base_url(base_url or "")
-    if provider is None and inferred_provider:
-        provider_hint = inferred_provider
 
     groq_settings = llm_settings.groq
     ollama_settings = llm_settings.ollama
 
     if model:
-        if provider_hint == "groq":
-            groq_settings = replace(groq_settings, model_name=model)
-        elif provider_hint == "ollama":
-            ollama_settings = replace(ollama_settings, model_name=model)
-        elif inferred_provider == "groq":
-            groq_settings = replace(groq_settings, model_name=model)
-        else:
-            ollama_settings = replace(ollama_settings, model_name=model)
+        ollama_settings = replace(ollama_settings, model_name=model)
 
-    if base_url:
-        if provider_hint == "groq" or inferred_provider == "groq":
-            groq_settings = replace(groq_settings, base_url=normalize_groq_base_url(base_url))
-        else:
-            ollama_settings = replace(ollama_settings, base_url=normalize_ollama_base_url(base_url))
+    if base_url and inferred_provider == "ollama":
+        ollama_settings = replace(ollama_settings, base_url=normalize_ollama_base_url(base_url))
 
-    provider_order = build_provider_order(provider_hint, has_groq_key=bool(groq_settings.api_key))
+    provider_order = build_provider_order(provider_hint, has_groq_key=False)
     resolved_llm_settings = replace(
         llm_settings,
         preferred_provider=provider_hint,
@@ -313,66 +300,66 @@ def build_extracted_metadata(parsed_news: dict[str, Any]) -> NoticiaMetadataExtr
     )
 
 
-def build_prompt(news_body: str) -> str:
+def build_llm_context(parsed_news: dict[str, Any]) -> str:
+    tags = parsed_news.get("tags", [])
+    tags_text = ", ".join(str(tag).strip() for tag in tags if str(tag).strip()) if isinstance(tags, list) else ""
+    fields = [
+        ("titulo", parsed_news.get("titulo", "")),
+        ("subtitulo", parsed_news.get("subtitulo", "")),
+        ("tags", tags_text),
+        ("corpo", parsed_news.get("corpo", "")),
+    ]
+    return "\n\n".join(
+        f"{label}:\n{str(value).strip()}" for label, value in fields if str(value or "").strip()
+    )
+
+
+def build_prompt(contexto: str) -> str:
     schema_json = json.dumps(NoticiaLLMInference.model_json_schema(), ensure_ascii=False, indent=2)
-    crime_labels = ", ".join(known_crime_labels())
-    modus_labels = ", ".join(known_modus_labels())
+    categories_json = json.dumps(
+        {
+            "classificacao": ["Por crime", "Com operacao nomeada", "Outras"],
+            "crimes_mais_presentes": known_crime_labels(),
+            "modus_operandi": known_modus_labels(),
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
     return f"""
-Leia apenas o corpo da noticia abaixo e devolva somente um JSON valido.
+Voce e um assistente de classificacao.
 
-Os metadados estruturais ja foram extraidos em outra etapa.
-Nao repita titulo, data, tags, dateline nem nome de operacao.
-O classificador regex tentou classificar antes de voce e nao atingiu confianca suficiente.
-Use os mesmos criterios do regex: priorize crimes explicitos, modus operandi objetivo e evidencias textuais recorrentes.
+Conforme o contexto abaixo, classifique em qual categoria ele cai.
 
-Sua tarefa e inferir somente:
-- identidade_canonica
-- classificacao
-- crimes_mais_presentes
-- modus_operandi
+Contexto:
+{contexto}
 
-Use exatamente este schema:
+Lista de categorias permitidas:
+{categories_json}
+
+Resposta: devolva somente um JSON valido conforme a estrutura da resposta abaixo.
+
+Estrutura da resposta:
 {schema_json}
 
-Labels de crimes ja conhecidos pelo regex, que devem ser preferidos quando fizerem sentido:
-{crime_labels}
-
-Labels de modus operandi ja conhecidos pelo regex, que devem ser preferidos quando fizerem sentido:
-{modus_labels}
-
-Aliases obrigatorios:
-- crime_organizado e associacao_criminosa devem virar organizacao_criminosa.
-- sequestro_bens deve virar bloqueio_bens.
-- falsificacao_documental deve virar falsidade_documental.
-- integacao_forcas_seguranca ou integracao_forcas_seguranca devem virar cooperacao_interagencias.
-
 Regras:
-- identidade_canonica deve ser lowercase com underscores.
-- todos os labels devem usar apenas ascii simples, sem acentos, sem cedilha e sem caracteres especiais.
-- classificacao deve ser um de: "Por crime", "Com operacao nomeada", "Outras".
-- crimes_mais_presentes deve usar somente labels conhecidos acima.
-- modus_operandi deve usar somente labels conhecidos acima.
-- nao crie label novo; se a descricao for mais especifica, escolha o label conhecido mais proximo.
-- quando o crime principal estiver claro, prefira uma identidade iniciando com "crime_".
-- nao escreva explicacoes fora do JSON.
-
-Corpo da noticia:
-{news_body}
+- use somente as categorias permitidas em crimes_mais_presentes e modus_operandi;
+- nao crie categorias novas;
+- se houver crime claro, classificacao deve ser "Por crime" e identidade_canonica deve ser igual ao crime principal quando ele ja iniciar com "crimes_", ou iniciar com "crime_" nos demais casos;
+- se nao houver crime claro, use "Com operacao nomeada" apenas quando houver nome de operacao explicito no contexto;
+- se nao houver crime nem operacao clara, use "Outras";
+- escreva labels em lowercase, ascii simples e underscores.
 """.strip()
 
 
-def build_messages(news_body: str) -> list[dict[str, str]]:
+def build_messages(contexto: str) -> list[dict[str, str]]:
     return [
         {
             "role": "system",
-            "content": (
-                "Voce le noticias da Policia Federal e devolve apenas JSON estruturado "
-                "com identidade canonica, classificacao, crimes e modus operandi."
-            ),
+            "content": "Voce e um assistente de classificacao. Responda somente JSON valido.",
         },
         {
             "role": "user",
-            "content": build_prompt(news_body),
+            "content": build_prompt(contexto),
         },
     ]
 
@@ -391,19 +378,10 @@ def build_client(llm_settings: LLMSettings, provider: str) -> Any:
     provider_settings = provider_settings_by_name(llm_settings, provider)
 
     if provider == "groq":
-        if OpenAI is None:
-            raise ModuleNotFoundError(
-                "A biblioteca openai nao esta instalada. Rode o setup atualizado ou instale openai para usar PF_LLM_PROVIDER=groq."
-            )
-        if not provider_settings.api_key:
-            raise EnvironmentError(
-                "GROQ_API_KEY nao encontrada. Defina GROQ_API_KEY ou PF_LLM_API_KEY quando PF_LLM_PROVIDER=groq."
-            )
-        return OpenAI(
-            api_key=provider_settings.api_key,
-            base_url=provider_settings.base_url,
-        )
+        raise RuntimeError("Provider groq bloqueado; use apenas ollama/local.")
 
+    if Client is None:
+        raise RuntimeError("Pacote ollama nao instalado neste ambiente.")
     return Client(host=provider_settings.base_url)
 
 
@@ -480,10 +458,12 @@ def coerce_list_value(value: object) -> list[str]:
     return parts or [text]
 
 
-def coerce_label_list(value: object) -> list[str]:
+def coerce_label_list(value: object, *, crime: bool = False) -> list[str]:
     labels = []
     for item in coerce_list_value(value):
         label = canonical_label(item)
+        if crime and label in NON_CRIME_LABELS:
+            continue
         if label and label not in labels:
             labels.append(label)
     return labels
@@ -495,8 +475,14 @@ def canonical_identity(value: str, crimes: list[str]) -> str:
         suffix = canonical_label(identity.removeprefix("crime_"))
         if not suffix:
             return identity
+        if suffix in NON_CRIME_LABELS:
+            return crimes[0] if crimes and crimes[0].startswith("crime_") else f"crime_{crimes[0]}" if crimes else "noticia_sem_crime_especifico"
+        if suffix.startswith("crimes_"):
+            return suffix
         return suffix if suffix.startswith("crime_") else f"crime_{suffix}"
     if crimes and (not identity or identity.startswith("operacao_")):
+        if crimes[0].startswith("crimes_"):
+            return crimes[0]
         return crimes[0] if crimes[0].startswith("crime_") else f"crime_{crimes[0]}"
     return identity
 
@@ -549,11 +535,14 @@ def coerce_inference_payload(payload: Any) -> dict[str, Any]:
             modus = normalized_payload[key]
             break
 
-    crime_labels = coerce_label_list(crimes)
+    crime_labels = coerce_label_list(crimes, crime=True)
     modus_labels = coerce_label_list(modus)
+    canonical_identidade = canonical_identity(identidade, crime_labels)
+    if canonical_identidade == "noticia_sem_crime_especifico" and not crime_labels:
+        classificacao = "Outras"
 
     return {
-        "identidade_canonica": canonical_identity(identidade, crime_labels),
+        "identidade_canonica": canonical_identidade,
         "classificacao": classificacao,
         "crimes_mais_presentes": crime_labels,
         "modus_operandi": modus_labels,
@@ -581,6 +570,26 @@ def parse_inference_response(raw_text: str, provider: str, model_name: str) -> N
             f"JSON do provider {provider} nao aderiu ao schema com o modelo {model_name}. "
             f"Trecho: {truncate_text(payload_text)} | erro: {exc}"
         ) from exc
+
+
+def combined_news_text(parsed_news: dict[str, Any]) -> str:
+    return "\n".join(
+        str(parsed_news.get(key, "") or "").strip()
+        for key in ("titulo", "subtitulo", "corpo")
+        if str(parsed_news.get(key, "") or "").strip()
+    )
+
+
+def rescue_inference_with_regex(
+    parsed_news: dict[str, Any],
+    fallback_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
+) -> RegexClassification | None:
+    rescue_result = classify_news_body(
+        combined_news_text(parsed_news),
+        tags=parsed_news.get("tags", []),
+        confidence_threshold=fallback_threshold,
+    )
+    return rescue_result if rescue_result.inference is not None else None
 
 
 def extract_ollama_usage(response: Any) -> TokenUsage:
@@ -616,10 +625,10 @@ def format_token_usage(token_usage: TokenUsage) -> str:
     )
 
 
-def run_model_with_ollama(client: Client, news_body: str, model_name: str) -> tuple[NoticiaLLMInference, TokenUsage]:
+def run_model_with_ollama(client: Any, contexto: str, model_name: str) -> tuple[NoticiaLLMInference, TokenUsage]:
     response = client.chat(
         model=model_name,
-        messages=build_messages(news_body),
+        messages=build_messages(contexto),
         format=NoticiaLLMInference.model_json_schema(),
         options={"temperature": TEMPERATURE},
     )
@@ -633,11 +642,11 @@ def run_model_with_ollama(client: Client, news_body: str, model_name: str) -> tu
     )
 
 
-def run_model_with_groq(client: OpenAI, news_body: str, model_name: str) -> tuple[NoticiaLLMInference, TokenUsage]:
+def run_model_with_groq(client: OpenAI, contexto: str, model_name: str) -> tuple[NoticiaLLMInference, TokenUsage]:
     try:
         response = client.chat.completions.create(
             model=model_name,
-            messages=build_messages(news_body),
+            messages=build_messages(contexto),
             response_format={"type": "json_object"},
             temperature=max(TEMPERATURE, 1e-8),
         )
@@ -662,15 +671,15 @@ def run_model_with_provider(
     llm_settings: LLMSettings,
     provider: str,
     client: Any,
-    news_body: str,
+    contexto: str,
 ) -> tuple[NoticiaLLMInference, TokenUsage]:
     provider_settings = provider_settings_by_name(llm_settings, provider)
     if provider == "groq":
-        return run_model_with_groq(client=client, news_body=news_body, model_name=provider_settings.model_name)
-    return run_model_with_ollama(client=client, news_body=news_body, model_name=provider_settings.model_name)
+        return run_model_with_groq(client=client, contexto=contexto, model_name=provider_settings.model_name)
+    return run_model_with_ollama(client=client, contexto=contexto, model_name=provider_settings.model_name)
 
 
-def run_model(llm_settings: LLMSettings, news_body: str) -> tuple[NoticiaLLMInference, str, str, TokenUsage]:
+def run_model(llm_settings: LLMSettings, contexto: str) -> tuple[NoticiaLLMInference, str, str, TokenUsage]:
     errors: list[str] = []
 
     for provider_settings in provider_candidates(llm_settings):
@@ -681,7 +690,7 @@ def run_model(llm_settings: LLMSettings, news_body: str) -> tuple[NoticiaLLMInfe
                 llm_settings=llm_settings,
                 provider=provider,
                 client=client,
-                news_body=news_body,
+                contexto=contexto,
             )
             return inference, provider, provider_settings.model_name, token_usage
         except Exception as exc:  # noqa: BLE001
@@ -710,7 +719,7 @@ def build_jsonl_record(
     source: str = "llm",
     learned_regex_rules: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
-    regex_metadata = build_regex_metadata(regex_result, accepted=source == "regex") if regex_result else {}
+    regex_metadata = build_regex_metadata(regex_result, accepted=source.startswith("regex")) if regex_result else {}
     return {
         "arquivo": file_name,
         "metadata_extraido": registro.metadata_extraido.model_dump(),
@@ -898,10 +907,12 @@ def main(
         model_used = ""
         token_usage = ZERO_TOKEN_USAGE
         learned_regex_rules: list[dict[str, str]] = []
+        full_news_text = combined_news_text(parsed_news)
+        llm_context = build_llm_context(parsed_news)
 
         if runtime_config.regex_enabled:
             regex_result = classify_news_body(
-                str(parsed_news["corpo"]),
+                full_news_text,
                 tags=parsed_news.get("tags", []),
                 confidence_threshold=runtime_config.regex_threshold,
             )
@@ -914,11 +925,22 @@ def main(
         else:
             inferencia_llm, provider_used, model_used, token_usage = run_model(
                 llm_settings=runtime_config.llm_settings,
-                news_body=str(parsed_news["corpo"]),
+                contexto=llm_context,
             )
+            if runtime_config.regex_enabled and inference_needs_regex_rescue(
+                inferencia_llm,
+                full_news_text,
+            ):
+                rescue_result = rescue_inference_with_regex(parsed_news)
+                if rescue_result and rescue_result.inference is not None:
+                    regex_result = rescue_result
+                    inferencia_llm = rescue_result.inference
+                    provider_used = "regex"
+                    model_used = "pf_regex_classifier_rescue"
+                    source = "regex_rescue"
             if runtime_config.regex_enabled:
                 learned_regex_rules = improve_regex_from_llm(
-                    str(parsed_news["corpo"]),
+                    full_news_text,
                     inferencia_llm,
                     title=str(parsed_news.get("titulo", "")),
                 )

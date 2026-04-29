@@ -29,7 +29,7 @@ except ModuleNotFoundError:
     from scripts.pf_llm_models import NoticiaLLMInference, normalize_slug
 
 
-DEFAULT_CONFIDENCE_THRESHOLD = 0.70
+DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LEARNED_RULES_PATH = PROJECT_ROOT / "data" / "analise_qualitativa" / "regex_classifier_rules.json"
 LEARNED_RULE_WEIGHT = 1.4
@@ -71,7 +71,39 @@ class RegexRule:
 
 LEARNED_RULES_CACHE: dict[Path, tuple[RegexRule, ...]] = {}
 GENERIC_CRIME_LABELS = {"organizacao_criminosa"}
+NON_CRIME_LABELS = {
+    "atuacao_online",
+    "bloqueio_bens",
+    "busca_apreensao",
+    "busca_e_apreensao",
+    "comercializacao",
+    "combate_financeiro",
+    "cooperacao_interagencias",
+    "criacao_empresa_fantasma",
+    "cumprimento_mandado",
+    "denuncia",
+    "desarticulacao_rede",
+    "exames_periciais",
+    "fiscalizacao",
+    "fronteira_transnacional",
+    "inclusao_falsos_entrevistadores",
+    "prisao",
+    "processos_punitivos",
+    "resgate_vitimas",
+    "suspensao_atividades",
+}
+SENSITIVE_LABEL_EVIDENCE = {
+    "crimes_contra_crianca": (
+        r"\babuso sexual\b",
+        r"\bexploracao sexual\b",
+        r"\bpornografia\b",
+        r"\binfantojuvenil\b",
+        r"\bpedofilia\b",
+        r"\bestupro de vulneravel\b",
+    ),
+}
 SPECIFIC_CRIME_PRIORITY = {
+    "crimes_contra_crianca": 91,
     "corrupcao_desvio": 95,
     "fraude_previdenciaria": 92,
     "pornografia_infantil": 91,
@@ -80,11 +112,17 @@ SPECIFIC_CRIME_PRIORITY = {
     "lavagem_dinheiro": 86,
     "crimes_ambientais": 84,
     "contrabando_descaminho": 82,
+    "crimes_armas": 81,
     "posse_irregular_arma_fogo": 81,
     "trafico_armas": 80,
+    "falsificacoes": 76,
     "falsidade_documental": 76,
+    "crimes_ciberneticos_financeiros": 74,
     "fraude_bancaria_cibernetica": 74,
     "crime_eleitoral": 73,
+    "crimes_sistema_financeiro": 72,
+    "exploracao_pessoas": 70,
+    "roubo_furto": 68,
 }
 
 
@@ -136,6 +174,7 @@ def dedupe(values: Iterable[str]) -> list[str]:
 
 
 def prioritize_crimes(crimes: list[str], matches: list[dict[str, object]]) -> list[str]:
+    crimes = [crime for crime in crimes if crime not in NON_CRIME_LABELS]
     matched_hits = {
         canonical_label(str(item["label"])): " ".join(str(hit) for hit in item.get("hits", []))
         for item in matches
@@ -167,7 +206,41 @@ def prioritize_crimes(crimes: list[str], matches: list[dict[str, object]]) -> li
 
 
 def crime_identity(label: str) -> str:
+    if label.startswith("crimes_"):
+        return label
     return label if label.startswith("crime_") else f"crime_{label}"
+
+
+def canonical_identity_label(identity: str) -> str:
+    normalized = normalize_slug(identity)
+    if normalized.startswith("crime_"):
+        return canonical_label(normalized.removeprefix("crime_"))
+    return canonical_label(normalized)
+
+
+def has_sensitive_evidence(label: str, evidence_text: str) -> bool:
+    patterns = SENSITIVE_LABEL_EVIDENCE.get(canonical_label(label))
+    if not patterns:
+        return True
+    normalized = fold_text(evidence_text)
+    return any(re.search(pattern, normalized) for pattern in patterns)
+
+
+def inference_needs_regex_rescue(inference: NoticiaLLMInference, evidence_text: str) -> bool:
+    identity_label = canonical_identity_label(inference.identidade_canonica)
+    crimes = [canonical_label(crime) for crime in inference.crimes_mais_presentes]
+    if (
+        not crimes
+        or inference.classificacao == "Outras"
+        or identity_label in {"crime_desconhecido", "desconhecido", "contato_institucional"}
+    ):
+        return True
+
+    return any(not has_sensitive_evidence(crime, evidence_text) for crime in crimes)
+
+
+def only_crime_matches(matches: list[dict[str, object]]) -> list[dict[str, object]]:
+    return [item for item in matches if canonical_label(str(item.get("label", ""))) not in NON_CRIME_LABELS]
 
 
 def score_rules(text: str, rules: tuple[RegexRule, ...]) -> list[dict[str, object]]:
@@ -258,7 +331,7 @@ def clear_learned_rules_cache(path: Path | str | None = None) -> None:
 def known_crime_labels(path: Path | str | None = None) -> list[str]:
     labels = {canonical_label(rule.label) for rule in CRIME_RULES}
     labels.update(canonical_label(rule.label) for rule in load_learned_rules(path=path, kind="crime"))
-    return sorted(labels)
+    return sorted(label for label in labels if label not in NON_CRIME_LABELS)
 
 
 def known_modus_labels(path: Path | str | None = None) -> list[str]:
@@ -299,11 +372,11 @@ def estimate_confidence(
     if crime_matches:
         top_score = float(crime_matches[0]["score"])
         total_hits = sum(int(item["hit_count"]) for item in crime_matches)
-        confidence = 0.53 + min(0.28, top_score * 0.11) + min(0.12, total_hits * 0.03)
+        confidence = 0.61 + min(0.27, top_score * 0.15) + min(0.12, total_hits * 0.045)
         if modus_matches:
             confidence += 0.05
         if operation_name:
-            confidence += 0.03
+            confidence += 0.04
         if tag_crime_labels:
             confidence += 0.08
         if tag_modus_labels:
@@ -331,7 +404,7 @@ def classify_news_body(
     body_modus_matches = score_rules(normalized, modus_rules)
     tag_crime_matches = score_rules(normalized_tags, crime_rules) if normalized_tags else []
     tag_modus_matches = score_rules(normalized_tags, modus_rules) if normalized_tags else []
-    crime_matches = merge_match_scores(body_crime_matches, tag_crime_matches)
+    crime_matches = only_crime_matches(merge_match_scores(body_crime_matches, tag_crime_matches))
     modus_matches = merge_match_scores(body_modus_matches, tag_modus_matches)
     tag_crime_labels = {canonical_label(str(item["label"])) for item in tag_crime_matches}
     tag_modus_labels = {canonical_label(str(item["label"])) for item in tag_modus_matches}
@@ -475,6 +548,8 @@ def normalize_flat_learned_rule_record(record: dict[str, object]) -> dict[str, o
     label = canonical_label(str(record.get("label", record.get("classificador", ""))))
     pattern = str(record.get("pattern", record.get("pattern_do_classificador", ""))).strip()
     if kind not in {"crime", "modus"} or not label or not pattern:
+        return None
+    if kind == "crime" and label in NON_CRIME_LABELS:
         return None
     pattern_terms = re.findall(r"\\b([a-z0-9]{3,})", pattern.lower())
     alpha_terms = [

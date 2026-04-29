@@ -149,28 +149,22 @@ def _normalize_groq_base_url(base_url: str) -> str:
 
 
 def get_llm_settings() -> LLMSettings:
-    provider = _normalize_provider(os.getenv("PF_LLM_PROVIDER", "auto"))
-    if provider not in {"auto", "ollama", "groq"}:
-        raise ValueError("PF_LLM_PROVIDER deve ser 'auto', 'ollama' ou 'groq'.")
+    provider = "ollama"
 
     raw_model_name = os.getenv("PF_LLM_MODEL", "").strip()
     raw_base_url = os.getenv("PF_LLM_BASE_URL", "").strip()
     ollama_host = os.getenv("PF_LLM_HOST", "").strip()
-    api_key = os.getenv("PF_LLM_API_KEY", os.getenv("GROQ_API_KEY", "")).strip()
+    api_key = ""
 
     groq_model = os.getenv("PF_GROQ_MODEL", "").strip()
     ollama_model = os.getenv("PF_OLLAMA_MODEL", "").strip()
     groq_base_url = os.getenv("PF_GROQ_BASE_URL", "").strip()
     ollama_base_url = os.getenv("PF_OLLAMA_BASE_URL", "").strip()
 
-    if provider == "groq" and raw_model_name:
-        groq_model = raw_model_name
-    elif provider == "ollama" and raw_model_name:
+    if raw_model_name:
         ollama_model = raw_model_name
 
-    if provider == "groq" and raw_base_url:
-        groq_base_url = raw_base_url
-    elif provider == "ollama" and raw_base_url:
+    if raw_base_url and "groq.com" not in raw_base_url.lower():
         ollama_base_url = raw_base_url
 
     groq_settings = LLMProviderSettings(
@@ -186,14 +180,7 @@ def get_llm_settings() -> LLMSettings:
         api_key="",
     )
 
-    if provider == "groq":
-        provider_order = ("groq", "ollama")
-    elif provider == "ollama":
-        provider_order = ("ollama", "groq")
-    elif api_key:
-        provider_order = ("groq", "ollama")
-    else:
-        provider_order = ("ollama", "groq")
+    provider_order = ("ollama",)
 
     temperature_raw = os.getenv("PF_LLM_TEMPERATURE", "0").strip()
     max_retries_raw = os.getenv("PF_LLM_MAX_RETRIES", "3").strip()
