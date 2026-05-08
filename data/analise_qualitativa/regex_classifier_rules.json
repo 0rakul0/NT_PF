@@ -22,7 +22,7 @@
     "kind": "crime",
     "classificador": "crime_eleitoral",
     "source": "llm_feedback",
-    "uses": 9,
+    "uses": 10,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bacesso\\w*\\b.{0,240}\\bsecoes\\w*\\b.{0,240}\\beleitora\\w*\\b.{0,240}\\baldeia\\w*\\b",
@@ -83,7 +83,7 @@
       {
         "pattern_do_classificador": "\\btitulo\\w*\\b.{0,240}\\bdeflagra\\w*\\b.{0,240}\\beleitora\\w*\\b.{0,240}\\bjaneiro\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal deflagra Operação \"$UFRÁGIO\" para investigar esquema de crimes eleitorais no Rio de Janeiro."
         ]
@@ -187,8 +187,16 @@
     "kind": "crime",
     "classificador": "crimes_contra_crianca",
     "source": "llm_feedback",
-    "uses": 8,
+    "uses": 9,
     "patterns_do_classificador": [
+      {
+        "pattern_do_classificador": "\\barmazenamento\\w*\\b.{0,240}\\bcompartilhamento\\w*\\b.{0,240}\\bimagens\\w*\\b.{0,240}\\bcrianca\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF investiga crime de armazenamento e compartilhamento de imagens pornográficas envolvendo criança ou adolescente"
+        ]
+      },
       {
         "pattern_do_classificador": "\\bcrianca\\w*\\b.{0,240}\\bcriancas\\w*\\b.{0,240}\\badolescentes\\w*\\b.{0,240}\\bpraticados\\w*\\b",
         "weight": 1.4,
@@ -255,6 +263,7 @@
       }
     ],
     "examples": [
+      "PF investiga crime de armazenamento e compartilhamento de imagens pornográficas envolvendo criança ou adolescente",
       "PF investiga crimes contra crianças e adolescentes praticados na internet",
       "PF prende 165 foragidos por crimes sexuais e fraudes na Operação Muros de Jerusálem",
       "PF deflagra Operação Teimosia II para investigar casos de compartilhamento de imagens de abusos sexuais contra crianças e adolescentes",
@@ -474,7 +483,7 @@
     "kind": "modus",
     "classificador": "busca_apreensao",
     "source": "llm_feedback",
-    "uses": 271,
+    "uses": 283,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\balem\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
@@ -550,7 +559,7 @@
       {
         "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 11,
+        "uses": 12,
         "examples": [
           "PF cumpre mandados de busca e apreensão em continuidade à Operação Bisturi",
           "PF cumpre mandados de busca e apreensão e outras medidas judiciais em Macapá/AP",
@@ -663,7 +672,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 15,
+        "uses": 16,
         "examples": [
           "PF deflagra a Operação Game Over para apurar a prática de fraudes em desfavor do INSS",
           "PF deflagra operação contra fraudes em contratações na saúde",
@@ -753,7 +762,7 @@
       {
         "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bnegra\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF deflagra Operação Luz Negra e cumpre mandados de buscas e apreensão, no Paraná"
         ]
@@ -777,7 +786,7 @@
       {
         "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bterca\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 4,
+        "uses": 5,
         "examples": [
           "PF deflagra Operação Arancia, contra fraudadores da Previdência Social",
           "Polícia Federal deflagra segunda fase da Operação Para Bellum"
@@ -818,7 +827,7 @@
       {
         "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bsendo\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 10,
+        "uses": 11,
         "examples": [
           "PF deflagra a segunda fase da Operação Insanidade",
           "PF deflagra as fases III e IV da Operação Patronos na Bahia",
@@ -838,7 +847,7 @@
       {
         "pattern_do_classificador": "\\bexecuta\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal cumpre mandados judiciais por determinação do Supremo Tribunal Federal - STF"
         ]
@@ -878,7 +887,7 @@
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumprem\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 5,
+        "uses": 6,
         "examples": [
           "PF deflagra 3ª fase da Operação Barco de Papel",
           "PF faz operações contra crimes praticados nas eleições de 2024",
@@ -980,7 +989,7 @@
       {
         "pattern_do_classificador": "\\bjustica\\w*\\b.{0,240}\\bsantarem\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal deflagra operação CEHARITAUÁ de repressão à comercialização de materiais arqueológicos"
         ]
@@ -1058,9 +1067,17 @@
         ]
       },
       {
-        "pattern_do_classificador": "\\bopostos\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bocorre\\w*\\b.{0,240}\\btocantins\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
+        "examples": [
+          "PF investiga crime de armazenamento e compartilhamento de imagens pornográficas envolvendo criança ou adolescente"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bopostos\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 2,
         "examples": [
           "Polícia Federal desencadeia operação Opostos em Alagoas"
         ]
@@ -1108,7 +1125,7 @@
       {
         "pattern_do_classificador": "\\bquarta\\w*\\b.{0,240}\\bnorte\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal deflagra Operação Horizonte no Rio Grande do Norte"
         ]
@@ -1156,7 +1173,7 @@
       {
         "pattern_do_classificador": "\\bsegunda\\w*\\b.{0,240}\\bcangucu\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal deflagra operação contra caça ilegal"
         ]
@@ -1279,7 +1296,7 @@
     "kind": "modus",
     "classificador": "cumprimento_mandado",
     "source": "llm_feedback",
-    "uses": 21,
+    "uses": 22,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bcgcs\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b",
@@ -1350,7 +1367,7 @@
       {
         "pattern_do_classificador": "\\bopostos\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bprisao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal desencadeia operação Opostos em Alagoas"
         ]
@@ -1405,7 +1422,7 @@
     "kind": "modus",
     "classificador": "fiscalizacao",
     "source": "llm_feedback",
-    "uses": 31,
+    "uses": 35,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bacoes\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bocorreram\\w*\\b.{0,240}\\bjaneiro\\w*\\b",
@@ -1426,7 +1443,7 @@
       {
         "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bprodutos\\w*\\b.{0,240}\\bquimicos\\w*\\b",
         "weight": 1.4,
-        "uses": 3,
+        "uses": 4,
         "examples": [
           "PF deflagra operação de fiscalização de produtos químicos em Minas Gerais"
         ]
@@ -1434,7 +1451,7 @@
       {
         "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bgeral\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bprodutos\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal deflagra Operação Geral de fiscalização de produtos químicos em Minas Gerais"
         ]
@@ -1482,7 +1499,7 @@
       {
         "pattern_do_classificador": "\\bintensifica\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bbancaria\\w*\\b.{0,240}\\bregiao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal intensifica fiscalização bancária na região oeste do Paraná"
         ]
@@ -1538,7 +1555,7 @@
       {
         "pattern_do_classificador": "\\btrabalho\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bmato\\w*\\b.{0,240}\\bgrosso\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "Polícia Federal, Receita Federal, MAPA e ANP realizam a Operação Alquimia"
         ]

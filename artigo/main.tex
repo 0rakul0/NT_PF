@@ -1,17 +1,34 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[12pt]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[brazilian]{babel}
 \usepackage{geometry}
-\usepackage{setspace}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{url}
 \usepackage{booktabs}
+\usepackage{float}
 \usepackage{hyperref}
 \usepackage{longtable}
 \usepackage[round]{natbib}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage[ruled,vlined,linesnumbered,portuguese]{algorithm2e}
 
-\geometry{margin=2.5cm}
-\onehalfspacing
+\geometry{a4paper,top=3.5cm,bottom=2.5cm,left=3.0cm,right=3.0cm}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\sloppy
+
+\newenvironment{resumo}
+{\begin{center}\textbf{Resumo}\end{center}\begin{quote}\small}
+{\end{quote}}
+
+\SetKwInput{KwEntrada}{Entrada}
+\SetKwInput{KwSaida}{Saida}
+\SetKw{KwProxima}{Na proxima execucao}
 
 \title{Clusterizacao semantica e classificacao hibrida de noticias sobre operacoes da Policia Federal}
 \author{Projeto NT PF}
@@ -22,8 +39,12 @@
 \maketitle
 
 \begin{abstract}
-Este artigo descreve uma metodologia computacional para transformar noticias publicas sobre operacoes da Policia Federal brasileira em uma base analitica estruturada. A proposta combina coleta automatizada, extracao textual, classificacao hibrida por expressoes regulares e modelos de linguagem, resumo controlado, clusterizacao semantica, consenso entre especificacoes e aprendizado continuo de regras. A estrategia separa duas finalidades: a clusterizacao semantica e usada como instrumento exploratorio para descobrir padroes no corpus; a classificacao hibrida e usada para produzir variaveis substantivas auditaveis sobre crimes, modus operandi, setor afetado, atores e recorrencia operacional. O resumo controlado e tratado como camada complementar, nao como substituto do texto integral, permitindo testar se uma representacao mais padronizada melhora a estabilidade e a interpretabilidade dos agrupamentos.
+This paper describes a computational pipeline for transforming public news about Brazilian Federal Police operations into a structured analytical corpus. The method combines automated collection, textual extraction, hybrid classification with regular expressions and large language models, controlled summarization, semantic clustering, consensus analysis and continuous rule learning. Semantic clustering is used as an exploratory instrument, while hybrid classification produces auditable variables about crimes, modus operandi, affected sectors, actors and operational recurrence.
 \end{abstract}
+
+\begin{resumo}
+Este artigo descreve uma metodologia computacional para transformar noticias publicas sobre operacoes da Policia Federal brasileira em uma base analitica estruturada. A proposta combina coleta automatizada, extracao textual, classificacao hibrida por expressoes regulares e modelos de linguagem, resumo controlado, clusterizacao semantica, consenso entre especificacoes e aprendizado continuo de regras. A estrategia separa duas finalidades: a clusterizacao semantica e usada como instrumento exploratorio para descobrir padroes no corpus; a classificacao hibrida e usada para produzir variaveis substantivas auditaveis sobre crimes, modus operandi, setor afetado, atores e recorrencia operacional. O resumo controlado e tratado como camada complementar, nao como substituto do texto integral.
+\end{resumo}
 
 \section{Introducao}
 
@@ -52,29 +73,15 @@ O pipeline tambem deve registrar controle de qualidade textual. Noticias vazias,
 
 \section{Pipeline metodologico}
 
-A Figura textual abaixo resume o fluxo completo implementado ou previsto.
+A Figura~\ref{fig:fluxo-dados} apresenta o fluxo de dados da pipeline desde a extracao das noticias ate a classificacao, clusterizacao e publicacao dos artefatos analiticos. O desenho separa as camadas deterministicas, a camada semantica acionada por excecao e a etapa exploratoria de consenso.
 
-\begin{figure}[h]
+
+\begin{figure}[H]
 \centering
-\fbox{\begin{minipage}{0.92\textwidth}
-\small
-\begin{enumerate}
-    \item Portal da PF: listagem publica de noticias de operacoes.
-    \item Coleta paginada: construcao do indice estruturado.
-    \item Extracao individual: HTML da noticia convertido para Markdown.
-    \item Metadados objetivos: titulo, subtitulo, datas, tags, dateline e nome de operacao.
-    \item Regex de alta confianca: primeira classificacao automatica por regras versionadas.
-    \item Decisao automatica: aceita regex acima do limiar; caso contrario, envia para LLM.
-    \item LLM com schema fechado: crime, modus, resumo, evidencia, atores, setor e ambiguidade.
-    \item Aprendizado continuo: inferencias da LLM sugerem regras candidatas; filtros automaticos limpam regras frageis.
-    \item Artefato enriquecido: JSONL/CSV com metadados, fonte da classificacao, regras e evidencias.
-    \item Representacoes textuais: integral, resumida e hibrida.
-    \item Clusterizacao e vizinhanca: TF-IDF, SVD, cosseno, K-means e vizinhos semelhantes.
-    \item Consenso: K-means, hierarquico e HDBSCAN sobre representacoes alternativas; pares estaveis.
-    \item Saidas analiticas: corpus enriquecido, clusters, clusters canonicos, series, pares e dashboard.
-\end{enumerate}
-\end{minipage}}
-\caption{Fluxo completo da pipeline de extracao, classificacao, aprendizado continuo e analise semantica.}
+\includegraphics[width=\textwidth]{figures/pipeline.png}
+\caption{Fluxo de dados da pipeline, da extracao das noticias a classificacao, aprendizado continuo, clusterizacao e geracao de artefatos.}
+\label{fig:fluxo-dados}
+
 \end{figure}
 
 \begin{enumerate}
@@ -152,36 +159,29 @@ A classificacao foi desenhada para nao depender de intervencao humana nessa etap
 
 As regras aprendidas sao gravadas em arquivo versionavel e entram na execucao seguinte do classificador. Dessa forma, a cobertura tende a aumentar ao longo das rodadas, enquanto a taxonomia permanece controlada. A LLM nao cria categorias livres; ela opera dentro de listas permitidas, e o aprendizado de regras e condicionado por evidencias extraidas do proprio texto.
 
-\begin{figure}[h]
-\centering
-\fbox{\begin{minipage}{0.92\textwidth}
-\small
-\begin{verbatim}
-para cada noticia:
-    metadados = extrair_campos_objetivos(markdown)
-    resultado = classificar_com_regex(noticia, regras_estaticas + regras_aprendidas)
-
-    se resultado.confianca >= limiar:
-        usar resultado
-        fonte_classificacao = "regex"
-        custo_llm = 0
-    senao:
-        inferencia = chamar_llm_com_schema_fechado(noticia)
-        inferencia = validar_e_normalizar_pydantic(inferencia)
-        fonte_classificacao = "llm"
-
-        regras_candidatas = derivar_regex_da_inferencia(noticia, inferencia)
-        regras_validas = filtrar_regras_frageis(regras_candidatas)
-        salvar_regras_aprendidas(regras_validas)
-
-na proxima execucao:
-    regras_aprendidas entram antes da LLM
-    mais noticias sao resolvidas localmente por regex
-    menos chamadas LLM sao necessarias
-\end{verbatim}
-\end{minipage}}
-\caption{Algoritmo de reducao de custo por aprendizado continuo de regras.}
-\end{figure}
+\begin{algorithm}[ht]
+\caption{Reducao de custo por aprendizado continuo de regras}
+\label{alg:aprendizado-continuo}
+\KwEntrada{Noticia em Markdown, regras regex estaticas, regras aprendidas e limiar de confianca.}
+\KwSaida{Inferencia validada, fonte da classificacao e novas regras candidatas.}
+\ForEach{noticia no corpus}{
+    extrair metadados objetivos do Markdown\;
+    aplicar o classificador regex com regras estaticas e aprendidas\;
+    \eIf{a confianca do regex e maior ou igual ao limiar}{
+        aceitar a inferencia regex\;
+        registrar a fonte da classificacao como \texttt{regex}\;
+        registrar custo de LLM igual a zero\;
+    }{
+        enviar a noticia para a LLM com schema fechado\;
+        validar e normalizar a resposta com Pydantic\;
+        registrar a fonte da classificacao como \texttt{llm}\;
+        derivar regras regex candidatas a partir da inferencia e da evidencia textual\;
+        remover regras frageis, genericas, malformadas ou sem evidencia lexical\;
+        salvar as regras aprovadas no arquivo versionavel de regras aprendidas\;
+    }
+}
+\KwProxima: carregar as regras aprendidas antes de chamar a LLM, aumentando a cobertura local por regex e reduzindo chamadas futuras ao modelo.
+\end{algorithm}
 
 \section{Artefatos esperados}
 
@@ -212,6 +212,16 @@ confianca & confianca ou limiar aplicavel \\
 precisa\_reprocessamento & flag de ambiguidade ou conflito para nova rodada automatica \\
 \bottomrule
 \end{longtable}
+
+\section{Resultados da execucao local}
+
+A pipeline foi reexecutada localmente em 08/05/2026 apos a incorporacao do HDBSCAN e a correcao do controle incremental por arquivo markdown. A etapa de metadados processou 8.048 arquivos markdown. Desse total, 7.884 foram resolvidos diretamente por regex e 164 exigiram chamada a LLM. Em termos operacionais, isso significa que aproximadamente 98\% dos arquivos foram classificados pela camada barata e deterministica, enquanto cerca de 2\% precisaram da camada semantica mais custosa.
+
+O aprendizado continuo tambem foi acionado na execucao. Foram identificados 123 registros com sugestoes de aprendizado e 136 sugestoes de regra. A base consolidada de regras aprendidas passou a conter 18 grupos e 168 padroes. Esses numeros indicam o papel pratico da LLM no projeto: ela nao substitui o classificador principal, mas cobre casos nao resolvidos por regex e gera exemplos que podem reduzir chamadas futuras.
+
+A etapa analitica produziu um corpus enriquecido com 8.055 noticias, apos remover 59 links duplicados do indice antes do merge. No corpus final, 7.891 noticias ficaram associadas a classificacao por regex e 164 a classificacao por LLM. A clusterizacao principal gerou 16 clusters por K-means, e a camada canonica produziu 38 grupos substantivos.
+
+O experimento de consenso produziu 15.276 pares estaveis a partir de 9 especificacoes: K-means, hierarquico e HDBSCAN aplicados as representacoes integral, resumida e hibrida. O HDBSCAN marcou como ruido 5.662 noticias na representacao integral, 7.442 na resumida e 3.718 na hibrida. Esse comportamento confirma seu papel exploratorio: ele e mais rigoroso para formar grupos densos, ajuda a identificar outliers e subtemas, mas nao deve ser usado isoladamente como classificacao final.
 
 \section{Discussao}
 

@@ -370,6 +370,20 @@ na proxima execucao:
     menos chamadas LLM sao necessarias
 ```
 
+### Resultados da execução de 08/05/2026
+
+A pipeline foi reexecutada localmente após a incorporação do HDBSCAN e da correção do controle incremental por arquivo markdown. A etapa `scripts/pf_llm_metadata.py` processou `8.048` arquivos markdown:
+
+- `7.884` arquivos foram classificados diretamente por regex.
+- `164` arquivos precisaram de LLM.
+- `123` registros geraram sugestões de aprendizado.
+- `136` sugestões de regra foram produzidas nessa execução.
+- O arquivo de regras aprendidas ficou com `18` grupos e `168` padrões.
+
+A etapa `scripts/pf_analise_qualitativa.py` gerou o corpus analítico com `8.055` notícias após deduplicar `59` links repetidos do índice antes do merge. O corpus final ficou com `7.891` notícias resolvidas por regex e `164` por LLM. A análise produziu `16` clusters principais por K-means, `38` clusters canônicos e `15.276` pares estáveis no experimento de consenso.
+
+No consenso, foram usadas `9` especificações: K-means, hierárquico e HDBSCAN sobre as representações integral, resumida e híbrida. O HDBSCAN marcou ruído de forma substantiva, como esperado para uma camada exploratória: `5.662` notícias na representação integral, `7.442` na representação resumida e `3.718` na representação híbrida. Isso reforça que ele é útil para descobrir grupos densos e outliers, mas não deve substituir o K-means como agrupamento principal do painel.
+
 ### Etapa 3: abrir o painel
 
 ```powershell

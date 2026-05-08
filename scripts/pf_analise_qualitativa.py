@@ -540,7 +540,7 @@ def build_cluster_context(
 
 def build_integral_cluster_context(titulo: str, subtitulo: str, texto_sem_geo: str) -> str:
     return " ".join(
-        part
+        str(part).strip()
         for part in [
             (f"{titulo} " * 3).strip(),
             (f"{subtitulo} " * 2).strip(),
@@ -561,7 +561,7 @@ def build_summary_cluster_context(
 ) -> str:
     actors = " ".join(ensure_list(atores_mencionados))
     return " ".join(
-        part
+        str(part).strip()
         for part in [
             titulo,
             subtitulo,
@@ -678,6 +678,10 @@ def canonical_cluster_summary(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFr
 def load_corpus(index_csv: Path, content_csv: Path, llm_metadata_jsonl: Path) -> pd.DataFrame:
     index_df = pd.read_csv(index_csv)
     content_df = pd.read_csv(content_csv)
+    duplicated_index_links = int(index_df["link"].duplicated().sum()) if "link" in index_df.columns else 0
+    if duplicated_index_links:
+        print(f"[analysis] removendo {duplicated_index_links} links duplicados do indice antes do merge.")
+        index_df = index_df.drop_duplicates(subset=["link"], keep="first").copy()
     content_df = content_df.copy()
     content_df["status"] = content_df["status"].fillna("")
     content_df["markdown_path"] = content_df["markdown_path"].fillna("")
@@ -888,7 +892,7 @@ def assign_clusters(embeddings: np.ndarray, random_state: int) -> np.ndarray:
 def assign_agglomerative_clusters(embeddings: np.ndarray, n_clusters: int) -> np.ndarray:
     model = AgglomerativeClustering(
         n_clusters=n_clusters,
-        metric="cosine",
+        metric="euclidean",
         linkage="average",
     )
     return model.fit_predict(embeddings)

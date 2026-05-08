@@ -893,7 +893,7 @@ def load_existing_records(output_jsonl: Path) -> tuple[list[dict[str, Any]], lis
     if not output_jsonl.exists():
         return [], [], set()
 
-    indexed_by_title: dict[str, dict[str, Any]] = {}
+    indexed_by_file: dict[str, dict[str, Any]] = {}
     for line in output_jsonl.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line:
@@ -903,20 +903,16 @@ def load_existing_records(output_jsonl: Path) -> tuple[list[dict[str, Any]], lis
         except json.JSONDecodeError:
             continue
 
-        metadata_extraido = record.get("metadata_extraido", {})
-        if not isinstance(metadata_extraido, dict):
+        file_name = str(record.get("arquivo", "")).strip()
+        if not file_name:
             continue
 
-        title = str(metadata_extraido.get("titulo", "")).strip()
-        if not title:
-            continue
+        indexed_by_file[file_name] = record
 
-        indexed_by_title[normalize_title_key(title)] = record
-
-    jsonl_records = list(indexed_by_title.values())
+    jsonl_records = list(indexed_by_file.values())
     dataframe_rows = [build_dataframe_row_from_record(record) for record in jsonl_records]
-    processed_titles = {normalize_title_key(row["titulo"]) for row in dataframe_rows if row.get("titulo")}
-    return jsonl_records, dataframe_rows, processed_titles
+    processed_files = {str(record.get("arquivo", "")).strip() for record in jsonl_records if record.get("arquivo")}
+    return jsonl_records, dataframe_rows, processed_files
 
 
 def save_outputs(output_dir: Path, output_jsonl: Path, output_csv: Path, dataframe: pd.DataFrame, jsonl_records: list[dict[str, Any]]) -> None:
@@ -963,7 +959,7 @@ def main(
         raise FileNotFoundError(f"Nenhum arquivo markdown encontrado em: {markdown_dir}")
 
     markdown_files = list(markdown_files_all[: runtime_config.limit] if runtime_config.limit is not None else markdown_files_all)
-    existing_jsonl_records, existing_dataframe_rows, processed_titles = load_existing_records(runtime_config.output_jsonl)
+    existing_jsonl_records, existing_dataframe_rows, processed_files = load_existing_records(runtime_config.output_jsonl)
     dataframe_rows: list[dict[str, Any]] = list(existing_dataframe_rows)
     jsonl_records: list[dict[str, Any]] = list(existing_jsonl_records)
     total_prompt_tokens = 0
@@ -987,16 +983,16 @@ def main(
     else:
         print("Classificador regex desabilitado; todas as noticias novas vao para a LLM.")
 
-    if processed_titles:
-        print(f"Titulos ja processados encontrados: {len(processed_titles)}")
+    if processed_files:
+        print(f"Arquivos ja processados encontrados: {len(processed_files)}")
 
     for index, markdown_file in enumerate(markdown_files, start=1):
         markdown_text = markdown_file.read_text(encoding="utf-8")
         parsed_news = parse_news_markdown(markdown_text)
-        title_key = normalize_title_key(str(parsed_news.get("titulo", "")))
+        file_key = markdown_file.name
 
-        if title_key and title_key in processed_titles:
-            print(f"[{index}/{len(markdown_files)}] pulando {markdown_file.name} porque o titulo ja foi processado.")
+        if file_key in processed_files:
+            print(f"[{index}/{len(markdown_files)}] pulando {markdown_file.name} porque o arquivo ja foi processado.")
             continue
 
         metadata_extraido = build_extracted_metadata(parsed_news)
@@ -1060,8 +1056,7 @@ def main(
                 learned_regex_rules=learned_regex_rules,
             )
         )
-        if title_key:
-            processed_titles.add(title_key)
+        processed_files.add(file_key)
 
         regex_info = ""
         if regex_result:
