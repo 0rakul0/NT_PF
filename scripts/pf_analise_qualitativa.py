@@ -11,12 +11,17 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import AgglomerativeClustering, MiniBatchKMeans
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import silhouette_score
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import Normalizer
+
+try:
+    from sklearn.cluster import HDBSCAN
+except ImportError:  # pragma: no cover - depende da versao do scikit-learn instalada.
+    HDBSCAN = None
 
 try:
     from project_config import (
@@ -162,6 +167,8 @@ class AnalysisArtifacts:
     crime_summary: pd.DataFrame
     modus_summary: pd.DataFrame
     semantic_series: pd.DataFrame
+    consensus_assignments: pd.DataFrame
+    consensus_pairs: pd.DataFrame
 
 
 @dataclass(frozen=True)
@@ -247,6 +254,12 @@ def load_llm_metadata(jsonl_path: Path) -> pd.DataFrame:
                 llm_crimes_mais_presentes = metadata.get("crimes_mais_presentes", [])
                 llm_exemplos_iniciais = metadata.get("exemplos_iniciais", [])
                 llm_modus_operandi = []
+                llm_resumo_curto = metadata.get("resumo_curto", "")
+                llm_resumo_estruturado = metadata.get("resumo_estruturado", {})
+                llm_evidencia_textual = metadata.get("evidencia_textual", "")
+                llm_atores_mencionados = metadata.get("atores_mencionados", [])
+                llm_setor_afetado = metadata.get("setor_afetado", "")
+                llm_precisa_reprocessamento = metadata.get("precisa_reprocessamento", False)
             else:
                 llm_identidade = inferencia_llm.get("identidade_canonica")
                 llm_data = metadata_extraido.get("data_publicacao")
@@ -258,10 +271,22 @@ def load_llm_metadata(jsonl_path: Path) -> pd.DataFrame:
                 llm_crimes_mais_presentes = inferencia_llm.get("crimes_mais_presentes", [])
                 llm_exemplos_iniciais = [metadata_extraido.get("titulo")] if metadata_extraido.get("titulo") else []
                 llm_modus_operandi = inferencia_llm.get("modus_operandi", [])
+                llm_resumo_curto = inferencia_llm.get("resumo_curto", "")
+                llm_resumo_estruturado = inferencia_llm.get("resumo_estruturado", {})
+                llm_evidencia_textual = inferencia_llm.get("evidencia_textual", "")
+                llm_atores_mencionados = inferencia_llm.get("atores_mencionados", [])
+                llm_setor_afetado = inferencia_llm.get("setor_afetado", "")
+                llm_precisa_reprocessamento = inferencia_llm.get("precisa_reprocessamento", False)
 
             rows.append(
                 {
                     "arquivo_markdown": str(payload.get("arquivo", "")).strip(),
+                    "llm_fonte_classificacao": str(payload.get("fonte_classificacao", "") or "").strip(),
+                    "llm_confianca_regex": (
+                        payload.get("regex_classificacao", {}).get("confidence", 0.0)
+                        if isinstance(payload.get("regex_classificacao", {}), dict)
+                        else 0.0
+                    ),
                     "llm_identidade": llm_identidade,
                     "llm_data": llm_data,
                     "llm_tipo": llm_tipo,
@@ -271,6 +296,12 @@ def load_llm_metadata(jsonl_path: Path) -> pd.DataFrame:
                     "llm_crimes_mais_presentes": llm_crimes_mais_presentes,
                     "llm_modus_operandi": llm_modus_operandi,
                     "llm_exemplos_iniciais": llm_exemplos_iniciais,
+                    "llm_resumo_curto": llm_resumo_curto,
+                    "llm_resumo_estruturado": llm_resumo_estruturado,
+                    "llm_evidencia_textual": llm_evidencia_textual,
+                    "llm_atores_mencionados": llm_atores_mencionados,
+                    "llm_setor_afetado": llm_setor_afetado,
+                    "llm_precisa_reprocessamento": llm_precisa_reprocessamento,
                 }
             )
 
@@ -409,6 +440,29 @@ def dedupe_list(values: list[str]) -> list[str]:
     return result
 
 
+def ensure_dict(value: object) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        str(key).strip(): str(item).strip()
+        for key, item in value.items()
+        if str(key).strip() and str(item).strip()
+    }
+
+
+def structured_summary_text(value: object) -> str:
+    summary = ensure_dict(value)
+    ordered_keys = ("fato_central", "alvo", "local", "acao_policial", "resultado")
+    return " ".join(summary.get(key, "") for key in ordered_keys if summary.get(key, "")).strip()
+
+
+def parse_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return text in {"1", "true", "sim", "yes", "y"}
+
+
 def clean_optional_text(value: object) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return ""
@@ -481,6 +535,43 @@ def build_cluster_context(
             str(texto_sem_geo or "").strip(),
         ]
         if part
+    ).strip()
+
+
+def build_integral_cluster_context(titulo: str, subtitulo: str, texto_sem_geo: str) -> str:
+    return " ".join(
+        part
+        for part in [
+            (f"{titulo} " * 3).strip(),
+            (f"{subtitulo} " * 2).strip(),
+            texto_sem_geo,
+        ]
+        if str(part or "").strip()
+    ).strip()
+
+
+def build_summary_cluster_context(
+    titulo: str,
+    subtitulo: str,
+    resumo_curto: str,
+    resumo_estruturado: object,
+    evidencia_textual: str,
+    atores_mencionados: object,
+    setor_afetado: str,
+) -> str:
+    actors = " ".join(ensure_list(atores_mencionados))
+    return " ".join(
+        part
+        for part in [
+            titulo,
+            subtitulo,
+            resumo_curto,
+            structured_summary_text(resumo_estruturado),
+            evidencia_textual,
+            actors,
+            setor_afetado,
+        ]
+        if str(part or "").strip()
     ).strip()
 
 
@@ -615,6 +706,14 @@ def load_corpus(index_csv: Path, content_csv: Path, llm_metadata_jsonl: Path) ->
         df["llm_crimes_mais_presentes"] = [[] for _ in range(len(df))]
         df["llm_modus_operandi"] = [[] for _ in range(len(df))]
         df["llm_exemplos_iniciais"] = [[] for _ in range(len(df))]
+        df["llm_fonte_classificacao"] = ""
+        df["llm_confianca_regex"] = 0.0
+        df["llm_resumo_curto"] = ""
+        df["llm_resumo_estruturado"] = [{} for _ in range(len(df))]
+        df["llm_evidencia_textual"] = ""
+        df["llm_atores_mencionados"] = [[] for _ in range(len(df))]
+        df["llm_setor_afetado"] = ""
+        df["llm_precisa_reprocessamento"] = False
 
     df["markdown_text"] = df["markdown_path"].map(read_markdown_text)
     df["texto_limpo"] = df["markdown_text"].map(strip_markdown)
@@ -644,6 +743,23 @@ def load_corpus(index_csv: Path, content_csv: Path, llm_metadata_jsonl: Path) ->
     df["llm_modus_operandi"] = df["llm_modus_operandi"].map(ensure_list)
     df["llm_nomes_operacao_encontrados"] = df["llm_nomes_operacao_encontrados"].map(ensure_list)
     df["llm_exemplos_iniciais"] = df["llm_exemplos_iniciais"].map(ensure_list)
+    for column, default in (
+        ("llm_resumo_curto", ""),
+        ("llm_evidencia_textual", ""),
+        ("llm_setor_afetado", ""),
+    ):
+        if column not in df.columns:
+            df[column] = default
+        df[column] = df[column].fillna("").map(str)
+    if "llm_resumo_estruturado" not in df.columns:
+        df["llm_resumo_estruturado"] = [{} for _ in range(len(df))]
+    df["llm_resumo_estruturado"] = df["llm_resumo_estruturado"].map(ensure_dict)
+    if "llm_atores_mencionados" not in df.columns:
+        df["llm_atores_mencionados"] = [[] for _ in range(len(df))]
+    df["llm_atores_mencionados"] = df["llm_atores_mencionados"].map(ensure_list)
+    if "llm_precisa_reprocessamento" not in df.columns:
+        df["llm_precisa_reprocessamento"] = False
+    df["llm_precisa_reprocessamento"] = df["llm_precisa_reprocessamento"].fillna(False).map(parse_bool)
     df["crime_labels_heuristic"] = df["texto_busca"].map(lambda x: keyword_hits(x, CRIME_PATTERNS))
     df["crime_labels"] = df.apply(
         lambda row: merge_canonical_crimes(
@@ -661,11 +777,35 @@ def load_corpus(index_csv: Path, content_csv: Path, llm_metadata_jsonl: Path) ->
         ),
         axis=1,
     )
+    df["texto_cluster_integral"] = df.apply(
+        lambda row: build_integral_cluster_context(
+            titulo=row["titulo"],
+            subtitulo=row["subtitulo"],
+            texto_sem_geo=row["texto_sem_geo"],
+        ),
+        axis=1,
+    )
+    df["texto_cluster_resumo"] = df.apply(
+        lambda row: build_summary_cluster_context(
+            titulo=row["titulo"],
+            subtitulo=row["subtitulo"],
+            resumo_curto=row["llm_resumo_curto"],
+            resumo_estruturado=row["llm_resumo_estruturado"],
+            evidencia_textual=row["llm_evidencia_textual"],
+            atores_mencionados=row["llm_atores_mencionados"],
+            setor_afetado=row["llm_setor_afetado"],
+        ),
+        axis=1,
+    )
     df["texto_cluster_hibrido"] = df.apply(
         lambda row: build_cluster_context(
             titulo=row["titulo"],
             subtitulo=row["subtitulo"],
-            texto_sem_geo=row["texto_sem_geo"],
+            texto_sem_geo=" ".join(
+                part
+                for part in [row["texto_cluster_resumo"], row["texto_sem_geo"]]
+                if str(part or "").strip()
+            ),
             llm_identidade=row["llm_identidade"],
             llm_rotulo_resumido=row["llm_rotulo_resumido"],
             llm_crimes_mais_presentes=row["llm_crimes_mais_presentes"],
@@ -745,6 +885,34 @@ def assign_clusters(embeddings: np.ndarray, random_state: int) -> np.ndarray:
     return model.fit_predict(embeddings)
 
 
+def assign_agglomerative_clusters(embeddings: np.ndarray, n_clusters: int) -> np.ndarray:
+    model = AgglomerativeClustering(
+        n_clusters=n_clusters,
+        metric="cosine",
+        linkage="average",
+    )
+    return model.fit_predict(embeddings)
+
+
+def assign_hdbscan_clusters(embeddings: np.ndarray) -> np.ndarray | None:
+    if HDBSCAN is None or len(embeddings) < 50:
+        return None
+    min_cluster_size = max(15, min(120, int(math.sqrt(len(embeddings))) * 2))
+    min_samples = max(5, min_cluster_size // 2)
+    model = HDBSCAN(
+        min_cluster_size=min_cluster_size,
+        min_samples=min_samples,
+        metric="euclidean",
+    )
+    return model.fit_predict(embeddings)
+
+
+def same_partition_cluster(labels: np.ndarray, source_idx: int, target_idx: int) -> bool:
+    source_label = int(labels[source_idx])
+    target_label = int(labels[target_idx])
+    return source_label == target_label and source_label != -1
+
+
 def top_terms_by_cluster(
     tfidf_matrix,
     vectorizer: TfidfVectorizer,
@@ -807,6 +975,96 @@ def nearest_neighbors(df: pd.DataFrame, embeddings: np.ndarray, n_neighbors: int
                 }
             )
     return pd.DataFrame(rows)
+
+
+def neighbor_candidate_pairs(embeddings: np.ndarray, n_neighbors: int = 11) -> set[tuple[int, int]]:
+    if len(embeddings) < 2:
+        return set()
+    neighbors = min(n_neighbors, len(embeddings))
+    model = NearestNeighbors(metric="cosine", algorithm="brute", n_neighbors=neighbors)
+    model.fit(embeddings)
+    _, indices = model.kneighbors(embeddings)
+    pairs: set[tuple[int, int]] = set()
+    for source_idx in range(len(embeddings)):
+        for target_idx in indices[source_idx, 1:]:
+            a, b = sorted((int(source_idx), int(target_idx)))
+            if a != b:
+                pairs.add((a, b))
+    return pairs
+
+
+def consensus_clustering_experiment(
+    df: pd.DataFrame,
+    random_state: int,
+    stable_threshold: float = 0.80,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    text_columns = [
+        ("integral", "texto_cluster_integral"),
+        ("resumo", "texto_cluster_resumo"),
+        ("hibrido", "texto_cluster_hibrido"),
+    ]
+    partitions: list[tuple[str, np.ndarray]] = []
+    candidate_pairs: set[tuple[int, int]] = set()
+    assignment_payload: dict[str, object] = {
+        "link": df["link"].tolist(),
+        "titulo": df["titulo"].tolist(),
+    }
+
+    for representation, column in text_columns:
+        if column not in df.columns or df[column].fillna("").str.strip().eq("").all():
+            continue
+        _, _, embeddings = build_semantic_space(df[column].fillna(""), random_state=random_state)
+        n_clusters = choose_cluster_count(embeddings, random_state=random_state)
+        model_specs = [
+            (f"{representation}_kmeans", assign_clusters(embeddings, random_state=random_state)),
+            (f"{representation}_agglomerative", assign_agglomerative_clusters(embeddings, n_clusters=n_clusters)),
+        ]
+        hdbscan_labels = assign_hdbscan_clusters(embeddings)
+        if hdbscan_labels is not None and len(set(hdbscan_labels)) > 1:
+            model_specs.append((f"{representation}_hdbscan", hdbscan_labels))
+        candidate_pairs.update(neighbor_candidate_pairs(embeddings))
+        for spec_name, labels in model_specs:
+            partitions.append((spec_name, labels))
+            assignment_payload[f"cluster_{spec_name}"] = labels.astype(int).tolist()
+
+    assignments = pd.DataFrame(assignment_payload)
+    if not partitions or not candidate_pairs:
+        return assignments, pd.DataFrame(
+            columns=[
+                "source_link", "source_titulo", "target_link", "target_titulo",
+                "consensus_score", "support_count", "total_specs", "stable_pair",
+            ]
+        )
+
+    rows: list[dict[str, object]] = []
+    total_specs = len(partitions)
+    for source_idx, target_idx in sorted(candidate_pairs):
+        support = sum(int(same_partition_cluster(labels, source_idx, target_idx)) for _, labels in partitions)
+        consensus_score = support / total_specs
+        if consensus_score < stable_threshold:
+            continue
+        rows.append(
+            {
+                "source_link": df.iloc[source_idx]["link"],
+                "source_titulo": df.iloc[source_idx]["titulo"],
+                "target_link": df.iloc[target_idx]["link"],
+                "target_titulo": df.iloc[target_idx]["titulo"],
+                "consensus_score": round(consensus_score, 4),
+                "support_count": support,
+                "total_specs": total_specs,
+                "stable_pair": True,
+            }
+        )
+
+    pairs = pd.DataFrame(rows)
+    if pairs.empty:
+        return assignments, pd.DataFrame(
+            columns=[
+                "source_link", "source_titulo", "target_link", "target_titulo",
+                "consensus_score", "support_count", "total_specs", "stable_pair",
+            ]
+        )
+    return assignments, pairs.sort_values(["consensus_score", "source_titulo"], ascending=[False, True]).reset_index(drop=True)
 
 
 class UnionFind:
@@ -1441,6 +1699,10 @@ def run_analysis(config: AnalysisConfig) -> AnalysisArtifacts:
     crime_df = summarize_labels(df, column="crime_labels", prefix="crime")
     modus_df = summarize_labels(df, column="modus_labels", prefix="modus")
     states_year_df, states_cluster_df = summarize_states(df)
+    consensus_assignments_df, consensus_pairs_df = consensus_clustering_experiment(
+        df,
+        random_state=config.random_state,
+    )
 
     corpus_output = output_dir / "corpus_enriquecido.csv"
     neighbors_output = output_dir / "vizinhos_semelhantes.csv"
@@ -1457,18 +1719,23 @@ def run_analysis(config: AnalysisConfig) -> AnalysisArtifacts:
     states_year_output = output_dir / "estados_por_ano.csv"
     states_cluster_output = output_dir / "estados_por_cluster.csv"
     report_output = output_dir / "analise_qualitativa.md"
+    consensus_assignments_output = output_dir / "clusterizacoes_consenso.csv"
+    consensus_pairs_output = output_dir / "pares_consenso_clusters.csv"
 
     df[
         [
             "link", "titulo", "subtitulo", "data_publicacao_dt", "ano", "mes", "ano_mes", "tags",
             "nome_operacao", "cluster_id", "cluster_label", "semantic_series_id", "crime_labels", "modus_labels",
             "ufs_mencionadas", "estados_mencionados", "texto_busca_normalizado", "markdown_path",
-            "crime_labels_heuristic", "texto_cluster_hibrido",
+            "crime_labels_heuristic", "texto_cluster_integral", "texto_cluster_resumo", "texto_cluster_hibrido",
             "modus_labels_heuristic",
             "cluster_canonico_id", "cluster_canonico_key", "cluster_canonico_label", "cluster_canonico_tipo",
             "cluster_canonico_display_label",
             "llm_identidade", "llm_tipo", "llm_tags", "llm_rotulo_resumido", "llm_nomes_operacao_encontrados",
+            "llm_fonte_classificacao", "llm_confianca_regex",
             "llm_crimes_mais_presentes", "llm_modus_operandi", "llm_exemplos_iniciais",
+            "llm_resumo_curto", "llm_resumo_estruturado", "llm_evidencia_textual", "llm_atores_mencionados",
+            "llm_setor_afetado", "llm_precisa_reprocessamento",
         ]
     ].to_csv(corpus_output, index=False, encoding="utf-8-sig")
     neighbors_df.to_csv(neighbors_output, index=False, encoding="utf-8-sig")
@@ -1482,6 +1749,8 @@ def run_analysis(config: AnalysisConfig) -> AnalysisArtifacts:
     canonical_temporal_df.to_csv(canonical_temporal_output, index=False, encoding="utf-8-sig")
     states_year_df.to_csv(states_year_output, index=False, encoding="utf-8-sig")
     states_cluster_df.to_csv(states_cluster_output, index=False, encoding="utf-8-sig")
+    consensus_assignments_df.to_csv(consensus_assignments_output, index=False, encoding="utf-8-sig")
+    consensus_pairs_df.to_csv(consensus_pairs_output, index=False, encoding="utf-8-sig")
 
     (
         df.groupby(["ano", "cluster_id", "cluster_label"])
@@ -1520,6 +1789,8 @@ def run_analysis(config: AnalysisConfig) -> AnalysisArtifacts:
         crime_summary=crime_df,
         modus_summary=modus_df,
         semantic_series=series_summary,
+        consensus_assignments=consensus_assignments_df,
+        consensus_pairs=consensus_pairs_df,
     )
 
 
@@ -1546,6 +1817,7 @@ def main(
     print(f"[analysis] clusters: {artifacts.corpus['cluster_id'].nunique()}")
     print(f"[analysis] clusters_canonicos: {len(artifacts.canonical_cluster_summary)}")
     print(f"[analysis] series_semanticas_legacy: {len(artifacts.semantic_series)}")
+    print(f"[analysis] pares_consenso_clusters: {len(artifacts.consensus_pairs)}")
     print(f"[analysis] saida: {config.output_dir.resolve()}")
 
 

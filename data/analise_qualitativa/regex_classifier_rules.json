@@ -22,8 +22,16 @@
     "kind": "crime",
     "classificador": "crime_eleitoral",
     "source": "llm_feedback",
-    "uses": 8,
+    "uses": 9,
     "patterns_do_classificador": [
+      {
+        "pattern_do_classificador": "\\bacesso\\w*\\b.{0,240}\\bsecoes\\w*\\b.{0,240}\\beleitora\\w*\\b.{0,240}\\baldeia\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF reestabelece acesso a seções eleitorais em aldeia indígena"
+        ]
+      },
       {
         "pattern_do_classificador": "\\bcaluniosa\\w*\\b.{0,240}\\bcumprindo\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\beleitoral\\w*\\b",
         "weight": 1.4,
@@ -90,6 +98,7 @@
       }
     ],
     "examples": [
+      "PF reestabelece acesso a seções eleitorais em aldeia indígena",
       "PF cumpre mandado de busca e apreensão por crime ocorrido na eleição de 2024",
       "PF investiga irregularidades em campanhas eleitorais",
       "PF faz operação de repressão a crime eleitoral em Alagoas",
@@ -104,7 +113,7 @@
     "kind": "crime",
     "classificador": "crimes_ambientais",
     "source": "llm_feedback",
-    "uses": 5,
+    "uses": 7,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bacoes\\w*\\b.{0,240}\\bfazem\\w*\\b.{0,240}\\bparte\\w*\\b.{0,240}\\bambientais\\w*\\b",
@@ -117,7 +126,7 @@
       {
         "pattern_do_classificador": "\\baves\\w*\\b.{0,240}\\bviatura\\w*\\b.{0,240}\\bibama\\w*\\b.{0,240}\\bambienta\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF faz busca para recuperar aves furtadas em viatura do IBAMA"
         ]
@@ -141,7 +150,7 @@
       {
         "pattern_do_classificador": "\\bibama\\w*\\b.{0,240}\\bmadeireiras\\w*\\b.{0,240}\\brondonia\\w*\\b.{0,240}\\bambienta\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e Ibama realizam operação conjunta em madeireiras em Rondônia"
         ]
@@ -157,9 +166,28 @@
   },
   {
     "kind": "crime",
+    "classificador": "crimes_armas",
+    "source": "llm_feedback",
+    "uses": 1,
+    "patterns_do_classificador": [
+      {
+        "pattern_do_classificador": "\\bvistoria\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bnovo\\w*\\b.{0,240}\\barmas\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF fiscaliza instrutores de armamento e tiro credenciados, em clubes de tiro"
+        ]
+      }
+    ],
+    "examples": [
+      "PF fiscaliza instrutores de armamento e tiro credenciados, em clubes de tiro"
+    ]
+  },
+  {
+    "kind": "crime",
     "classificador": "crimes_contra_crianca",
     "source": "llm_feedback",
-    "uses": 7,
+    "uses": 8,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bcrianca\\w*\\b.{0,240}\\bcriancas\\w*\\b.{0,240}\\badolescentes\\w*\\b.{0,240}\\bpraticados\\w*\\b",
@@ -202,6 +230,14 @@
         ]
       },
       {
+        "pattern_do_classificador": "\\bquinta\\w*\\b.{0,240}\\bdelegacia\\w*\\b.{0,240}\\bprotecao\\w*\\b.{0,240}\\bcrianca\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e PC/PI prendem foragido por crimes sexuais em Minas Gerais"
+        ]
+      },
+      {
         "pattern_do_classificador": "\\breprime\\w*\\b.{0,240}\\barmazenamento\\w*\\b.{0,240}\\bcompartilhamento\\w*\\b.{0,240}\\bcrianca\\w*\\b",
         "weight": 1.4,
         "uses": 1,
@@ -224,6 +260,7 @@
       "PF deflagra Operação Teimosia II para investigar casos de compartilhamento de imagens de abusos sexuais contra crianças e adolescentes",
       "PF realiza nova ação de repressão aos crimes de abuso infantojuvenil em Foz do Iguaçu",
       "PF investiga crimes contra menores na internet",
+      "PF e PC/PI prendem foragido por crimes sexuais em Minas Gerais",
       "PF reprime crimes de armazenamento e compartilhamento de arquivos com abusos sexuais de crianças e adolescentes na Internet",
       "PF deflagra operação para combater abuso infantojuvenil praticado na internet em Goiás"
     ]
@@ -232,7 +269,7 @@
     "kind": "crime",
     "classificador": "crimes_sistema_financeiro",
     "source": "llm_feedback",
-    "uses": 3,
+    "uses": 4,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bquinta\\w*\\b.{0,240}\\bsistema\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
@@ -257,20 +294,37 @@
         "examples": [
           "PF deflagra 3ª fase da Operação Barco de Papel"
         ]
+      },
+      {
+        "pattern_do_classificador": "\\btais\\w*\\b.{0,240}\\bcompetencia\\w*\\b.{0,240}\\bsistema\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF mira esquema de fraude na aquisição de veículos"
+        ]
       }
     ],
     "examples": [
       "PF deflagra Operação Inseguros no interior do estado do Rio de Janeiro",
       "PF deflagra operação para combater fraudes com criptomoedas",
-      "PF deflagra 3ª fase da Operação Barco de Papel"
+      "PF deflagra 3ª fase da Operação Barco de Papel",
+      "PF mira esquema de fraude na aquisição de veículos"
     ]
   },
   {
     "kind": "crime",
     "classificador": "desenvolvimento_clandestino_atividade_telecomunicacao",
     "source": "llm_feedback",
-    "uses": 4,
+    "uses": 5,
     "patterns_do_classificador": [
+      {
+        "pattern_do_classificador": "\\banatel\\w*\\b.{0,240}\\bradios\\w*\\b.{0,240}\\bclandest\\w*\\b.{0,240}\\btelecomu\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e ANATEL fecham duas rádios clandestinas"
+        ]
+      },
       {
         "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bdesenvolvimento\\w*\\b.{0,240}\\bclandestino\\w*\\b.{0,240}\\btelecomu\\w*\\b",
         "weight": 1.4,
@@ -305,6 +359,7 @@
       }
     ],
     "examples": [
+      "PF e ANATEL fecham duas rádios clandestinas",
       "PF combate radiodifusão clandestina em Mato Grosso",
       "Polícia Federal deflagra operação \"FM Ilegal\" para fechamento de rádios clandestinas no interior do Maranhão",
       "Polícia Federal combate crimes de receptação e atividades clandestinas de telecomunicação",
@@ -315,12 +370,12 @@
     "kind": "crime",
     "classificador": "falsificacoes",
     "source": "llm_feedback",
-    "uses": 2,
+    "uses": 6,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bfalsific\\w*\\b.{0,240}\\bfalsificacao\\w*\\b.{0,240}\\bdiplomas\\w*\\b.{0,240}\\bsuperior\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF combate falsificação de diplomas de nível superior em Santa Catarina"
         ]
@@ -328,7 +383,7 @@
       {
         "pattern_do_classificador": "\\bterras\\w*\\b.{0,240}\\bbalcao\\w*\\b.{0,240}\\bnegocios\\w*\\b.{0,240}\\bfalsific\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF combate invasão de terras na Floresta Amazônica"
         ]
@@ -343,12 +398,12 @@
     "kind": "crime",
     "classificador": "fraude_previdenciaria",
     "source": "llm_feedback",
-    "uses": 1,
+    "uses": 3,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bfraude\\w*\\b.{0,240}\\bfraudes\\w*\\b.{0,240}\\bpreviden\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação para combate a fraudes contra a Previdência Social"
         ]
@@ -419,7 +474,7 @@
     "kind": "modus",
     "classificador": "busca_apreensao",
     "source": "llm_feedback",
-    "uses": 134,
+    "uses": 271,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\balem\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
@@ -432,7 +487,7 @@
       {
         "pattern_do_classificador": "\\bapos\\w*\\b.{0,240}\\bidentificar\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF combate comércio irregular de materiais arqueológicos"
         ]
@@ -440,7 +495,7 @@
       {
         "pattern_do_classificador": "\\bapreensao\\w*\\b.{0,240}\\brealizada\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bbusca\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e PRF apreendem equipamentos discretos de comunicação na véspera do Enem em Alagoas"
         ]
@@ -448,7 +503,7 @@
       {
         "pattern_do_classificador": "\\bassim\\w*\\b.{0,240}\\bdeterminacao\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra 9ª fase da Operação Sisamnes"
         ]
@@ -456,15 +511,23 @@
       {
         "pattern_do_classificador": "\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bsete\\w*\\b.{0,240}\\bindigena\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação em Aldeia Indígena, no Oeste de Santa Catarina"
         ]
       },
       {
-        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bdata\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
+        "examples": [
+          "Polícia Federal cumpre mandados expedidos pelo Supremo Tribunal Federal"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
+        "weight": 1.4,
+        "uses": 3,
         "examples": [
           "PF deflagra Operação Elétron para combater fraudes em agência reguladora"
         ]
@@ -472,7 +535,7 @@
       {
         "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 8,
+        "uses": 16,
         "examples": [
           "PF cumpre mandado de busca e apreensão contra clandestinidade em telecomunicações",
           "PF cumpre mandado de busca e apreensão em investigação sobre possível perseguição a ministro do STF",
@@ -487,7 +550,7 @@
       {
         "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 5,
+        "uses": 11,
         "examples": [
           "PF cumpre mandados de busca e apreensão em continuidade à Operação Bisturi",
           "PF cumpre mandados de busca e apreensão e outras medidas judiciais em Macapá/AP",
@@ -499,7 +562,7 @@
       {
         "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bquinta\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF combate crime de fraude processual"
         ]
@@ -507,7 +570,7 @@
       {
         "pattern_do_classificador": "\\bcumpre\\w*\\b.{0,240}\\bterca\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação contra rede clandestina de bebidas"
         ]
@@ -515,7 +578,7 @@
       {
         "pattern_do_classificador": "\\bcumprem\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação para reprimir desvio de objetos dos Correios"
         ]
@@ -523,7 +586,7 @@
       {
         "pattern_do_classificador": "\\bcumprem\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 3,
+        "uses": 7,
         "examples": [
           "PF deflagra operação para reprimir fraudes ao Seguro DPVAT",
           "PF e PGR cumprem 30 mandados de busca e apreensão",
@@ -533,7 +596,7 @@
       {
         "pattern_do_classificador": "\\bcumprido\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 7,
+        "uses": 12,
         "examples": [
           "PF combate falsificação de diplomas de nível superior em Santa Catarina",
           "PF combate fraude à Caixa Econômica no interior de Sergipe",
@@ -547,7 +610,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bainda\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF, em ação integrada, apreende grande quantidade de vinhos"
         ]
@@ -555,7 +618,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bmunicipio\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação para desarticular comercialização de insumos irregulares para tatuagem"
         ]
@@ -563,7 +626,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bsanta\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e Receita Federal reprimem o comércio ilegal de eletrônicos"
         ]
@@ -571,17 +634,18 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bcinco\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 3,
+        "uses": 11,
         "examples": [
           "PF combate invasão de terras na Floresta Amazônica",
           "PF deflagra operação para investigar disseminação de doença em espécie ameaçada de extinção",
-          "PF investiga fraude processual"
+          "PF investiga fraude processual",
+          "PF combate fraudes em benefício de seguridade social no Pará"
         ]
       },
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 3,
+        "uses": 6,
         "examples": [
           "PF deflagra operação para combate a fraudes contra a Previdência Social",
           "Polícia Federal apura exploração sexual em Jataí/GO",
@@ -591,7 +655,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF reprime saques fraudulentos de créditos judiciais cometidos em diversos estados"
         ]
@@ -599,7 +663,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 9,
+        "uses": 15,
         "examples": [
           "PF deflagra a Operação Game Over para apurar a prática de fraudes em desfavor do INSS",
           "PF deflagra operação contra fraudes em contratações na saúde",
@@ -615,7 +679,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bnove\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação contra fraudes tributárias no Rio de Janeiro/RJ"
         ]
@@ -623,7 +687,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\boito\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF apura possível esquema de venda de sentenças judiciais"
         ]
@@ -631,7 +695,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação para combater divulgação de \"pornografia de vingança\""
         ]
@@ -639,7 +703,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\bsete\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 3,
         "examples": [
           "PF faz operação contra fraudes no seguro DPVAT",
           "PF investiga suspeita de irregularidades em campanha eleitoral de partido em Minas Gerais"
@@ -648,7 +712,7 @@
       {
         "pattern_do_classificador": "\\bcumpridos\\w*\\b.{0,240}\\btres\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga possíveis crimes de assédio e importunação sexual ocorridos nas dependências da corporação"
         ]
@@ -656,7 +720,7 @@
       {
         "pattern_do_classificador": "\\bcumprimento\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga uso de imagens falsas para liberar financiamentos da Caixa em Pirapozinho/SP"
         ]
@@ -664,7 +728,7 @@
       {
         "pattern_do_classificador": "\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e PC/PI prendem foragido por crimes sexuais em Minas Gerais"
         ]
@@ -672,7 +736,7 @@
       {
         "pattern_do_classificador": "\\bcumpriu\\w*\\b.{0,240}\\bdesta\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 6,
         "examples": [
           "PF cumpre mandados em investigação sobre movimentações financeiras suspeitas em Dourados",
           "PF deflagra Operação Memória contra o extravio de patrimônio público no TRT da 10ª Região"
@@ -681,7 +745,7 @@
       {
         "pattern_do_classificador": "\\bcumpriu\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF cumpre mandados do STF"
         ]
@@ -697,7 +761,7 @@
       {
         "pattern_do_classificador": "\\bdentre\\w*\\b.{0,240}\\bordens\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF desarticula esquema criminoso em órgão responsável pela gestão da saúde indígena no MT"
         ]
@@ -705,7 +769,7 @@
       {
         "pattern_do_classificador": "\\bdessa\\w*\\b.{0,240}\\bsegunda\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga irregularidades na execução de contratos destinados ao fornecimento de alimentos"
         ]
@@ -713,7 +777,7 @@
       {
         "pattern_do_classificador": "\\bdesta\\w*\\b.{0,240}\\bterca\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 4,
         "examples": [
           "PF deflagra Operação Arancia, contra fraudadores da Previdência Social",
           "Polícia Federal deflagra segunda fase da Operação Para Bellum"
@@ -730,7 +794,7 @@
       {
         "pattern_do_classificador": "\\bdois\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação contra vazamento de provas do ENEM"
         ]
@@ -738,7 +802,7 @@
       {
         "pattern_do_classificador": "\\bestado\\w*\\b.{0,240}\\bjustica\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e Ministério Público do Estado do Piauí cumprem mandado judicial em desfavor de promotor de justiça"
         ]
@@ -754,7 +818,7 @@
       {
         "pattern_do_classificador": "\\bestao\\w*\\b.{0,240}\\bsendo\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 5,
+        "uses": 10,
         "examples": [
           "PF deflagra a segunda fase da Operação Insanidade",
           "PF deflagra as fases III e IV da Operação Patronos na Bahia",
@@ -782,7 +846,7 @@
       {
         "pattern_do_classificador": "\\bexecutou\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bpaulo\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF apura fraude virtual na contratação de financiamento de veículos"
         ]
@@ -790,7 +854,7 @@
       {
         "pattern_do_classificador": "\\bexpedidos\\w*\\b.{0,240}\\bdois\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e Receita Federal combatem fraude à União em Minas Gerais"
         ]
@@ -798,7 +862,7 @@
       {
         "pattern_do_classificador": "\\bexpedidos\\w*\\b.{0,240}\\bquatro\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra Operação Dom Pedro II para recuperar obras do patrimônio público"
         ]
@@ -806,7 +870,7 @@
       {
         "pattern_do_classificador": "\\bfase\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF mira fraudes contra a Caixa Econômica"
         ]
@@ -814,7 +878,7 @@
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumprem\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 4,
+        "uses": 5,
         "examples": [
           "PF deflagra 3ª fase da Operação Barco de Papel",
           "PF faz operações contra crimes praticados nas eleições de 2024",
@@ -825,7 +889,7 @@
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF deflagra Segunda Fase da Operação Panaceia no Oiapoque/AP"
         ]
@@ -833,7 +897,7 @@
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bcumpriram\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 3,
         "examples": [
           "PF desencadeia Operação Levante e combate prática de crimes em ambientes virtuais",
           "PF investiga reprime o comércio ilegal de colmeias em Goiás"
@@ -850,7 +914,7 @@
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bderam\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 4,
         "examples": [
           "Operação Retificatio investiga fraudes em declarações de Imposto de Renda em Santa Catarina",
           "PF faz operação de repressão a crime eleitoral em Alagoas"
@@ -867,7 +931,7 @@
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 5,
         "examples": [
           "PF deflagra a 2ª fase da Operação Barco de Papel",
           "PF investiga saque fraudulento em FGTS"
@@ -884,7 +948,7 @@
       {
         "pattern_do_classificador": "\\bhermes\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação contra envio de dinheiro falso pelos Correios"
         ]
@@ -892,7 +956,7 @@
       {
         "pattern_do_classificador": "\\bignem\\w*\\b.{0,240}\\bpontins\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação em Lucas do Rio Verde e Nova Mutum, no Mato Grosso"
         ]
@@ -900,7 +964,7 @@
       {
         "pattern_do_classificador": "\\binveridico\\w*\\b.{0,240}\\bcumpre\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga criação de perfil falso do ministro da Justiça em rede social"
         ]
@@ -908,7 +972,7 @@
       {
         "pattern_do_classificador": "\\bjuizo\\w*\\b.{0,240}\\bvara\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF combate o comércio ilegal de explosivos"
         ]
@@ -924,7 +988,7 @@
       {
         "pattern_do_classificador": "\\blondrina\\w*\\b.{0,240}\\bcumpriu\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF combate crimes contra a previdência na 2ª fase da Operação Recidiva"
         ]
@@ -932,7 +996,7 @@
       {
         "pattern_do_classificador": "\\bmais\\w*\\b.{0,240}\\bfederais\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF apura possível manipulação de partida do campeonato brasileiro de futebol da série A"
         ]
@@ -940,7 +1004,7 @@
       {
         "pattern_do_classificador": "\\bmais\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e PGR deflagram segunda etapa da Operação Q.I."
         ]
@@ -948,7 +1012,7 @@
       {
         "pattern_do_classificador": "\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bcumprido\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF deflagra segunda fase da operação Mente Sã, que reprime o uso e comércio de drogas no campus da Universidade Federal de Santa Maria"
         ]
@@ -956,7 +1020,7 @@
       {
         "pattern_do_classificador": "\\bmandado\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bespirito\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga homem que fingia ser servidor do MPF"
         ]
@@ -964,7 +1028,7 @@
       {
         "pattern_do_classificador": "\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b.{0,240}\\bcumpridos\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga advogado por fraude no levantamento de precatórios e RPVS"
         ]
@@ -972,7 +1036,7 @@
       {
         "pattern_do_classificador": "\\bministerio\\w*\\b.{0,240}\\bagricultura\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF deflagra Operação Terra Limpa para apurar importação e fabricação irregular de agrotóxicos"
         ]
@@ -1028,7 +1092,7 @@
       {
         "pattern_do_classificador": "\\bpolicias\\w*\\b.{0,240}\\bcumprem\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF faz operação contra mulher que se passava por outra para receber benefícios governamentais"
         ]
@@ -1036,7 +1100,7 @@
       {
         "pattern_do_classificador": "\\bponta\\w*\\b.{0,240}\\bpora\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "Operação Warehouse II investiga desvio de mercadorias apreendidas de depósito em Ponta Porã"
         ]
@@ -1052,7 +1116,7 @@
       {
         "pattern_do_classificador": "\\bquinta\\w*\\b.{0,240}\\bcumpriu\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF mira suspeitos do ataque ao assentamento do MST em Tremembé/SP"
         ]
@@ -1060,7 +1124,7 @@
       {
         "pattern_do_classificador": "\\bquinta\\w*\\b.{0,240}\\bfantasma\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga veiculação de imagens relacionadas ao nazismo"
         ]
@@ -1076,7 +1140,7 @@
       {
         "pattern_do_classificador": "\\brealizou\\w*\\b.{0,240}\\bnessa\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF desarticula comércio ilegal de medicamentos em Campo Grande/MS"
         ]
@@ -1084,7 +1148,7 @@
       {
         "pattern_do_classificador": "\\brepresenta\\w*\\b.{0,240}\\bcontinuidade\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF prende foragidas em continuidade a investigação por tortura em Guajará-Mirim/RO"
         ]
@@ -1100,7 +1164,7 @@
       {
         "pattern_do_classificador": "\\bsegunda\\w*\\b.{0,240}\\betapa\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra nova etapa da Operação Iscariotes"
         ]
@@ -1108,7 +1172,7 @@
       {
         "pattern_do_classificador": "\\bsuspeito\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF cumpre mandado de prisão preventiva em desfavor de investigado na 9ª fase da Operação Calvário"
         ]
@@ -1116,7 +1180,7 @@
       {
         "pattern_do_classificador": "\\btambem\\w*\\b.{0,240}\\bautorizados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF prende suspeito de planejar ataques violentos no Pará"
         ]
@@ -1124,7 +1188,7 @@
       {
         "pattern_do_classificador": "\\bterca\\w*\\b.{0,240}\\bmiqueias\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF combate fraudes em contratações emergenciais em Roraima"
         ]
@@ -1140,7 +1204,7 @@
       {
         "pattern_do_classificador": "\\btodo\\w*\\b.{0,240}\\bmandados\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga fraude à execução praticada por empresas sediadas em Jambeiro/SP e região"
         ]
@@ -1148,7 +1212,7 @@
       {
         "pattern_do_classificador": "\\btodo\\w*\\b.{0,240}\\bsendo\\w*\\b.{0,240}\\bbusca\\w*\\b.{0,240}\\bapreensao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra a Operação Tracker no Mato Grosso do Sul"
         ]
@@ -1185,18 +1249,37 @@
       "PF e PRF apreendem equipamentos discretos de comunicação na véspera do Enem em Alagoas",
       "PF deflagra 9ª fase da Operação Sisamnes",
       "PF deflagra operação em Aldeia Indígena, no Oeste de Santa Catarina",
+      "Polícia Federal cumpre mandados expedidos pelo Supremo Tribunal Federal",
       "PF deflagra Operação Elétron para combater fraudes em agência reguladora",
       "PF cumpre mandado de busca e apreensão contra clandestinidade em telecomunicações",
       "PF cumpre mandado de busca e apreensão em investigação sobre possível perseguição a ministro do STF",
-      "PF cumpre mandado de busca e apreensão em Salvador/BA em investigação contra tráfico",
-      "PF cumpre mandado de busca e apreensão para reprimir crime contra os serviços de telecomunicações"
+      "PF cumpre mandado de busca e apreensão em Salvador/BA em investigação contra tráfico"
+    ]
+  },
+  {
+    "kind": "modus",
+    "classificador": "combate_financeiro",
+    "source": "llm_feedback",
+    "uses": 1,
+    "patterns_do_classificador": [
+      {
+        "pattern_do_classificador": "\\bsoma\\w*\\b.{0,240}\\bvalores\\w*\\b.{0,240}\\bpretendia\\w*\\b.{0,240}\\bfinanceiro\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e Receita Federal combatem fraude à União em Minas Gerais"
+        ]
+      }
+    ],
+    "examples": [
+      "PF e Receita Federal combatem fraude à União em Minas Gerais"
     ]
   },
   {
     "kind": "modus",
     "classificador": "cumprimento_mandado",
     "source": "llm_feedback",
-    "uses": 15,
+    "uses": 21,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bcgcs\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b.{0,240}\\bmandados\\w*\\b",
@@ -1258,7 +1341,7 @@
       {
         "pattern_do_classificador": "\\bfederais\\w*\\b.{0,240}\\bderam\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
-        "uses": 2,
+        "uses": 3,
         "examples": [
           "PF faz operação de repressão a crime eleitoral em Alagoas",
           "PF prende foragido da Justiça em Redenção/PA"
@@ -1275,7 +1358,7 @@
       {
         "pattern_do_classificador": "\\bparticipacao\\w*\\b.{0,240}\\bmais\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF investiga extração e comércio ilegal de granito"
         ]
@@ -1291,7 +1374,7 @@
       {
         "pattern_do_classificador": "\\brealizou\\w*\\b.{0,240}\\bnessa\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF desarticula comércio ilegal de medicamentos em Campo Grande/MS"
         ]
@@ -1299,7 +1382,7 @@
       {
         "pattern_do_classificador": "\\bsegunda\\w*\\b.{0,240}\\betapa\\w*\\b.{0,240}\\bcumprimento\\w*\\b.{0,240}\\bmandado\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra nova etapa da Operação Iscariotes"
         ]
@@ -1322,7 +1405,7 @@
     "kind": "modus",
     "classificador": "fiscalizacao",
     "source": "llm_feedback",
-    "uses": 17,
+    "uses": 31,
     "patterns_do_classificador": [
       {
         "pattern_do_classificador": "\\bacoes\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bocorreram\\w*\\b.{0,240}\\bjaneiro\\w*\\b",
@@ -1335,7 +1418,7 @@
       {
         "pattern_do_classificador": "\\batua\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bpostos\\w*\\b.{0,240}\\bcombustiveis\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF atua na fiscalização de postos de combustíveis em 11 estados e no DF"
         ]
@@ -1343,7 +1426,7 @@
       {
         "pattern_do_classificador": "\\bdeflagra\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bprodutos\\w*\\b.{0,240}\\bquimicos\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 3,
         "examples": [
           "PF deflagra operação de fiscalização de produtos químicos em Minas Gerais"
         ]
@@ -1359,7 +1442,7 @@
       {
         "pattern_do_classificador": "\\bfiscalizacao\\w*\\b.{0,240}\\balcancou\\w*\\b.{0,240}\\bbarra\\w*\\b.{0,240}\\bpirai\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e ANATEL fecham duas rádios clandestinas"
         ]
@@ -1375,7 +1458,7 @@
       {
         "pattern_do_classificador": "\\bforca\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bnacional\\w*\\b.{0,240}\\bpetroleo\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF deflagra Operação Vem Diesel 2 para fiscalizar estabelecimentos ligados à venda de gás de botijão"
         ]
@@ -1383,7 +1466,7 @@
       {
         "pattern_do_classificador": "\\bibama\\w*\\b.{0,240}\\bmilitar\\w*\\b.{0,240}\\bambiental\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e Ibama realizam operação conjunta em madeireiras em Rondônia"
         ]
@@ -1391,7 +1474,7 @@
       {
         "pattern_do_classificador": "\\bintegracao\\w*\\b.{0,240}\\borgaos\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bvisa\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF, Receita, Polícia Civil e Vigiagro deflagram Operação Aliança no Galeão/RJ"
         ]
@@ -1413,11 +1496,27 @@
         ]
       },
       {
-        "pattern_do_classificador": "\\bmapa\\w*\\b.{0,240}\\bfiscaliz\\w*\\b.{0,240}\\bfiscalizacoes\\w*\\b.{0,240}\\bacoes\\w*\\b",
+        "pattern_do_classificador": "\\bmacae\\w*\\b.{0,240}\\bsabado\\w*\\b.{0,240}\\bequipe\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
         "weight": 1.4,
         "uses": 1,
         "examples": [
+          "PF e ICMBio apreendem 30 toneladas de peixes em Arraial do Cabo/RJ"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bmapa\\w*\\b.{0,240}\\bfiscaliz\\w*\\b.{0,240}\\bfiscalizacoes\\w*\\b.{0,240}\\bacoes\\w*\\b",
+        "weight": 1.4,
+        "uses": 2,
+        "examples": [
           "PF e MAPA dão continuidade às fiscalizações em indústrias de bebidas"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\bonda\\w*\\b.{0,240}\\bradios\\w*\\b.{0,240}\\bclandestinas\\w*\\b.{0,240}\\bfiscaliz\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e Anatel deflagram Operação Onda Livre III contra rádios clandestinas"
         ]
       },
       {
@@ -1426,6 +1525,14 @@
         "uses": 1,
         "examples": [
           "PF identifica 17 trabalhadores em situação de trabalho análogo à escravidão"
+        ]
+      },
+      {
+        "pattern_do_classificador": "\\btrabalho\\w*\\b.{0,240}\\bfiscaliz\\w*\\b.{0,240}\\bareas\\w*\\b.{0,240}\\bmunicipios\\w*\\b",
+        "weight": 1.4,
+        "uses": 1,
+        "examples": [
+          "PF e MPT realizam operação de combate ao trabalho escravo no Pará"
         ]
       },
       {
@@ -1447,7 +1554,7 @@
       {
         "pattern_do_classificador": "\\bvistoria\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b.{0,240}\\bnovo\\w*\\b.{0,240}\\bsistema\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF fiscaliza instrutores de armamento e tiro credenciados, em clubes de tiro"
         ]
@@ -1455,7 +1562,7 @@
       {
         "pattern_do_classificador": "\\bvistoriadas\\w*\\b.{0,240}\\bbagagens\\w*\\b.{0,240}\\bmais\\w*\\b.{0,240}\\bfiscalizacao\\w*\\b",
         "weight": 1.4,
-        "uses": 1,
+        "uses": 2,
         "examples": [
           "PF e PM/AL realizam operação de segurança pública em navio cruzeiro no Porto de Maceió/AL"
         ]

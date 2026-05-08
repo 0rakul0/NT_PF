@@ -152,6 +152,39 @@ Ou, no PowerShell do Windows:
 
 Esse fluxo usa os caminhos padrao do repositorio, processa os arquivos locais com a LLM, gera os artefatos analiticos e deixa o painel pronto para abrir.
 
+### Fluxo completo da pipeline
+
+```mermaid
+flowchart TD
+    A["Portal PF: listagem de notícias"] --> B["Coleta paginada<br/>pf_operacoes_pipeline.py"]
+    B --> C["Índice estruturado<br/>data/pf_operacoes_index.csv"]
+    C --> D["Extração de cada notícia<br/>HTML -> Markdown"]
+    D --> E["Manifesto de conteúdo<br/>data/pf_operacoes_conteudos.csv"]
+    D --> F["Textos extraídos<br/>data/noticias_markdown/*.md"]
+    F --> G["Leitura de metadados objetivos<br/>título, datas, tags, dateline, operação"]
+    G --> H["Classificador regex<br/>regras versionadas + confiança"]
+    H --> I{"Regex acima do limiar?"}
+    I -- "sim" --> J["Inferência aceita<br/>crime, modus, operação, evidência"]
+    I -- "não ou conflito" --> K["LLM local/Ollama<br/>JSON controlado por schema"]
+    K --> L["Normalização e validação Pydantic"]
+    L --> M["Aprendizado contínuo<br/>sugestão e limpeza de novas regras regex"]
+    M --> H
+    J --> N["Metadados enriquecidos<br/>metadados_llm_noticias.jsonl/csv"]
+    L --> N
+    N --> O["Construção de textos analíticos<br/>integral, resumo, híbrido"]
+    O --> P["Espaço semântico<br/>TF-IDF + SVD + normalização"]
+    P --> Q["Cluster principal<br/>MiniBatchKMeans"]
+    P --> R["Vizinhança semântica<br/>similaridade do cosseno"]
+    O --> S["Experimento de consenso<br/>KMeans + hierárquico + HDBSCAN<br/>em 3 representações"]
+    S --> T["Pares estáveis<br/>pares_consenso_clusters.csv"]
+    Q --> U["Clusters canônicos<br/>identidade padronizada"]
+    R --> V["Séries e pares recorrentes"]
+    U --> W["Artefatos analíticos"]
+    V --> W
+    T --> W
+    W --> X["Dashboard Streamlit<br/>panorama, crimes, clusters, vizinhança"]
+```
+
 Se quiser testar sem processar toda a base, voce pode limitar a etapa da LLM sem usar argumentos de linha de comando:
 
 ```powershell
@@ -252,7 +285,7 @@ Variaveis uteis:
 - `PF_LLM_LIMIT`: limita quantos markdowns serao processados
 - `PF_SKIP_LLM=1`: pula a etapa da LLM em `run_local.py`
 
-Os contratos oficiais dessa saida ficam nas classes `NoticiaMetadataExtraido`, `NoticiaLLMInference` e `NoticiaEnriquecida`, definidas em `scripts/pf_llm_models.py`. A ideia e usar a LLM apenas para inferir identidade canonica, crimes mais presentes e modus operandi, deixando titulo, datas, tags e demais metadados estruturais como leitura direta do markdown.
+Os contratos oficiais dessa saida ficam nas classes `NoticiaMetadataExtraido`, `NoticiaLLMInference` e `NoticiaEnriquecida`, definidas em `scripts/pf_llm_models.py`. A LLM foi incorporada como uma camada semântica controlada: ela só atua quando as regras regex não resolvem o caso com confiança suficiente, responde em JSON validado por Pydantic e só pode usar categorias previamente permitidas. O papel dela é interpretar o corpo da notícia, produzir rótulos substantivos, gerar resumo/evidência e alimentar o aprendizado contínuo de novas regras regex. Título, datas, tags e demais metadados objetivos continuam sendo leitura direta do markdown, não inferência da LLM.
 
 Cada registro retorna uma estrutura como:
 
@@ -268,6 +301,75 @@ Crimes mais presentes: abuso_sexual_infantil
 Modus operandi: atuacao_online, busca_apreensao
 ```
 
+### Camada experimental de resumo controlado
+
+Além dos rótulos de crime e modus operandi, a inferência da LLM agora inclui uma camada de resumo controlado:
+
+- `resumo_curto`: uma frase factual curta sobre o caso.
+- `resumo_estruturado`: campos separados para fato central, alvo, local, ação policial e resultado.
+- `evidencia_textual`: trecho curto que sustenta a classificação.
+- `atores_mencionados`: atores, órgãos ou grupos citados no texto.
+- `setor_afetado`: domínio substantivo afetado, escolhido de uma lista controlada.
+- `precisa_reprocessamento`: flag para ambiguidade, insuficiência textual ou conflito entre sinais, usada para nova rodada automatizada.
+
+Essa camada não substitui o texto integral. Ela cria uma segunda representação, mais padronizada, para testar a hipótese de que resumos factuais reduzem a heterogeneidade dos relatos e melhoram a interpretabilidade de agrupamentos semânticos. O pipeline analítico passa a preservar três textos de clusterização:
+
+- `texto_cluster_integral`: título, subtítulo e corpo normalizado, com geografia removida da leitura semântica.
+- `texto_cluster_resumo`: título, subtítulo, resumo curto, resumo estruturado, evidência, atores e setor afetado.
+- `texto_cluster_hibrido`: combinação ponderada entre identidade/taxonomia, resumo e texto integral.
+
+O cluster principal do painel continua usando a representação híbrida para manter compatibilidade com a leitura atual. Os textos integral e resumido entram no experimento de consenso.
+
+### Experimento de consenso de clusters
+
+Após gerar os artefatos analíticos, o pipeline roda especificações alternativas com K-means, clusterização hierárquica e HDBSCAN sobre as três representações textuais. Em vez de gravar uma matriz completa de coocorrência, que ficaria grande para milhares de notícias, o projeto salva pares estáveis entre vizinhos semânticos:
+
+- `data/analise_qualitativa/clusterizacoes_consenso.csv`: rótulo de cluster de cada notícia em cada especificação.
+- `data/analise_qualitativa/pares_consenso_clusters.csv`: pares de notícias que aparecem juntos em pelo menos 80% das especificações testadas.
+
+Esses arquivos servem para avaliar se a proximidade observada é robusta a mudanças de representação textual e algoritmo. O resultado deve ser interpretado como diagnóstico metodológico, não como substituto automático da classificação final.
+
+O HDBSCAN entra aqui como ferramenta exploratória, não como classificador final. Ele ajuda porque não exige definir previamente o número de clusters, marca ruído/outliers com `-1`, lida melhor com grupos de tamanhos diferentes e pode revelar subtemas densos dentro de categorias grandes, como `corrupcao_desvio`, `crimes_ambientais` ou `crimes_contra_crianca`. O cluster principal do painel continua sendo K-means por escala e reprodutibilidade; HDBSCAN funciona como teste de robustez e descoberta de grupos naturais.
+
+### Aprendizado contínuo sem intervenção humana obrigatória
+
+A pipeline foi desenhada para reduzir intervenção manual no ciclo de classificação. O fluxo é:
+
+1. Regras regex classificam primeiro os casos de alta confiança.
+2. Casos abaixo do limiar, conflitantes ou sem regra suficiente passam para a LLM.
+3. A LLM retorna JSON controlado por schema, com rótulos permitidos, resumo, evidência e sinais de ambiguidade.
+4. O módulo `improve_regex_from_llm` tenta derivar padrões candidatos a partir da inferência da LLM.
+5. `clean_learned_rules_file` remove padrões frágeis, genéricos, malformados ou sem evidência suficiente.
+6. As regras aprendidas ficam em `data/analise_qualitativa/regex_classifier_rules.json` e entram na próxima execução.
+
+Esse ciclo não assume que a LLM cria categorias livres. Ela só pode usar a taxonomia permitida, e as regras aprendidas passam por filtros automáticos antes de afetar o classificador. Assim, o sistema melhora cobertura ao longo das execuções sem exigir revisão humana nessa etapa do processo.
+
+O algoritmo operacional de redução de custo é:
+
+```text
+para cada noticia:
+    metadados = extrair_campos_objetivos(markdown)
+    resultado_regex = classificar_com_regex(noticia, regras_estaticas + regras_aprendidas)
+
+    se resultado_regex.confianca >= limiar:
+        usar resultado_regex
+        fonte_classificacao = "regex"
+        custo_llm = 0
+    senao:
+        inferencia = chamar_llm_com_schema_fechado(noticia)
+        inferencia = validar_e_normalizar_pydantic(inferencia)
+        fonte_classificacao = "llm"
+
+        regras_candidatas = derivar_regex_da_inferencia(noticia, inferencia)
+        regras_validas = filtrar_regras_frageis(regras_candidatas)
+        salvar_regras_aprendidas(regras_validas)
+
+na proxima execucao:
+    regras_aprendidas entram antes da LLM
+    mais noticias sao resolvidas localmente por regex
+    menos chamadas LLM sao necessarias
+```
+
 ### Etapa 3: abrir o painel
 
 ```powershell
@@ -280,6 +382,8 @@ Modus operandi: atuacao_online, busca_apreensao
 - `data/pf_operacoes_conteudos.csv`: manifesto com o status da extracao de cada noticia.
 - `data/noticias_markdown/*.md`: texto principal de cada noticia convertido para markdown.
 - `data/analise_qualitativa/`: tabelas analiticas e relatorio narrativo.
+- `data/analise_qualitativa/clusterizacoes_consenso.csv`: atribuicoes de cluster em especificacoes alternativas.
+- `data/analise_qualitativa/pares_consenso_clusters.csv`: pares semanticamente proximos que permanecem juntos em multiplas especificacoes.
 - `streamlit_app.py`: painel para leitura exploratoria dos resultados.
 
 ## Citacao e licenca

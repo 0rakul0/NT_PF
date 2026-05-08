@@ -1,0 +1,227 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage[round]{natbib}
+
+\geometry{margin=2.5cm}
+\onehalfspacing
+
+\title{Clusterizacao semantica e classificacao hibrida de noticias sobre operacoes da Policia Federal}
+\author{Projeto NT PF}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Este artigo descreve uma metodologia computacional para transformar noticias publicas sobre operacoes da Policia Federal brasileira em uma base analitica estruturada. A proposta combina coleta automatizada, extracao textual, classificacao hibrida por expressoes regulares e modelos de linguagem, resumo controlado, clusterizacao semantica, consenso entre especificacoes e aprendizado continuo de regras. A estrategia separa duas finalidades: a clusterizacao semantica e usada como instrumento exploratorio para descobrir padroes no corpus; a classificacao hibrida e usada para produzir variaveis substantivas auditaveis sobre crimes, modus operandi, setor afetado, atores e recorrencia operacional. O resumo controlado e tratado como camada complementar, nao como substituto do texto integral, permitindo testar se uma representacao mais padronizada melhora a estabilidade e a interpretabilidade dos agrupamentos.
+\end{abstract}
+
+\section{Introducao}
+
+Noticias institucionais sobre operacoes policiais formam um corpus rico para observar recorrencias de crimes, modos de atuacao, territorios e formas de cooperacao estatal. Entretanto, esses textos tendem a ser heterogeneos: variam em extensao, estilo, nivel de detalhe, uso de tags, presenca de nomes de operacao e padrao narrativo. Essa heterogeneidade dificulta a construcao direta de categorias consistentes.
+
+A metodologia proposta combina tres familias de tecnicas. Primeiro, utiliza representacoes vetoriais de texto e similaridade do cosseno para aproximar noticias semanticamente semelhantes, em linha com abordagens de embeddings e modelagem de topicos por agrupamento \citep{reimers2019sentencebert,grootendorst2022bertopic,angelov2020top2vec}. Segundo, aplica classificacao hibrida: regras deterministicas de alta confianca classificam casos claros, enquanto modelos de linguagem sao acionados para casos ambiguos ou nao capturados pelas regras \citep{gilardi2023chatgpt,rytting2023coding,heseltine2024llm,tornberg2025llm}. Terceiro, avalia a estabilidade dos agrupamentos por consenso entre especificacoes, inspirado na literatura de consenso de clusters \citep{monti2003consensus}.
+
+\section{Dados}
+
+O universo empirico e composto por noticias publicadas no portal publico da Policia Federal sobre operacoes. Cada noticia e representada como uma unidade documental. Para cada unidade, o pipeline preserva metadados objetivos e texto integral extraido em formato Markdown.
+
+Os campos minimos previstos sao:
+
+\begin{itemize}
+    \item identificador ou link canonico da noticia;
+    \item titulo e subtitulo;
+    \item data de publicacao e, quando disponivel, data de atualizacao;
+    \item URL de origem;
+    \item texto integral extraido;
+    \item tags institucionais;
+    \item dateline, UF e municipio quando identificaveis;
+    \item nome de operacao, quando explicitamente mencionado.
+\end{itemize}
+
+O pipeline tambem deve registrar controle de qualidade textual. Noticias vazias, incompletas, duplicadas ou sem corpo extraido suficiente devem receber flag propria, para que a analise principal consuma apenas registros validos.
+
+\section{Pipeline metodologico}
+
+A Figura textual abaixo resume o fluxo completo implementado ou previsto.
+
+\begin{figure}[h]
+\centering
+\fbox{\begin{minipage}{0.92\textwidth}
+\small
+\begin{enumerate}
+    \item Portal da PF: listagem publica de noticias de operacoes.
+    \item Coleta paginada: construcao do indice estruturado.
+    \item Extracao individual: HTML da noticia convertido para Markdown.
+    \item Metadados objetivos: titulo, subtitulo, datas, tags, dateline e nome de operacao.
+    \item Regex de alta confianca: primeira classificacao automatica por regras versionadas.
+    \item Decisao automatica: aceita regex acima do limiar; caso contrario, envia para LLM.
+    \item LLM com schema fechado: crime, modus, resumo, evidencia, atores, setor e ambiguidade.
+    \item Aprendizado continuo: inferencias da LLM sugerem regras candidatas; filtros automaticos limpam regras frageis.
+    \item Artefato enriquecido: JSONL/CSV com metadados, fonte da classificacao, regras e evidencias.
+    \item Representacoes textuais: integral, resumida e hibrida.
+    \item Clusterizacao e vizinhanca: TF-IDF, SVD, cosseno, K-means e vizinhos semelhantes.
+    \item Consenso: K-means, hierarquico e HDBSCAN sobre representacoes alternativas; pares estaveis.
+    \item Saidas analiticas: corpus enriquecido, clusters, clusters canonicos, series, pares e dashboard.
+\end{enumerate}
+\end{minipage}}
+\caption{Fluxo completo da pipeline de extracao, classificacao, aprendizado continuo e analise semantica.}
+\end{figure}
+
+\begin{enumerate}
+    \item Coleta da listagem paginada de noticias.
+    \item Extracao do conteudo principal de cada pagina individual.
+    \item Conversao do conteudo para Markdown e padronizacao dos metadados.
+    \item Limpeza textual sem remover informacao substantiva.
+    \item Classificacao por regras regex de alta confianca.
+    \item Encaminhamento dos casos nao cobertos ou conflitantes para LLM.
+    \item Geracao de resumo curto, resumo estruturado, evidencia textual, atores e setor afetado.
+    \item Construcao de tres representacoes textuais: integral, resumida e hibrida.
+    \item Clusterizacao semantica e recuperacao de vizinhos por similaridade do cosseno.
+    \item Experimento de consenso entre especificacoes alternativas.
+    \item Aprendizado continuo de regras regex a partir dos casos encaminhados a LLM.
+    \item Producao da base final e dos artefatos analiticos.
+\end{enumerate}
+
+\section{Preparacao textual}
+
+Cada noticia e convertida para texto limpo, preservando nomes de operacoes, orgaos, crimes mencionados, localidades, valores, mandados e outros sinais substantivos. Elementos repetitivos de pagina, menus, rodapes e links irrelevantes devem ser removidos. A geografia e tratada separadamente: termos geograficos podem ser removidos da representacao semantica para evitar que clusters sejam dominados por UF ou municipio, mas sao preservados como variaveis analiticas.
+
+\section{Classificacao hibrida}
+
+A classificacao final e concebida como um sistema em camadas. A primeira camada aplica expressoes regulares versionadas para padroes de alta confianca. Exemplos incluem mencoes diretas a lavagem de dinheiro, garimpo ilegal, pornografia infantil, fraude previdenciaria, descaminho, corrupcao e trafico de drogas.
+
+Cada regra deve preservar:
+
+\begin{itemize}
+    \item classe atribuida;
+    \item regra acionada;
+    \item trecho que acionou a regra;
+    \item nivel de confianca;
+    \item versao da regra.
+\end{itemize}
+
+Casos nao capturados ou com sinais conflitantes sao encaminhados a uma LLM. A LLM nao recebe uma tarefa aberta; ela deve escolher exclusivamente entre categorias da taxonomia, retornar JSON valido e indicar evidencia textual curta. A saida estruturada inclui classe principal, classes secundarias, modus operandi, setor afetado, atores mencionados, resumo curto, resumo estruturado, confianca e flag de reprocessamento automatico. Portanto, o papel da LLM no projeto nao e substituir todo o classificador: ela funciona como camada semantica controlada, acionada quando a camada barata de regex nao resolve o caso, e como fonte de exemplos para o aprendizado continuo de novas regras.
+
+\section{Resumo controlado como camada complementar}
+
+O comentario metodologico que motivou esta atualizacao sugere que resumos curtos podem ajudar na clusterizacao semantica e na criacao de categorias. A proposta adotada e testar essa hipotese sem abandonar o texto integral.
+
+Assim, o pipeline constroi tres representacoes:
+
+\begin{description}
+    \item[Texto integral] titulo, subtitulo e corpo normalizado. Serve para descoberta livre e exploratoria.
+    \item[Texto resumido] titulo, subtitulo, resumo curto, resumo estruturado, evidencia, atores e setor afetado. Serve para reduzir heterogeneidade narrativa.
+    \item[Texto hibrido] combina identidade canonica, crimes, modus, tags, resumo e texto integral. Serve como representacao principal do painel.
+\end{description}
+
+Essa decisao permite comparar se o resumo melhora estabilidade e interpretabilidade ou se perde informacao substantiva relevante. A expectativa e que os dois usos sejam complementares: o texto integral favorece descoberta; o resumo favorece padronizacao.
+
+\section{Clusterizacao semantica}
+
+Cada noticia e representada em um espaco vetorial. A implementacao atual usa TF-IDF, reducao por SVD e normalizacao, mantendo similaridade do cosseno como metrica de proximidade. A metodologia tambem e compatavel com embeddings neurais, como Sentence-BERT, ou modelos de topicos baseados em embeddings e agrupamento, como BERTopic e Top2Vec \citep{reimers2019sentencebert,grootendorst2022bertopic,angelov2020top2vec}.
+
+A clusterizacao principal utiliza K-means em mini-lotes. O numero de clusters e escolhido por avaliacao de silhouette em uma grade de valores. Como alternativa metodologica, o experimento de consenso tambem aplica clusterizacao hierarquica e HDBSCAN sobre as representacoes integral, resumida e hibrida \citep{campello2013hdbscan}.
+
+O HDBSCAN entra como apoio exploratorio, nao como classificacao final. Sua utilidade decorre de cinco propriedades: nao exige definir previamente o numero de clusters; permite marcar ruido e outliers; lida melhor com grupos de tamanhos diferentes; pode revelar subtemas densos dentro de categorias grandes, como corrupcao, crimes ambientais ou crimes contra criancas; e aumenta a robustez do consenso quando concorda com K-means e clusterizacao hierarquica. Por isso, o K-means permanece como cluster principal do painel, enquanto o HDBSCAN opera como diagnostico de estabilidade e descoberta de agrupamentos naturais.
+
+\section{Consenso e estabilidade}
+
+Como uma solucao unica de clusterizacao pode depender de algoritmo, parametros e representacao textual, a metodologia inclui um experimento de consenso. Para cada noticia, sao salvos os clusters obtidos em diferentes especificacoes. Em seguida, o pipeline calcula pares estaveis entre vizinhos semanticos: dois documentos formam um par estavel quando aparecem juntos em pelo menos 80\% das especificacoes validas.
+
+Essa abordagem evita gravar uma matriz completa de coocorrencia para milhares de documentos e produz um artefato interpretavel: uma lista de pares robustos. Esses pares orientam a nomeacao automatica de clusters, o aprendizado de novas regras e a construcao incremental de categorias dentro da taxonomia existente.
+
+\section{Taxonomia substantiva}
+
+A taxonomia e organizada em multiplos niveis. O primeiro nivel cobre grandes areas, como corrupcao, lavagem de dinheiro, trafico de drogas e armas, crimes ambientais, crimes financeiros, fraudes previdenciarias, crimes ciberneticos, crimes eleitorais, fronteira e outros. O segundo nivel detalha tipos especificos de crime. O terceiro nivel descreve modus operandi, como empresa de fachada, uso de laranjas, contratos simulados, notas fiscais falsas, criptoativos, transporte aereo, transporte maritimo, servidores publicos envolvidos e documentos falsos.
+
+Uma noticia pode receber multiplos rotulos. Portanto, a classificacao deve ser tratada como multilabel, e nao como atribuicao exclusiva de uma unica categoria.
+
+\section{Aprendizado continuo}
+
+A classificacao foi desenhada para nao depender de intervencao humana nessa etapa do processo. O ciclo de melhoria ocorre automaticamente. Primeiro, regras regex classificam os casos de alta confianca. Segundo, casos abaixo do limiar, conflitantes ou nao cobertos sao enviados para a LLM. Terceiro, a resposta da LLM e validada por schema e normalizada para a taxonomia permitida. Quarto, quando a LLM atribui rotulos com evidencia textual suficiente, o sistema tenta derivar padroes regex candidatos. Quinto, filtros automaticos removem padroes frageis, genericos, malformados ou sem evidencia lexical da classe atribuida.
+
+As regras aprendidas sao gravadas em arquivo versionavel e entram na execucao seguinte do classificador. Dessa forma, a cobertura tende a aumentar ao longo das rodadas, enquanto a taxonomia permanece controlada. A LLM nao cria categorias livres; ela opera dentro de listas permitidas, e o aprendizado de regras e condicionado por evidencias extraidas do proprio texto.
+
+\begin{figure}[h]
+\centering
+\fbox{\begin{minipage}{0.92\textwidth}
+\small
+\begin{verbatim}
+para cada noticia:
+    metadados = extrair_campos_objetivos(markdown)
+    resultado = classificar_com_regex(noticia, regras_estaticas + regras_aprendidas)
+
+    se resultado.confianca >= limiar:
+        usar resultado
+        fonte_classificacao = "regex"
+        custo_llm = 0
+    senao:
+        inferencia = chamar_llm_com_schema_fechado(noticia)
+        inferencia = validar_e_normalizar_pydantic(inferencia)
+        fonte_classificacao = "llm"
+
+        regras_candidatas = derivar_regex_da_inferencia(noticia, inferencia)
+        regras_validas = filtrar_regras_frageis(regras_candidatas)
+        salvar_regras_aprendidas(regras_validas)
+
+na proxima execucao:
+    regras_aprendidas entram antes da LLM
+    mais noticias sao resolvidas localmente por regex
+    menos chamadas LLM sao necessarias
+\end{verbatim}
+\end{minipage}}
+\caption{Algoritmo de reducao de custo por aprendizado continuo de regras.}
+\end{figure}
+
+\section{Artefatos esperados}
+
+Ao final, cada noticia deve compor uma linha na base estruturada com campos como:
+
+\begin{longtable}{ll}
+\toprule
+Campo & Descricao \\
+\midrule
+\endhead
+link & URL ou identificador canonico da noticia \\
+data & data normalizada de publicacao \\
+uf, municipio & localidade extraida ou inferida \\
+titulo & titulo original \\
+cluster\_id & cluster exploratorio principal \\
+cluster\_canonico & agrupamento guiado por identidade padronizada \\
+classe\_principal & categoria substantiva principal \\
+classes\_secundarias & categorias adicionais \\
+crime\_investigado & crimes multilabel \\
+modus\_operandi & modos de atuacao multilabel \\
+setor\_afetado & setor ou politica publica afetada \\
+atores\_mencionados & atores explicitamente citados \\
+resumo\_curto & frase factual controlada \\
+evidencia\_textual & trecho justificativo curto \\
+metodo\_classificacao & regex, regex\_rescue ou LLM \\
+regra\_acionada & regra deterministica, quando houver \\
+confianca & confianca ou limiar aplicavel \\
+precisa\_reprocessamento & flag de ambiguidade ou conflito para nova rodada automatica \\
+\bottomrule
+\end{longtable}
+
+\section{Discussao}
+
+A combinacao de clusterizacao semantica e classificacao hibrida equilibra descoberta e mensuracao. A clusterizacao explora padroes sem impor categorias previamente fechadas. A classificacao transforma esses padroes em variaveis auditaveis. O resumo controlado adiciona uma representacao padronizada, especialmente util quando os textos originais sao heterogeneos. O aprendizado continuo e o consenso entre especificacoes reduzem o risco de tratar agrupamentos instaveis ou inferencias incertas como resultado substantivo.
+
+\section{Conclusao}
+
+A metodologia proposta organiza um corpus de noticias de operacoes da Policia Federal em uma base estruturada, reprodutivel e auditavel. O ponto central e nao escolher entre texto integral, resumo, regex ou LLM, mas combinar essas camadas com funcoes distintas. Texto integral serve a exploracao; resumo controlado serve a padronizacao; regex oferece alta precisao em casos claros; LLM cobre ambiguidade; consenso mede estabilidade; aprendizado continuo amplia cobertura sem intervencao humana obrigatoria.
+
+\bibliographystyle{apalike}
+\bibliography{references}
+
+\end{document}

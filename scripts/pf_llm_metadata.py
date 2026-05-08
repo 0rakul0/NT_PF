@@ -92,8 +92,33 @@ DATAFRAME_COLUMNS = [
     "classificacao",
     "crimes_mais_presentes",
     "modus_operandi",
+    "resumo_curto",
+    "resumo_estruturado",
+    "evidencia_textual",
+    "atores_mencionados",
+    "setor_afetado",
+    "precisa_reprocessamento",
     "fonte_classificacao",
     "confianca_regex",
+]
+
+ALLOWED_SETORES_AFETADOS = [
+    "administracao_publica",
+    "sistema_financeiro",
+    "meio_ambiente",
+    "criancas_e_adolescentes",
+    "fronteira_e_migracao",
+    "seguranca_publica",
+    "previdencia_e_assistencia_social",
+    "saude",
+    "educacao",
+    "infraestrutura",
+    "sistema_eleitoral",
+    "mercado_consumidor",
+    "trabalho",
+    "povos_indigenas_e_comunidades_tradicionais",
+    "outros",
+    "nao_identificado",
 ]
 
 
@@ -321,6 +346,7 @@ def build_prompt(contexto: str) -> str:
             "classificacao": ["Por crime", "Com operacao nomeada", "Outras"],
             "crimes_mais_presentes": known_crime_labels(include_learned=False),
             "modus_operandi": known_modus_labels(),
+            "setor_afetado": ALLOWED_SETORES_AFETADOS,
         },
         ensure_ascii=False,
         indent=2,
@@ -344,6 +370,12 @@ Estrutura da resposta:
 Regras:
 - use somente as categorias permitidas em crimes_mais_presentes e modus_operandi;
 - nao crie categorias novas;
+- gere resumo_curto como uma unica frase factual, com no maximo 28 palavras;
+- gere resumo_estruturado somente com informacoes explicitamente presentes no texto;
+- evidencia_textual deve ser um trecho curto copiado ou quase copiado do contexto, sem interpretar alem do texto;
+- atores_mencionados deve conter apenas atores, orgaos, grupos ou instituicoes explicitamente citados;
+- setor_afetado deve usar somente uma categoria permitida;
+- marque precisa_reprocessamento=true quando houver ambiguidade, texto insuficiente ou conflito entre crime, tags e corpo;
 - se houver crime claro, classificacao deve ser "Por crime" e identidade_canonica deve ser igual ao crime principal quando ele ja iniciar com "crimes_", ou iniciar com "crime_" nos demais casos;
 - se nao houver crime claro, use "Com operacao nomeada" apenas quando houver nome de operacao explicito no contexto;
 - se nao houver crime nem operacao clara, use "Outras";
@@ -432,6 +464,13 @@ def normalize_classificacao(value: object) -> str:
         "outra": "Outras",
     }
     return mapping.get(cleaned, str(value or "").strip())
+
+
+def coerce_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return text in {"1", "true", "sim", "yes", "y"}
 
 
 def coerce_list_value(value: object) -> list[str]:
@@ -539,6 +578,40 @@ def coerce_inference_payload(payload: Any) -> dict[str, Any]:
             modus = normalized_payload[key]
             break
 
+    resumo_curto = ""
+    for key in ("resumo_curto", "resumo", "sumario", "summary"):
+        if key in normalized_payload:
+            resumo_curto = re.sub(r"\s+", " ", str(normalized_payload[key] or "")).strip()
+            break
+
+    resumo_estruturado = {}
+    for key in ("resumo_estruturado", "sumario_estruturado", "structured_summary"):
+        if isinstance(normalized_payload.get(key), dict):
+            resumo_estruturado = normalized_payload[key]
+            break
+
+    evidencia_textual = ""
+    for key in ("evidencia_textual", "evidencia", "trecho_evidencia", "evidence"):
+        if key in normalized_payload:
+            evidencia_textual = re.sub(r"\s+", " ", str(normalized_payload[key] or "")).strip()
+            break
+
+    atores_mencionados: object = []
+    for key in ("atores_mencionados", "atores", "instituicoes", "atores_institucionais"):
+        if key in normalized_payload:
+            atores_mencionados = normalized_payload[key]
+            break
+
+    setor_afetado = ""
+    for key in ("setor_afetado", "setor", "dominio_afetado"):
+        if key in normalized_payload:
+            setor_afetado = normalize_object_key(str(normalized_payload[key] or ""))
+            break
+    if setor_afetado not in set(ALLOWED_SETORES_AFETADOS):
+        setor_afetado = "nao_identificado"
+
+    precisa_reprocessamento = coerce_bool(normalized_payload.get("precisa_reprocessamento", False))
+
     crime_labels = coerce_label_list(crimes, crime=True)
     modus_labels = coerce_label_list(modus)
     canonical_identidade = canonical_identity(identidade, crime_labels)
@@ -554,6 +627,12 @@ def coerce_inference_payload(payload: Any) -> dict[str, Any]:
         "classificacao": classificacao,
         "crimes_mais_presentes": crime_labels,
         "modus_operandi": modus_labels,
+        "resumo_curto": resumo_curto,
+        "resumo_estruturado": resumo_estruturado,
+        "evidencia_textual": evidencia_textual,
+        "atores_mencionados": coerce_list_value(atores_mencionados),
+        "setor_afetado": setor_afetado,
+        "precisa_reprocessamento": precisa_reprocessamento,
     }
 
 
@@ -759,6 +838,12 @@ def build_dataframe_row(
         "classificacao": inferencia.classificacao,
         "crimes_mais_presentes": inferencia.crimes_mais_presentes,
         "modus_operandi": inferencia.modus_operandi,
+        "resumo_curto": inferencia.resumo_curto,
+        "resumo_estruturado": inferencia.resumo_estruturado,
+        "evidencia_textual": inferencia.evidencia_textual,
+        "atores_mencionados": inferencia.atores_mencionados,
+        "setor_afetado": inferencia.setor_afetado,
+        "precisa_reprocessamento": inferencia.precisa_reprocessamento,
         "fonte_classificacao": source,
         "confianca_regex": round(regex_result.confidence, 3) if regex_result else 0.0,
     }
@@ -791,6 +876,12 @@ def build_dataframe_row_from_record(record: dict[str, Any]) -> dict[str, Any]:
         "classificacao": str(inferencia_llm.get("classificacao", "")).strip(),
         "crimes_mais_presentes": inferencia_llm.get("crimes_mais_presentes", []) if isinstance(inferencia_llm.get("crimes_mais_presentes", []), list) else [],
         "modus_operandi": inferencia_llm.get("modus_operandi", []) if isinstance(inferencia_llm.get("modus_operandi", []), list) else [],
+        "resumo_curto": str(inferencia_llm.get("resumo_curto", "")).strip(),
+        "resumo_estruturado": inferencia_llm.get("resumo_estruturado", {}) if isinstance(inferencia_llm.get("resumo_estruturado", {}), dict) else {},
+        "evidencia_textual": str(inferencia_llm.get("evidencia_textual", "")).strip(),
+        "atores_mencionados": inferencia_llm.get("atores_mencionados", []) if isinstance(inferencia_llm.get("atores_mencionados", []), list) else [],
+        "setor_afetado": str(inferencia_llm.get("setor_afetado", "")).strip(),
+        "precisa_reprocessamento": coerce_bool(inferencia_llm.get("precisa_reprocessamento", False)),
         "fonte_classificacao": str(record.get("fonte_classificacao", "llm")).strip() or "llm",
         "confianca_regex": float(record.get("regex_classificacao", {}).get("confidence", 0.0) or 0.0)
         if isinstance(record.get("regex_classificacao", {}), dict)
@@ -836,7 +927,7 @@ def save_outputs(output_dir: Path, output_jsonl: Path, output_csv: Path, datafra
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     csv_ready = dataframe.copy()
-    for column in ["tags", "crimes_mais_presentes", "modus_operandi"]:
+    for column in ["tags", "crimes_mais_presentes", "modus_operandi", "resumo_estruturado", "atores_mencionados"]:
         if column in csv_ready:
             csv_ready[column] = csv_ready[column].map(lambda values: json.dumps(values, ensure_ascii=False))
     csv_ready.to_csv(output_csv, index=False, encoding="utf-8-sig")

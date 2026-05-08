@@ -65,6 +65,18 @@ class NoticiaLLMInference(BaseModel):
                 "classificacao": "Por crime",
                 "crimes_mais_presentes": ["abuso_sexual_infantil"],
                 "modus_operandi": ["atuacao_online", "busca_apreensao"],
+                "resumo_curto": "Operacao investiga compartilhamento online de material de abuso sexual infantil.",
+                "resumo_estruturado": {
+                    "fato_central": "investigacao de abuso sexual infantil pela internet",
+                    "alvo": "suspeito que armazenava e compartilhava arquivos",
+                    "local": "Manaus/AM",
+                    "acao_policial": "cumprimento de mandado de busca e apreensao",
+                    "resultado": "apreensao de dispositivos eletronicos",
+                },
+                "evidencia_textual": "compartilhamento de pornografia infantil pela internet",
+                "atores_mencionados": ["Policia Federal", "investigado"],
+                "setor_afetado": "criancas_e_adolescentes",
+                "precisa_reprocessamento": False,
             }
         },
     )
@@ -82,6 +94,30 @@ class NoticiaLLMInference(BaseModel):
     modus_operandi: list[str] = Field(
         default_factory=list,
         description="Lista de modos de atuacao canonicos em lowercase com underscores."
+    )
+    resumo_curto: str = Field(
+        default="",
+        description="Uma frase factual curta que resume o caso, sem criar fatos novos."
+    )
+    resumo_estruturado: dict[str, str] = Field(
+        default_factory=dict,
+        description="Campos curtos e factuais: fato_central, alvo, local, acao_policial e resultado."
+    )
+    evidencia_textual: str = Field(
+        default="",
+        description="Trecho curto do texto que justifica a classificacao."
+    )
+    atores_mencionados: list[str] = Field(
+        default_factory=list,
+        description="Atores, instituicoes ou grupos explicitamente mencionados."
+    )
+    setor_afetado: str = Field(
+        default="",
+        description="Setor, politica publica ou dominio social afetado, em lowercase com underscores."
+    )
+    precisa_reprocessamento: bool = Field(
+        default=False,
+        description="True quando o texto for ambiguo, insuficiente ou houver conflito entre sinais e precisar de nova rodada automatica."
     )
 
     @field_validator("identidade_canonica", mode="before")
@@ -110,6 +146,45 @@ class NoticiaLLMInference(BaseModel):
             if cleaned and cleaned not in normalized:
                 normalized.append(cleaned)
         return normalized[:10]
+
+    @field_validator("atores_mencionados", mode="before")
+    @classmethod
+    def ensure_actor_list(cls, value: object) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        text = str(value).strip()
+        return [text] if text else []
+
+    @field_validator("atores_mencionados")
+    @classmethod
+    def normalize_actors(cls, value: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for item in value:
+            cleaned = re.sub(r"\s+", " ", item).strip()
+            if cleaned and cleaned not in normalized:
+                normalized.append(cleaned)
+        return normalized[:12]
+
+    @field_validator("setor_afetado", mode="before")
+    @classmethod
+    def normalize_sector(cls, value: object) -> str:
+        if value is None:
+            return ""
+        return normalize_slug(str(value))
+
+    @field_validator("resumo_estruturado", mode="before")
+    @classmethod
+    def ensure_structured_summary(cls, value: object) -> dict[str, str]:
+        if not isinstance(value, dict):
+            return {}
+        allowed_keys = ("fato_central", "alvo", "local", "acao_policial", "resultado")
+        return {
+            key: re.sub(r"\s+", " ", str(value.get(key, "") or "")).strip()
+            for key in allowed_keys
+            if str(value.get(key, "") or "").strip()
+        }
 
     @model_validator(mode="after")
     def align_identity(self) -> "NoticiaLLMInference":
@@ -151,5 +226,6 @@ class NoticiaEnriquecida(BaseModel):
                 f"Classificacao: {inferencia.classificacao}",
                 f"Crimes mais presentes: {crimes}",
                 f"Modus operandi: {modus}",
+                f"Resumo curto: {inferencia.resumo_curto or 'sem_resumo'}",
             ]
         )

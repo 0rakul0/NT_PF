@@ -103,6 +103,8 @@ STREAMLIT_REQUIRED_DATA_FILES = [
     ANALYSIS_DIR / "pares_recorrentes.csv",
     ANALYSIS_DIR / "estados_por_ano.csv",
     ANALYSIS_DIR / "estados_por_cluster.csv",
+    ANALYSIS_DIR / "clusterizacoes_consenso.csv",
+    ANALYSIS_DIR / "pares_consenso_clusters.csv",
     ANALYSIS_DIR / "analise_qualitativa.md",
     BRAZIL_STATES_GEOJSON,
 ]
