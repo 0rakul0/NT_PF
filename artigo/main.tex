@@ -223,6 +223,12 @@ A etapa analitica produziu um corpus enriquecido com 8.055 noticias, apos remove
 
 O experimento de consenso produziu 15.276 pares estaveis a partir de 9 especificacoes: K-means, hierarquico e HDBSCAN aplicados as representacoes integral, resumida e hibrida. O HDBSCAN marcou como ruido 5.662 noticias na representacao integral, 7.442 na resumida e 3.718 na hibrida. Esse comportamento confirma seu papel exploratorio: ele e mais rigoroso para formar grupos densos, ajuda a identificar outliers e subtemas, mas nao deve ser usado isoladamente como classificacao final.
 
+\section{Exemplos de classificacao}
+
+Para tornar a classificacao mais transparente, esta secao apresenta dois exemplos reais do corpus. O primeiro mostra um caso resolvido diretamente por regex, sem custo de LLM. A noticia ``PF combate exploracao ilegal de madeira e garimpo em terra indigena no Para'' acionou regras associadas a crimes ambientais, extracao ilegal de madeira e exploracao ilegal de recursos naturais. Como a confianca regex foi 0,95, acima do limiar operacional, a noticia foi classificada como \texttt{crimes\_ambientais}, com modus operandi \texttt{cooperacao\_interagencias} e \texttt{desarticulacao\_rede}. O resultado e auditavel porque os termos que acionaram a regra ficam registrados junto da inferencia.
+
+O segundo exemplo mostra o papel complementar da LLM. A noticia ``PF desarticula comercio ilegal de medicamentos em Campo Grande/MS'' gerou sinais regex relevantes, como busca e apreensao, comercio ilegal e cumprimento de mandado, mas a confianca preliminar ficou em 0,74, abaixo do limiar. Nesse caso, a LLM foi acionada com schema fechado e retornou a identidade canonica \texttt{crime\_comercializacao\_medicamentos\_nao\_autorizados}, classificacao por crime, modus \texttt{busca\_apreensao} e \texttt{cumprimento\_mandado}, alem de resumo curto e evidencia textual. O ponto metodologico e que a LLM nao decide livremente toda a base: ela atua nos casos residuais e pode gerar evidencias para novas regras candidatas.
+
 \section{Discussao}
 
 A combinacao de clusterizacao semantica e classificacao hibrida equilibra descoberta e mensuracao. A clusterizacao explora padroes sem impor categorias previamente fechadas. A classificacao transforma esses padroes em variaveis auditaveis. O resumo controlado adiciona uma representacao padronizada, especialmente util quando os textos originais sao heterogeneos. O aprendizado continuo e o consenso entre especificacoes reduzem o risco de tratar agrupamentos instaveis ou inferencias incertas como resultado substantivo.
