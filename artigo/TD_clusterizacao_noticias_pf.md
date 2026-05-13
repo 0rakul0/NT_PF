@@ -72,6 +72,36 @@ Essa interpretação, contudo, exige cautela. A base não mede diretamente a inc
 
 Assim, a base permite responder com segurança a perguntas sobre a comunicação pública da atuação da PF, mas não substitui bases administrativas ou operacionais. Para inferir prioridade institucional em sentido mais forte, seria necessário cruzar os resultados com outros dados, como registros de operações, mandados, apreensões, inquéritos, recursos orçamentários, efetivo mobilizado ou relatórios de gestão.
 
+## 3.1 Comparação com inquéritos e tipos penais
+
+Um exercício preliminar de comparação com a distribuição temática de inquéritos e tipos penais da Polícia Federal reforça essa leitura cautelosa. Como as duas fontes possuem unidades de análise diferentes, a comparação não deve ser interpretada como equivalência direta entre notícias e inquéritos. Ainda assim, a aproximação entre os grandes eixos temáticos é relevante para avaliar a representatividade substantiva do corpus de notícias. Temas como tráfico de drogas, corrupção e desvios de recursos públicos, crimes contra crianças, falsificações, contrabando, lavagem de dinheiro, crimes ambientais e fraudes previdenciárias aparecem com destaque nas duas bases. Essa convergência sugere que a comunicação pública da PF não constitui uma narrativa completamente dissociada da prática investigativa registrada em bases administrativas.
+
+*Quadro 1 — Comparação exploratória entre temas de inquéritos e notícias da PF.*
+
+| Tema | Inquéritos/tipos penais PF | % da base de inquéritos | Notícias/operações PF | % das notícias |
+| --- | ---: | ---: | ---: | ---: |
+| Crimes contra criança | 1.720 | 10,5% | 1.289 | 17,0% |
+| Tráfico de drogas | 1.469 | 9,0% | 1.235 | 16,3% |
+| Corrupção/desvio/fraudes públicas | 4.070 | 24,9% | 1.154 | 15,2% |
+| Crimes ambientais | 294 | 1,8% | 682 | 9,0% |
+| Falsificações/documentos | 2.296 | 14,0% | 523 | 6,9% |
+| Contrabando/descaminho | 876 | 5,4% | 517 | 6,8% |
+| Lavagem de dinheiro | 780 | 4,8% | 392 | 5,2% |
+| Fraude previdenciária | 1.268 | 7,8% | 356 | 4,7% |
+| Roubo/furto/fraudes eletrônicas | 378 | 2,3% | 344 | 4,5% |
+| Crimes cibernéticos/financeiros | 2.242 | 13,7% | 317 | 4,2% |
+| Armas | ~0-baixo | ~0% | 205 | 2,7% |
+| Crimes eleitorais | ~0-baixo | ~0% | 184 | 2,4% |
+| Exploração de pessoas/migração ilegal | 182 | 1,1% | 174 | 2,3% |
+| Sistema financeiro | 1.772 | 10,8% | 120 | 1,6% |
+| Homicídios | residual | residual | 104 | 1,4% |
+
+Fonte: Elaboração própria, a partir da base de notícias classificada pela pipeline e de agregação temática de inquéritos/tipos penais da PF.
+
+Nota: as categorias foram compatibilizadas de forma exploratória. As bases diferem quanto à unidade de análise, granularidade jurídica e possibilidade de sobreposição temática.
+
+O Quadro 1 indica convergência nos temas de maior saliência, mas também revela distorções esperadas em uma fonte comunicacional. Crimes contra crianças e crimes ambientais aparecem proporcionalmente mais nas notícias do que nos inquéritos/tipos penais, possivelmente por combinarem alta legitimidade pública, forte apelo simbólico e narrativas mais facilmente comunicáveis. Em sentido inverso, crimes financeiros complexos, falsificações documentais, crimes contra o sistema financeiro e parte das fraudes aparecem com peso maior na base de inquéritos do que na comunicação institucional. Isso sugere que uma parcela importante do trabalho cotidiano da PF é menos visível publicamente, sobretudo quando envolve investigações abstratas, técnicas ou de menor apelo imagético.
+
 A contribuição empírica deste corpus está justamente em abrir uma camada intermediária de análise: ele não representa o universo completo da atividade policial, mas transforma uma fonte pública, dispersa e pouco estruturada em uma base analítica auditável. Com isso, torna-se possível identificar padrões de visibilidade, formular hipóteses sobre prioridades comunicadas e selecionar casos para investigações qualitativas ou cruzamentos com dados administrativos.
 
 # 4 METODOLOGIA
@@ -121,6 +151,8 @@ Assim, quando uma notícia contém expressões como “garimpo ilegal” ou “e
 
 Nos casos em que as regras não produzem confiança suficiente, a notícia é encaminhada para uma LLM. A configuração padrão do projeto usa provedor local Ollama, modelo `gemma3n:e2b`, temperatura 0 e até três tentativas. O modelo não atua livremente: sua saída é limitada por uma taxonomia controlada e por um schema estruturado. A resposta deve conter campos como categoria canônica, crimes mais presentes, modus operandi, resumo curto, evidência textual, atores mencionados, setor afetado e indicação de eventual necessidade de reprocessamento.
 
+Essa opção decorre de uma escolha metodológica e operacional. Testes exploratórios com LLMs comerciais e locais indicaram que a classificação integral por modelo de linguagem seria financeiramente mais onerosa para reprocessamentos sucessivos e, quando realizada sem regras prévias, taxonomia fechada e schema de resposta, tendia a produzir rótulos instáveis, agrupamentos próprios ou categorias não previstas pela pesquisa. Assim, a LLM não foi adotada como substituta das regras, mas como camada semântica controlada para casos residuais e como mecanismo de aprendizado para aprimorar a cobertura regex. O desenho não parte da premissa de que LLMs sejam incapazes de classificar notícias; parte da constatação de que, neste corpus, as regras já capturavam grande parte dos casos de alta confiança e que o uso sem controle da LLM reduziria rastreabilidade e comparabilidade.
+
 O encaminhamento à LLM também é controlado. A notícia não é enviada com uma pergunta aberta; ela é inserida em um prompt com contexto, categorias permitidas e exigência de resposta em JSON válido. De forma abreviada, o formato é:
 
 ```text
@@ -163,6 +195,8 @@ A distribuição das notícias por fonte de classificação é apresentada na Ta
 *Fonte: Elaboração própria com dados da execução local.*
 
 A Tabela 1 mostra que a camada determinística resolveu praticamente todo o corpus analítico: 7.891 notícias, ou aproximadamente 98,0% do total. A LLM foi acionada em 164 casos, cerca de 2,0% da base. Esse resultado sustenta a função metodológica da arquitetura híbrida: a LLM não opera como classificador universal, mas como camada residual para casos ambíguos, menos padronizados ou não cobertos pelas regras existentes.
+
+Essa distribuição também deve ser interpretada à luz do limiar adotado. Em etapas exploratórias, limiares mais altos preservavam apenas classificações regex de maior confiança; na execução consolidada, o limiar operacional foi fixado em 0,85 para permitir que parte dos casos menos evidentes fosse encaminhada à LLM e retornasse como insumo de aprendizado. Portanto, o volume reduzido de chamadas ao modelo não significa ausência de experimentação com LLM, mas sim uma decisão de desenho: concentrar o uso do modelo onde ele agregava interpretação semântica, reduzir custo recorrente e transformar inferências úteis em regras auditáveis para rodadas futuras.
 
 ## 4.3 Aprendizado contínuo e redução de custo
 
@@ -427,6 +461,8 @@ Os resultados mostram que notícias institucionais podem ser transformadas em um
 
 A experiência indica que modelos de linguagem podem ser incorporados a pipelines de classificação textual sem que toda a decisão seja transferida ao modelo. Em vez de utilizar a LLM como classificador universal, a arquitetura proposta reserva seu uso para casos ambíguos, incompletos ou não cobertos por regras determinísticas. Essa escolha altera a lógica de aplicação da IA: o modelo deixa de ser a camada dominante e passa a operar como recurso complementar em pontos de maior incerteza.
 
+Essa interpretação deve ser formulada com cuidado. O estudo não prova que a arquitetura híbrida seja, em termos absolutos, mais precisa do que uma classificação integral por LLM sob condições ideais de custo, modelo, prompt e validação. O que os resultados mostram é que, para este corpus específico, a camada regex já resolvia grande parte dos documentos com alta confiança e que o uso da LLM sem taxonomia e schema tendia a comprometer padronização, ao criar agrupamentos ou rótulos fora do desenho analítico. A contribuição metodológica está, portanto, em mostrar uma forma controlada, econômica e reprodutível de incorporar LLMs quando já existe uma camada determinística funcional.
+
 Essa estratégia é especialmente relevante para bases institucionais. Em contextos de pesquisa aplicada e políticas públicas, não basta que uma classificação seja plausível; é necessário que ela possa ser auditada, reproduzida e comparada em execuções futuras. A presença de uma fonte de classificação — regex ou LLM — permite distinguir decisões determinísticas de inferências semânticas. Com isso, torna-se possível avaliar quais resultados dependem de regras estáveis e quais exigiram interpretação probabilística.
 
 Outro aspecto importante é a economia do reprocessamento. Bases textuais institucionais tendem a ser atualizadas continuamente, o que exige novas rodadas de extração, classificação e consolidação. Se toda notícia dependesse de chamada à LLM, cada reprocessamento ampliaria custo e dependência externa. Ao concentrar as chamadas ao modelo nos casos residuais, a pipeline torna-se mais adequada a execuções recorrentes e monitoramento longitudinal.
@@ -441,6 +477,8 @@ Essa leitura, entretanto, deve ser delimitada com precisão. O corpus analisado 
 
 Essa distinção não reduz a importância da base. Pelo contrário, define corretamente seu objeto. A comunicação institucional é uma dimensão relevante da relação entre Estado e sociedade. Ela influencia a percepção pública sobre prioridades, riscos, territórios e tipos de crime. Assim, mapear os temas mais recorrentes nas notícias da PF permite estudar não apenas a atuação policial comunicada, mas também a construção pública de uma agenda de segurança.
 
+A comparação exploratória com inquéritos e tipos penais reforça esse ponto. A convergência entre as duas distribuições dá sustentação à utilização das notícias como aproximação razoável dos grandes focos investigativos da instituição, especialmente em estudos exploratórios e qualitativos. Ao mesmo tempo, as diferenças observadas impedem tratar a base como espelho perfeito do esforço operacional. A comunicação institucional tende a amplificar temas de maior legitimidade moral e impacto público, como crimes contra crianças e crimes ambientais, enquanto reduz a visibilidade relativa de investigações financeiras, documentais e patrimoniais mais complexas. A base, portanto, é representativa dos grandes eixos da atuação publicizada, mas também carrega os filtros próprios de uma fonte institucional voltada à comunicação pública.
+
 A base também permite formular hipóteses para investigação posterior. Por exemplo, o crescimento de crimes contra crianças em 2024 e 2025 pode refletir intensificação de operações, maior padronização comunicacional, aumento da visibilidade pública do tema ou combinação desses fatores. Da mesma forma, a persistência de tráfico de drogas ao longo da série sugere estabilidade comunicacional desse eixo, mas não permite, isoladamente, medir sua participação relativa no esforço operacional da instituição.
 
 ## 6.3 Limitações da base e da classificação
@@ -452,6 +490,8 @@ A segunda limitação está relacionada ao caráter multilabel das notícias. Um
 A terceira limitação envolve vieses de publicação. Nem toda atuação da PF resulta em notícia, e nem toda notícia possui o mesmo nível de detalhe. Algumas áreas podem ser mais divulgadas por sua relevância pública, por maior padronização de comunicação ou por interesse institucional em determinados períodos. Mudanças no portal, na equipe de comunicação ou na política editorial também podem afetar a série histórica.
 
 A quarta limitação está associada à própria classificação automatizada. Embora a camada determinística favoreça auditabilidade, regras regex dependem de vocabulários definidos e podem perder casos com formulações incomuns. A LLM, por sua vez, amplia flexibilidade semântica, mas introduz incerteza probabilística. O uso combinado dessas camadas reduz parte desses problemas, mas não elimina a necessidade de validação qualitativa em amostras selecionadas.
+
+A quinta limitação diz respeito à validade externa da arquitetura proposta. Os resultados foram obtidos em um corpus no qual a camada regex já apresentava bom desempenho, devido à recorrência de vocabulários institucionais, tags padronizadas e expressões típicas de operações da PF. Portanto, não se deve concluir que a metodologia híbrida será sempre superior a uma abordagem integralmente baseada em LLM em qualquer base textual. O trabalho também não realiza um teste cabal entre todas as combinações possíveis de LLMs, prompts, modelos comerciais, modelos locais e taxonomias. A comparação relevante, neste TD, é mais pragmática: dado um conjunto de regras que já classifica com alta confiança boa parte do corpus, a LLM é usada de forma seletiva para reduzir custo, mitigar instabilidade classificatória e ampliar incrementalmente a cobertura auditável.
 
 Por fim, comparações anuais devem considerar a completude do período. Como a coleta de 2026 vai apenas até 08/05/2026, seus valores não devem ser comparados diretamente com anos fechados. Nessa situação, a análise deve ser apresentada como retrato parcial, ou normalizada por período de cobertura.
 
