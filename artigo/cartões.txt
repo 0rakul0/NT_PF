@@ -1,0 +1,256 @@
+# Cartões de fala — apresentação
+
+## Slide 1 — Capa
+
+**O que falar:**
+Bom dia/boa tarde. Meu nome é Jefferson Silva dos Anjos, e esta apresentação trata da clusterização semântica de notícias da Polícia Federal com apoio de modelos de linguagem. A proposta é mostrar como uma base pública de notícias pode ser organizada, classificada e analisada com uma arquitetura híbrida, combinando regras auditáveis, LLM e técnicas de clusterização.
+
+---
+
+## Slide 2 — Sumário
+
+**O que falar:**
+A apresentação está organizada em seis partes. Primeiro, apresento o problema e a motivação. Depois, passo pelos trabalhos relacionados, pela construção da base de dados, pela metodologia, pelos principais resultados e, por fim, pela discussão e contribuições do trabalho.
+
+---
+
+# Introdução
+
+## Slide 3 — Introdução
+
+**O que falar:**
+A motivação do trabalho parte da ideia de que notícias oficiais são uma fonte pública relevante para observar como instituições comunicam sua atuação. No caso da Polícia Federal, essas notícias registram operações, apreensões, prisões, cooperação institucional e diferentes tipos de crime investigados. O objetivo não é substituir bases administrativas, mas analisar a atuação publicizada pela instituição. Como o volume é grande e os textos são heterogêneos, o trabalho propõe uma arquitetura híbrida: regras regex como primeira camada e LLM apenas em casos ambíguos.
+
+---
+
+# Trabalhos relacionados
+
+## Slide 4 — Trabalhos relacionados
+
+**O que falar:**
+Os trabalhos relacionados foram organizados em três linhas. A primeira trata do uso de LLMs para classificação textual e anotação em larga escala. A segunda discute supervisão fraca, regras programáticas e aprendizado contínuo. A terceira aborda clusterização semântica, consenso e governança da classificação. Essas três linhas sustentam a proposta metodológica do trabalho.
+
+---
+
+## Slide 5 — LLMs para classificação textual
+
+**O que falar:**
+A primeira linha mostra que LLMs têm sido usadas em tarefas de classificação textual, anotação e extração de informação. Elas são especialmente úteis quando os textos têm vocabulário variado, categorias abertas ou pouca padronização. Estudos recentes mostram que esses modelos podem ser competitivos em tarefas de ciências sociais e análise de conteúdo jornalístico. Porém, o uso integral de LLMs também traz problemas: custo, menor rastreabilidade e dificuldade de reprodução.
+
+---
+
+## Slide 6 — Supervisão fraca e regras programáticas
+
+**O que falar:**
+A segunda linha vem da supervisão fraca programática. A ideia central é usar regras, heurísticas e funções de rotulagem para gerar sinais supervisionados de baixo custo. Trabalhos como Data Programming e Snorkel mostram que regras podem ser combinadas para classificar dados textuais. Mais recentemente, LLMs passaram a ser usadas para apoiar a criação dessas regras. Este trabalho dialoga com essa literatura ao transformar inferências validadas em regras regex candidatas para rodadas futuras.
+
+---
+
+## Slide 7 — Clusterização semântica e consenso
+
+**O que falar:**
+A terceira linha trata da representação semântica dos textos. Métodos como Sentence-BERT, BERTopic, Top2Vec, K-means e HDBSCAN ajudam a identificar proximidades temáticas e grupos latentes em coleções textuais. Mas é importante destacar que cluster não é a mesma coisa que categoria jurídica ou administrativa. Por isso, o trabalho separa classificação temática, agrupamentos exploratórios e clusters canônicos.
+
+---
+
+# Dados e representatividade
+
+## Slide 8 — Dados e representatividade
+
+**O que falar:**
+Nesta seção, apresento como a base foi construída e como ela deve ser interpretada. O ponto central é que a unidade de análise é a notícia publicada. Portanto, a base permite estudar comunicação institucional e padrões de visibilidade, mas não mede diretamente criminalidade, produtividade policial ou número real de operações.
+
+---
+
+## Slide 9 — Construção do corpus analítico
+
+**O que falar:**
+O corpus foi formado a partir de notícias públicas da Polícia Federal disponíveis no portal institucional. A coleta teve como objetivo transformar textos dispersos em uma base estruturada e reprocessável. Foram preservados campos como título, subtítulo, datas, tags, localidade, corpo da notícia e arquivo original. Isso permite rastrear cada registro até sua fonte textual.
+
+---
+
+## Slide 10 — Dimensão e cobertura temporal
+
+**O que falar:**
+A base consolidada possui 8.048 arquivos Markdown processados e 8.055 notícias no corpus analítico enriquecido. O período identificado vai de 29 de novembro de 2011 a 8 de maio de 2026. É importante destacar que 2026 é um ano parcial, então os resultados desse ano não devem ser comparados diretamente com anos fechados.
+
+---
+
+## Slide 11 — Unidade de análise
+
+**O que falar:**
+Esse é um ponto metodológico central. A unidade de análise é a notícia publicada. Uma notícia não equivale necessariamente a uma operação, a um inquérito ou a uma ocorrência criminal. Uma operação pode gerar várias notícias, e uma notícia pode reunir vários crimes ou instituições. Por isso, as frequências devem ser lidas como frequência de comunicação pública, não como incidência real de crimes.
+
+---
+
+## Slide 12 — Representatividade da base
+
+**O que falar:**
+A base permite observar a atuação publicizada da Polícia Federal. Ela é útil para analisar visibilidade pública, recorrência temática, mudanças na agenda comunicada e relações entre temas, territórios e tipos de crime. Mas ela não mede diretamente produtividade policial, orçamento, efetivo ou esforço operacional. Para isso, seria necessário cruzar com bases administrativas e operacionais.
+
+---
+
+## Slide 13 — Notícias e inquéritos
+
+**O que falar:**
+A comparação com inquéritos e tipos penais é exploratória, porque as bases têm unidades de análise diferentes. Ainda assim, há convergência em grandes temas, como crimes contra crianças, tráfico de drogas, corrupção, crimes ambientais, falsificações, contrabando, lavagem de dinheiro e fraude previdenciária. Isso sugere que a comunicação pública da PF não está totalmente dissociada da atuação investigativa, mas possui seus próprios vieses de visibilidade.
+
+---
+
+# Metodologia
+
+## Slide 14 — Metodologia
+
+**O que falar:**
+A metodologia foi estruturada em sete etapas: visão geral da pipeline, extração e estruturação dos textos, classificação híbrida, resultado operacional da classificação, aprendizado contínuo, auditabilidade das decisões e clusterização semântica. O objetivo foi combinar automação com rastreabilidade.
+
+---
+
+## Slide 15 — Pipeline metodológica
+
+**O que falar:**
+A pipeline começa com a conversão das notícias para arquivos Markdown. Depois, são extraídos metadados, aplicada a classificação híbrida, geradas representações vetoriais e realizados os agrupamentos semânticos. Por fim, os resultados são consolidados em tabelas, séries temporais e clusters canônicos. A figura resume o fluxo completo da metodologia.
+
+---
+
+## Slide 16 — Preparação textual e metadados
+
+**O que falar:**
+Nesta etapa, os textos são organizados em Markdown, preservando a estrutura original. A extração de metadados é feita sem LLM, porque são informações objetivas presentes no documento, como título, data, tags, UF, município e arquivo de origem. Essa separação é importante porque evita usar inferência probabilística para recuperar informação que já existe no texto.
+
+---
+
+## Slide 17 — Classificação híbrida e auditável
+
+**O que falar:**
+A primeira camada da classificação usa regras regex determinísticas. Essas regras identificam evidências lexicais associadas a categorias recorrentes, como tráfico de drogas, crimes ambientais, corrupção, contrabando e crimes contra crianças. Quando a confiança é suficiente, a notícia é classificada sem chamada à LLM. Casos abaixo do limiar de 0,85 são encaminhados ao modelo, que responde dentro de uma taxonomia fechada e em formato estruturado.
+
+---
+
+## Slide 18 — Distribuição por fonte da classificação
+
+**O que falar:**
+Este é um dos principais resultados metodológicos. Depois de 60 rodadas com aprendizado, 98% das notícias foram classificadas por regex e apenas 2% precisaram de LLM. Isso mostra que a LLM não foi usada como classificador universal, mas como uma camada residual. O resultado reduz custo, aumenta rastreabilidade e torna a pipeline mais reprodutível.
+
+---
+
+## Slide 19 — Ciclo de aprendizado contínuo
+
+**O que falar:**
+O aprendizado contínuo funciona a partir dos casos que a regex não resolve. A LLM classifica esses casos e gera evidências textuais estruturadas. A partir dessas evidências, a pipeline propõe novos padrões. Depois de filtradas, as regras aprovadas entram na próxima execução. Assim, casos semelhantes passam a ser resolvidos localmente, reduzindo chamadas futuras à LLM.
+
+---
+
+## Slide 20 — Auditabilidade das decisões
+
+**O que falar:**
+Este slide mostra a diferença entre um caso resolvido por regra e um caso encaminhado à LLM. Quando há evidências lexicais explícitas, como garimpo ilegal, madeira ilegal ou terra indígena, a regex resolve diretamente. Quando o vocabulário é menos aderente às regras iniciais, como em comércio ilegal de medicamentos, a LLM atua como camada semântica controlada. Em ambos os casos, a decisão mantém evidências rastreáveis.
+
+---
+
+## Slide 21 — Clusterização semântica
+
+**O que falar:**
+Após a classificação, os textos são convertidos em representações vetoriais. Foram usadas três representações: texto integral, texto resumido e representação híbrida. A vetorização foi feita com TF-IDF, usando unigramas e bigramas, seguida de redução de dimensionalidade por SVD. O Mini-Batch K-means foi usado como método principal, enquanto o HDBSCAN funcionou como camada diagnóstica para avaliar densidade, ruído e estabilidade semântica.
+
+---
+
+# Resultados
+
+## Slide 22 — Resultados
+
+**O que falar:**
+A seção de resultados apresenta a organização temática, temporal e semântica do corpus. Primeiro, mostro a síntese geral dos resultados. Depois, os principais clusters canônicos, as categorias mais frequentes, a variação anual e, por fim, a análise de HDBSCAN, ruído e consenso.
+
+---
+
+## Slide 23 — Organização temática, temporal e semântica
+
+**O que falar:**
+A pipeline transformou um conjunto de notícias públicas em uma base analítica estruturada. Com isso, foi possível observar temas recorrentes, variações anuais de visibilidade, clusters canônicos e agrupamentos semânticos. A maior parte das classificações foi feita pela camada determinística, e a LLM atuou apenas em casos residuais. Novamente, os resultados devem ser lidos como evidência sobre atuação publicizada, não como medida direta de criminalidade.
+
+---
+
+## Slide 24 — Principais clusters canônicos
+
+**O que falar:**
+Os clusters canônicos consolidam categorias temáticas e evidências textuais. A distribuição mostra que a comunicação pública da PF se concentra em alguns eixos principais: crimes contra crianças, tráfico de drogas, corrupção e desvios, crimes ambientais, falsificações, contrabando, lavagem de dinheiro e fraude previdenciária. Isso indica que a base possui uma estrutura temática clara, e não uma distribuição aleatória entre muitos temas equivalentes.
+
+---
+
+## Slide 25 — Volume, persistência e evidências textuais
+
+**O que falar:**
+A execução consolidada gerou 38 clusters canônicos. Os maiores grupos combinam volume, persistência temporal e evidências lexicais fortes. Por exemplo, crimes contra crianças aparecem com termos como pornografia infantil e exploração sexual; tráfico de drogas aparece associado a cocaína, maconha e fronteira; corrupção aparece associada a licitação, vantagem indevida e verbas públicas. Esses termos ajudam a tornar a classificação auditável.
+
+---
+
+## Slide 26 — Variação anual da visibilidade temática
+
+**O que falar:**
+Este gráfico mostra a variação anual das categorias mais frequentes. Corrupção e desvio têm maior destaque nos anos iniciais, especialmente entre 2020 e 2021. Crimes contra crianças crescem fortemente a partir de 2023, com pico em 2024. Tráfico de drogas aparece de forma persistente ao longo de todo o período. A queda em 2026 precisa ser lida com cautela, porque o ano ainda está incompleto.
+
+---
+
+## Slide 27 — Interpretação dos principais padrões
+
+**O que falar:**
+A interpretação dos resultados destaca três eixos. O primeiro é crimes contra crianças, que cresce em 2024 e 2025, muito associado a crimes digitais e exploração sexual infantil. O segundo é tráfico de drogas, que aparece como tema persistente, associado a rotas, aeroportos, fronteiras e apreensões. O terceiro é corrupção e desvio, que reúne fraudes em licitações, verbas públicas, vantagem indevida e agentes públicos.
+
+---
+
+## Slide 28 — HDBSCAN, ruído e estabilidade semântica
+
+**O que falar:**
+O Mini-Batch K-means foi o método operacional principal, enquanto o HDBSCAN foi usado como diagnóstico. O HDBSCAN ajuda a identificar grupos densos e documentos tratados como ruído. A representação híbrida teve melhor capacidade de agrupamento, o que indica que combinar diferentes formas de representar o texto melhora a estabilidade semântica. Ainda assim, o HDBSCAN não foi usado como classificador final, mas como ferramenta de validação exploratória.
+
+---
+
+# Discussão
+
+## Slide 29 — Discussão
+
+**O que falar:**
+A discussão retoma os resultados em quatro dimensões: o uso controlado de LLMs, a interpretação substantiva da atuação publicizada da PF, os limites metodológicos da análise e os caminhos futuros para integrar essa base com outras fontes administrativas e operacionais.
+
+---
+
+## Slide 30 — Uso controlado de LLMs
+
+**O que falar:**
+A principal contribuição metodológica é mostrar que uma LLM pode ser incorporada sem transformar toda a pipeline em uma caixa-preta. A regex resolve os casos com evidências estáveis, e a LLM entra apenas onde há ambiguidade ou ausência de cobertura pelas regras. Essa separação permite saber quais decisões foram determinísticas e quais dependeram de inferência semântica.
+
+---
+
+## Slide 31 — Atuação publicizada da PF
+
+**O que falar:**
+Os resultados indicam que alguns temas ocupam posição central na comunicação pública da PF: crimes contra crianças, tráfico de drogas, corrupção, crimes ambientais, falsificações e contrabando. Mas a frequência desses temas no portal não equivale automaticamente à incidência real dos crimes. O objeto analisado é a atuação publicizada, isto é, aquilo que a instituição comunica, padroniza e disponibiliza ao público.
+
+---
+
+## Slide 32 — Limites de interpretação
+
+**O que falar:**
+A principal limitação é a unidade de análise. O estudo trabalha com notícias, não com operações, inquéritos ou ocorrências criminais. Além disso, as frequências podem ser influenciadas por escolhas editoriais, campanhas institucionais e mudanças na política de comunicação. O estudo também não compara exaustivamente diferentes LLMs, prompts ou modelos. Por fim, 2026 deve ser tratado como ano parcial.
+
+---
+
+## Slide 33 — Agenda de pesquisa
+
+**O que falar:**
+Como agenda futura, a base pode ser cruzada com informações administrativas, como operações, mandados, apreensões, inquéritos, orçamento e efetivo mobilizado. Também é possível avançar na análise territorial, construir redes de cooperação institucional e acompanhar mudanças discursivas ao longo do tempo. A ideia é transformar essa base de notícias em uma porta de entrada para análises integradas sobre comunicação institucional e segurança pública.
+
+---
+
+## Slide 34 — Contribuições metodológicas e substantivas
+
+**O que falar:**
+O trabalho possui duas contribuições principais. A contribuição metodológica está no uso seletivo da LLM, na redução de custo, na separação entre decisão determinística e inferência semântica e no aprendizado contínuo por regras. A contribuição substantiva está na identificação de temas recorrentes na comunicação pública da PF e na produção de clusters, séries temporais e agrupamentos interpretáveis.
+
+---
+
+## Slide 35 — Encerramento
+
+**O que falar:**
+Para concluir, o trabalho mostra que é possível usar LLMs em pipelines de análise textual sem abrir mão de rastreabilidade, reprodutibilidade e controle metodológico. A LLM aparece como apoio seletivo, enquanto as regras e evidências textuais mantêm a classificação auditável. Obrigado, fico à disposição para perguntas.
