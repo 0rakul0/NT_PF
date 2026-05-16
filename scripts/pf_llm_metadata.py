@@ -32,6 +32,7 @@ try:
         inference_needs_regex_rescue,
         known_crime_labels,
         known_modus_labels,
+        suggest_regex_from_llm,
     )
     from pf_llm_models import NoticiaEnriquecida, NoticiaLLMInference, NoticiaMetadataExtraido
     from project_config import (
@@ -56,6 +57,7 @@ except ModuleNotFoundError:
         inference_needs_regex_rescue,
         known_crime_labels,
         known_modus_labels,
+        suggest_regex_from_llm,
     )
     from scripts.pf_llm_models import NoticiaEnriquecida, NoticiaLLMInference, NoticiaMetadataExtraido
     from scripts.project_config import (
@@ -983,6 +985,10 @@ def main(
     else:
         print("Classificador regex desabilitado; todas as noticias novas vao para a LLM.")
 
+    defer_regex_learning = os.getenv("PF_DEFER_REGEX_LEARNING_TO_AGENT", "").strip().lower() in {"1", "true", "yes"}
+    if defer_regex_learning:
+        print("[regex] aprendizado automatico diferido: candidatas vao para o JSONL e o Agente 3 incorpora depois.")
+
     if processed_files:
         print(f"Arquivos ja processados encontrados: {len(processed_files)}")
 
@@ -1033,11 +1039,14 @@ def main(
                     model_used = "pf_regex_classifier_rescue"
                     source = "regex_rescue"
             if runtime_config.regex_enabled:
-                learned_regex_rules = improve_regex_from_llm(
-                    llm_context,
-                    inferencia_llm,
-                    title=str(parsed_news.get("titulo", "")),
-                )
+                if defer_regex_learning:
+                    learned_regex_rules = suggest_regex_from_llm(llm_context, inferencia_llm)
+                else:
+                    learned_regex_rules = improve_regex_from_llm(
+                        llm_context,
+                        inferencia_llm,
+                        title=str(parsed_news.get("titulo", "")),
+                    )
         registro = NoticiaEnriquecida(
             metadata_extraido=metadata_extraido,
             inferencia_llm=inferencia_llm,

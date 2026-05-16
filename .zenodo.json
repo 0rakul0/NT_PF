@@ -1,6 +1,6 @@
 {
   "title": "NT PF: atlas analitico sobre noticias de operacoes da Policia Federal brasileira",
-  "description": "NT PF e um projeto em Python para coletar noticias publicas de operacoes da Policia Federal brasileira, extrair o conteudo principal de cada pagina, organizar artefatos tabulares e abrir um painel exploratorio em Streamlit com clusters semanticos, recorrencia temporal, vizinhanca semantica e distribuicao territorial. Este deposito deve ser usado para o software do projeto. Os dados derivados e os textos extraidos devem ser publicados separadamente, com documentacao metodologica propria e revisao da licenca aplicavel a esse material.",
+  "description": "NT PF e um projeto em Python para coletar noticias publicas de operacoes da Policia Federal brasileira e aplicar uma metodologia incremental autonomoma com amostragem, clusterizacao, agentes LangChain, regras regex auditaveis e LLM residual local. Este deposito deve ser usado para o software do projeto. Os dados derivados e os textos extraidos devem ser publicados separadamente, com documentacao metodologica propria e revisao da licenca aplicavel a esse material.",
   "upload_type": "software",
   "creators": [
     {
@@ -10,8 +10,10 @@
   "keywords": [
     "policia federal",
     "brasil",
-    "streamlit",
     "web scraping",
+    "langchain",
+    "regex",
+    "aprendizado incremental",
     "analise textual",
     "dados publicos"
   ],

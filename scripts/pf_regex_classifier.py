@@ -10,22 +10,8 @@ from pathlib import Path
 from typing import Iterable
 
 try:
-    from pf_regex_rules import (
-        BAD_LEARNED_PATTERN_TERMS,
-        CRIME_RULE_DEFS,
-        LABEL_ALIASES,
-        MODUS_RULE_DEFS,
-        TERM_STOPWORDS,
-    )
     from pf_llm_models import NoticiaLLMInference, normalize_slug
 except ModuleNotFoundError:
-    from scripts.pf_regex_rules import (
-        BAD_LEARNED_PATTERN_TERMS,
-        CRIME_RULE_DEFS,
-        LABEL_ALIASES,
-        MODUS_RULE_DEFS,
-        TERM_STOPWORDS,
-    )
     from scripts.pf_llm_models import NoticiaLLMInference, normalize_slug
 
 
@@ -70,163 +56,35 @@ class RegexRule:
 
 
 LEARNED_RULES_CACHE: dict[Path, tuple[RegexRule, ...]] = {}
-GENERIC_CRIME_LABELS = {"organizacao_criminosa"}
-NON_CRIME_LABELS = {
-    "atuacao_online",
-    "bloqueio_bens",
-    "busca_apreensao",
-    "busca_e_apreensao",
-    "comercializacao",
-    "combate_financeiro",
-    "cooperacao_interagencias",
-    "criacao_empresa_fantasma",
-    "cumprimento_mandado",
-    "denuncia",
-    "desarticulacao_rede",
-    "exames_periciais",
-    "fiscalizacao",
-    "fronteira_transnacional",
-    "inclusao_falsos_entrevistadores",
-    "prisao",
-    "processos_punitivos",
-    "resgate_vitimas",
-    "suspensao_atividades",
+LABEL_ALIASES: dict[str, str] = {}
+CRIME_RULE_DEFS: tuple[tuple[str, tuple[str, ...], float], ...] = ()
+MODUS_RULE_DEFS: tuple[tuple[str, tuple[str, ...], float], ...] = ()
+TAG_RULE_DEFS: tuple[tuple[str, tuple[str, ...], float], ...] = ()
+TERM_STOPWORDS = {
+    "a", "ao", "aos", "as", "ate", "com", "contra", "da", "das", "de", "do", "dos", "e", "em",
+    "na", "nas", "no", "nos", "o", "os", "ou", "para", "pela", "pelo", "por", "que", "sem",
+    "sob", "sobre", "uma", "um", "policia", "federal", "operacao", "operacoes", "crime", "crimes",
+    "apura", "apuracao", "investiga", "investigacao", "combate", "repressao", "deflagrou", "foram", "foi", "sao",
+    "acao", "conjunta", "entre", "durante", "houve", "manha", "nesta", "neste", "sexta", "feira",
+    "cerca", "policiais", "veiculo", "veiculos", "grande", "conjunto", "referencia", "branco",
+    "contou", "apoio", "atuacao", "atividade", "irregular",
 }
+BAD_LEARNED_PATTERN_TERMS = {
+    "assessoria", "brasil", "comunicacao", "contato", "email", "gov", "hoje", "http", "https",
+    "imprensa", "file", "mail", "mailto", "nesta", "neste", "nome", "refere", "telefone",
+    "telefones", "users", "www",
+}
+GENERIC_CRIME_LABELS: set[str] = set()
+NON_CRIME_LABELS: set[str] = set()
 IGNORED_TAGS = {
     "destaque",
     "operacao_pf",
     "pf",
     "policia_federal",
 }
-TAG_RULE_DEFS: tuple[tuple[str, tuple[str, ...], float], ...] = (
-    (
-        "crimes_ambientais",
-        (
-            r"\bouros?\b",
-            r"\bgarimpos?\b",
-            r"\bgarimpos? ilegais?\b",
-            r"\bminerios?\b",
-            r"\bmineracao\b",
-            r"\bmadeira\b",
-            r"\bmadeira ilegal\b",
-            r"\bcomercio ilegal de madeira\b",
-            r"\bexploracao ilegal de madeira\b",
-            r"\bmeio ambiente\b",
-            r"\bcrimes? ambientais?\b",
-            r"\bpesca\b",
-            r"\bpesca ilegal\b",
-            r"\bgrilagem de terras?\b",
-            r"\bagrotoxicos?\b",
-        ),
-        2.4,
-    ),
-    (
-        "crime_eleitoral",
-        (
-            r"\bcrime eleitoral\b",
-            r"\bcrimes eleitorais\b",
-            r"\bfraude eleitoral\b",
-            r"\bcorrupcao eleitoral\b",
-            r"\beleicoes?\b",
-            r"\beleitoral\b",
-            r"\bcampanha eleitoral\b",
-        ),
-        2.2,
-    ),
-    (
-        "fraude_previdenciaria",
-        (
-            r"\binss\b",
-            r"\bprevidencia\b",
-            r"\bprevidenciario\b",
-            r"\bprevidenciaria\b",
-            r"\bfraudes previdenciarias\b",
-            r"\bauxilio emergencial\b",
-            r"\bbeneficio emergencial\b",
-            r"\bseguro-desemprego\b",
-            r"\bbolsa familia\b",
-        ),
-        2.2,
-    ),
-    (
-        "exploracao_pessoas",
-        (
-            r"\btrabalho escravo\b",
-            r"\btrabalho analogo a escravidao\b",
-            r"\btrabalho analogo ao de escravo\b",
-            r"\btrafico internacional de pessoas\b",
-            r"\btrafico de pessoas\b",
-            r"\btrafico internacional de orgaos humanos\b",
-        ),
-        2.2,
-    ),
-    (
-        "crimes_contra_crianca",
-        (
-            r"\bpornografia infantil\b",
-            r"\babuso sexual\b",
-            r"\babuso infantojuvenil\b",
-            r"\bexploracao sexual infantojuvenil\b",
-            r"\bviolencia sexual infantil\b",
-            r"\bcrimes contra menores\b",
-            r"\bcriancas e adolescentes\b",
-        ),
-        2.2,
-    ),
-    (
-        "radiodifusao_irregular",
-        (
-            r"\bradio clandestina\b",
-            r"\bradios clandestinas\b",
-            r"\bradiodifusao\b",
-        ),
-        2.0,
-    ),
-    (
-        "desenvolvimento_clandestino_atividade_telecomunicacao",
-        (
-            r"\btelecomunicacoes?\b",
-            r"\batividade clandestina de telecomunicacao\b",
-            r"\btelecomunicacao clandestina\b",
-        ),
-        2.0,
-    ),
-)
-BAD_LEARNED_LABEL_TERMS = {
-    "comercializacao_medicamentos_nao_autorizados": {"seguro", "seguros", "seguradora"},
-}
-SENSITIVE_LABEL_EVIDENCE = {
-    "crimes_contra_crianca": (
-        r"\babuso sexual\b",
-        r"\bexploracao sexual\b",
-        r"\bpornografia\b",
-        r"\binfantojuvenil\b",
-        r"\bpedofilia\b",
-        r"\bestupro de vulneravel\b",
-    ),
-}
-SPECIFIC_CRIME_PRIORITY = {
-    "crimes_contra_crianca": 91,
-    "corrupcao_desvio": 95,
-    "fraude_previdenciaria": 92,
-    "pornografia_infantil": 91,
-    "abuso_sexual_infantil": 90,
-    "trafico_drogas": 88,
-    "crimes_ambientais": 87,
-    "lavagem_dinheiro": 86,
-    "contrabando_descaminho": 82,
-    "crimes_armas": 81,
-    "posse_irregular_arma_fogo": 81,
-    "trafico_armas": 80,
-    "falsificacoes": 76,
-    "falsidade_documental": 76,
-    "crimes_ciberneticos_financeiros": 74,
-    "fraude_bancaria_cibernetica": 74,
-    "crime_eleitoral": 73,
-    "crimes_sistema_financeiro": 72,
-    "exploracao_pessoas": 70,
-    "roubo_furto": 68,
-}
+BAD_LEARNED_LABEL_TERMS: dict[str, set[str]] = {}
+SENSITIVE_LABEL_EVIDENCE: dict[str, tuple[str, ...]] = {}
+SPECIFIC_CRIME_PRIORITY: dict[str, int] = {}
 
 
 @dataclass(frozen=True)
@@ -667,10 +525,6 @@ def normalize_flat_learned_rule_record(record: dict[str, object]) -> dict[str, o
         return None
     if kind == "crime" and label in NON_CRIME_LABELS:
         return None
-    if kind == "crime":
-        static_crime_labels = {canonical_label(rule.label) for rule in CRIME_RULES}
-        if label not in static_crime_labels:
-            return None
     pattern_terms = re.findall(r"\\b([a-z0-9]{3,})", pattern.lower())
     if kind == "crime" and BAD_LEARNED_LABEL_TERMS.get(label, set()).intersection(pattern_terms):
         return None
@@ -679,19 +533,8 @@ def normalize_flat_learned_rule_record(record: dict[str, object]) -> dict[str, o
         for term in pattern_terms
         if not term.isdigit() and term not in TERM_STOPWORDS and term not in BAD_LEARNED_PATTERN_TERMS
     ]
-    label_terms = [
-        term
-        for term in label.split("_")
-        if len(term) >= 4 and term not in TERM_STOPWORDS and term not in BAD_LEARNED_PATTERN_TERMS
-    ]
-    label_evidence_count = sum(
-        1
-        for term in label_terms
-        if term in alpha_terms or (len(term) >= 8 and any(pattern_term.startswith(term[:8]) for pattern_term in alpha_terms))
-    )
-    min_label_evidence = 2 if len(label_terms) >= 2 else 1
     numeric_terms = [term for term in pattern_terms if term.isdigit()]
-    if len(alpha_terms) < 2 or numeric_terms or label_evidence_count < min_label_evidence:
+    if len(alpha_terms) < 2 or numeric_terms:
         return None
     if any(term in BAD_LEARNED_PATTERN_TERMS for term in pattern_terms):
         return None
@@ -805,12 +648,14 @@ def group_learned_rules(records: list[dict[str, object]]) -> list[dict[str, obje
             {
                 "kind": record["kind"],
                 "classificador": record["label"],
-                "source": "llm_feedback",
+                "source": record.get("source", "llm_feedback"),
                 "uses": 0,
                 "patterns_do_classificador": [],
                 "examples": [],
             },
         )
+        if group.get("source") != record.get("source", "llm_feedback"):
+            group["source"] = "mixed"
         group["uses"] = int(group.get("uses", 0) or 0) + int(record.get("uses", 0) or 0)
 
         group_examples = group.setdefault("examples", [])
@@ -826,6 +671,7 @@ def group_learned_rules(records: list[dict[str, object]]) -> list[dict[str, obje
                 {
                     "pattern_do_classificador": record["pattern"],
                     "weight": record.get("weight", LEARNED_RULE_WEIGHT),
+                    "source": record.get("source", group.get("source", "llm_feedback")),
                     "uses": record.get("uses", 1),
                     "examples": record.get("examples", []),
                 }
@@ -845,7 +691,9 @@ def clean_learned_rules_file(path: Path | str | None = None) -> dict[str, int | 
     before_flat_count = len(flatten_learned_rules(before_records))
     after_flat_count = len(flatten_learned_rules(after_records))
     resolved_path.parent.mkdir(parents=True, exist_ok=True)
-    resolved_path.write_text(json.dumps(after_records, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp_path = resolved_path.with_name(f"{resolved_path.name}.tmp")
+    tmp_path.write_text(json.dumps(after_records, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp_path.replace(resolved_path)
     clear_learned_rules_cache(resolved_path)
     return {
         "path": str(resolved_path),
@@ -864,6 +712,7 @@ def append_learned_rule(
     pattern: str,
     title: str = "",
     path: Path | str | None = None,
+    source: str = "llm_feedback",
 ) -> bool:
     normalized_label = canonical_label(label)
     if not normalized_label or not pattern:
@@ -887,7 +736,7 @@ def append_learned_rule(
                 "label": normalized_label,
                 "pattern": pattern,
                 "weight": LEARNED_RULE_WEIGHT,
-                "source": "llm_feedback",
+                "source": source,
                 "uses": 1,
                 "examples": [title] if title else [],
             }
@@ -916,6 +765,23 @@ def improve_regex_from_llm(
         if append_learned_rule("modus", label, pattern, title=title, path=learned_rules_file):
             learned.append({"kind": "modus", "label": canonical_label(label), "pattern": pattern})
     return learned
+
+
+def suggest_regex_from_llm(
+    news_body: str,
+    inference: NoticiaLLMInference,
+) -> list[dict[str, str]]:
+    suggestions: list[dict[str, str]] = []
+    for label in inference.crimes_mais_presentes:
+        pattern = build_learned_pattern(label, news_body)
+        if pattern:
+            suggestions.append({"kind": "crime", "label": canonical_label(label), "pattern": pattern})
+
+    for label in inference.modus_operandi:
+        pattern = build_learned_pattern(label, news_body)
+        if pattern:
+            suggestions.append({"kind": "modus", "label": canonical_label(label), "pattern": pattern})
+    return suggestions
 
 
 def build_incremental_regex_report(jsonl_path: Path, limit: int = 30) -> dict[str, object]:

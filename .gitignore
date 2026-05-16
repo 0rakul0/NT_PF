@@ -20,4 +20,8 @@ data/noticias_markdown/
 data/analise_qualitativa/*.csv
 data/analise_qualitativa/*.jsonl
 data/analise_qualitativa/*.md
+data/analise_qualitativa/*.log
+data/analise_qualitativa/backup_execucao_*/
+data/analise_qualitativa/incremental/
+data/analise_qualitativa/lotes/
 scripts/data/

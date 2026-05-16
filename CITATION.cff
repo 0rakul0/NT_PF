@@ -9,14 +9,15 @@ authors:
 version: "1.0.0"
 license: "MIT"
 abstract: >-
-  NT PF coleta noticias publicas de operacoes da Policia Federal brasileira,
-  extrai o conteudo principal das paginas, organiza artefatos tabulares e gera
-  uma camada analitica exploratoria em Streamlit sobre crimes, clusters
-  semanticos, series recorrentes e distribuicao territorial.
+  NT PF coleta noticias publicas de operacoes da Policia Federal brasileira e
+  aplica uma metodologia incremental autonomoma com amostragem, clusterizacao,
+  agentes LangChain, regras regex auditaveis e LLM residual local.
 keywords:
   - "policia federal"
   - "brasil"
   - "web scraping"
-  - "streamlit"
+  - "langchain"
+  - "regex"
+  - "aprendizado incremental"
   - "analise textual"
   - "dados publicos"

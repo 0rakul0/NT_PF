@@ -90,25 +90,6 @@ STATE_POINTS = {
     for item in BRAZIL_STATES
 }
 
-STREAMLIT_REQUIRED_DATA_FILES = [
-    ANALYSIS_DIR / "corpus_enriquecido.csv",
-    ANALYSIS_DIR / "resumo_clusters.csv",
-    ANALYSIS_DIR / "recorrencia_temporal.csv",
-    ANALYSIS_DIR / "clusters_canonicos.csv",
-    ANALYSIS_DIR / "clusters_canonicos_por_ano.csv",
-    ANALYSIS_DIR / "recorrencia_temporal_clusters_canonicos.csv",
-    ANALYSIS_DIR / "crimes_por_ano.csv",
-    ANALYSIS_DIR / "modus_operandi_por_ano.csv",
-    ANALYSIS_DIR / "series_semanticas.csv",
-    ANALYSIS_DIR / "pares_recorrentes.csv",
-    ANALYSIS_DIR / "estados_por_ano.csv",
-    ANALYSIS_DIR / "estados_por_cluster.csv",
-    ANALYSIS_DIR / "clusterizacoes_consenso.csv",
-    ANALYSIS_DIR / "pares_consenso_clusters.csv",
-    ANALYSIS_DIR / "analise_qualitativa.md",
-    BRAZIL_STATES_GEOJSON,
-]
-
 
 @dataclass(frozen=True)
 class LLMProviderSettings:
@@ -124,14 +105,17 @@ class LLMSettings:
     provider_order: tuple[str, ...]
     ollama: LLMProviderSettings
     groq: LLMProviderSettings
+    openai: LLMProviderSettings
     temperature: float
     max_retries: int
 
 
 def _default_model_for_provider(provider: str) -> str:
+    if provider == "openai":
+        return "gpt-4.1-mini"
     if provider == "groq":
         return "llama-3.3-70b-versatile"
-    return "gemma3n:e2b"
+    return "llama3.2"
 
 
 def _normalize_provider(provider: str) -> str:
@@ -150,30 +134,52 @@ def _normalize_groq_base_url(base_url: str) -> str:
     return cleaned or "https://api.groq.com/openai/v1"
 
 
+def _normalize_openai_base_url(base_url: str) -> str:
+    cleaned = base_url.strip().rstrip("/")
+    return cleaned or "https://api.openai.com/v1"
+
+
 def get_llm_settings() -> LLMSettings:
-    provider = "ollama"
+    provider = _normalize_provider(os.getenv("PF_LLM_PROVIDER", "auto"))
 
     raw_model_name = os.getenv("PF_LLM_MODEL", "").strip()
     raw_base_url = os.getenv("PF_LLM_BASE_URL", "").strip()
     ollama_host = os.getenv("PF_LLM_HOST", "").strip()
-    api_key = ""
+    groq_api_key = os.getenv("PF_GROQ_API_KEY", "").strip() or os.getenv("GROQ_API_KEY", "").strip()
+    openai_api_key = os.getenv("PF_OPENAI_API_KEY", "").strip() or os.getenv("OPENAI_API_KEY", "").strip()
 
     groq_model = os.getenv("PF_GROQ_MODEL", "").strip()
+    openai_model = os.getenv("PF_OPENAI_MODEL", "").strip()
     ollama_model = os.getenv("PF_OLLAMA_MODEL", "").strip()
     groq_base_url = os.getenv("PF_GROQ_BASE_URL", "").strip()
+    openai_base_url = os.getenv("PF_OPENAI_BASE_URL", "").strip()
     ollama_base_url = os.getenv("PF_OLLAMA_BASE_URL", "").strip()
 
     if raw_model_name:
-        ollama_model = raw_model_name
+        if provider == "openai":
+            openai_model = raw_model_name
+        elif provider == "groq":
+            groq_model = raw_model_name
+        else:
+            ollama_model = raw_model_name
 
     if raw_base_url and "groq.com" not in raw_base_url.lower():
-        ollama_base_url = raw_base_url
+        if "openai.com" in raw_base_url.lower():
+            openai_base_url = raw_base_url
+        else:
+            ollama_base_url = raw_base_url
 
     groq_settings = LLMProviderSettings(
         provider="groq",
         model_name=groq_model or _default_model_for_provider("groq"),
         base_url=_normalize_groq_base_url(groq_base_url),
-        api_key=api_key,
+        api_key=groq_api_key,
+    )
+    openai_settings = LLMProviderSettings(
+        provider="openai",
+        model_name=openai_model or _default_model_for_provider("openai"),
+        base_url=_normalize_openai_base_url(openai_base_url),
+        api_key=openai_api_key,
     )
     ollama_settings = LLMProviderSettings(
         provider="ollama",
@@ -182,7 +188,21 @@ def get_llm_settings() -> LLMSettings:
         api_key="",
     )
 
-    provider_order = ("ollama",)
+    if provider == "openai":
+        provider_order = ("openai", "ollama", "groq") if groq_api_key else ("openai", "ollama")
+    elif provider == "groq":
+        provider_order = ("groq", "ollama")
+    elif provider == "ollama":
+        fallback_providers = ["ollama"]
+        if openai_api_key:
+            fallback_providers.append("openai")
+        if groq_api_key:
+            fallback_providers.append("groq")
+        provider_order = tuple(fallback_providers)
+    else:
+        provider_order = ("openai", "ollama", "groq") if openai_api_key and groq_api_key else (
+            ("openai", "ollama") if openai_api_key else (("ollama", "groq") if groq_api_key else ("ollama",))
+        )
 
     temperature_raw = os.getenv("PF_LLM_TEMPERATURE", "0").strip()
     max_retries_raw = os.getenv("PF_LLM_MAX_RETRIES", "3").strip()
@@ -194,6 +214,7 @@ def get_llm_settings() -> LLMSettings:
         provider_order=provider_order,
         ollama=ollama_settings,
         groq=groq_settings,
+        openai=openai_settings,
         temperature=temperature,
         max_retries=max_retries,
     )
