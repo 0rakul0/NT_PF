@@ -38,15 +38,22 @@ INITIAL_REGEX_JSON = RUN_DIR / "regex_iniciais_agent2.json"
 COSINE_PROFILE_PKL = RUN_DIR / "perfis_cosseno_temas.pkl"
 COSINE_PROFILE_JSON = RUN_DIR / "perfis_cosseno_temas.json"
 NEW_THEME_CANDIDATES_JSONL = RUN_DIR / "temas_candidatos_agent3.jsonl"
+RARE_NEWS_JSONL = RUN_DIR / "noticias_raras_observacoes.jsonl"
+REFINED_THEME_TREE_JSON = RUN_DIR / "arvore_temas_agent1_refinada.json"
+THEME_REFINEMENT_INPUT_JSON = RUN_DIR / "insumo_agente_organizador_arvore.json"
 METRICS_CSV = RUN_DIR / "metrics_batches.csv"
 RUN_MANIFEST_JSON = RUN_DIR / "run_manifest.json"
 RUN_RESULT_JSON = RUN_DIR / "run_result.json"
+
+RARE_NEWS_LABEL = "noticias_raras"
+RARE_NEWS_DESCRIPTION = "Noticias residuais raras, sem encaixe defensavel nos temas canonicos ou macrotemas existentes."
+RARE_NEWS_PROMOTION_THRESHOLD = 2
 
 
 @dataclass(frozen=True)
 class RunConfig:
     sample_fraction: float = 0.30
-    batch_size: int = 10
+    batch_size: int = 500
     seed: int = 42
     regex_threshold: float = 0.85
     temporal_strata: str = "year"
@@ -58,7 +65,7 @@ class RunConfig:
     max_batches: int | None = None
     llm_timeout_seconds: int = 180
     agent3_min_confidence: float = 0.55
-    initial_regex_target_per_theme: int = 30
+    initial_regex_target_per_theme: int | None = None
     resume_batches: bool = True
     local_fallback_models: tuple[str, ...] = ("gemma3n:e2b", "llama3:8b")
 

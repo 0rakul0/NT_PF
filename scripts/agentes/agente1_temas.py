@@ -27,7 +27,7 @@ THEME_RULES: list[tuple[str, tuple[str, ...]]] = [
     ("crimes_migratorios", ("migracao ilegal", "imigracao", "migrantes", "passaportes")),
     ("crimes_previdenciarios", ("previdencia", "inss", "beneficio", "beneficios", "aposentadoria")),
     ("moeda_falsa", ("moeda falsa", "cedulas falsas", "cedulas", "notas falsas")),
-    ("crime_organizado", ("ficco", "crime organizado", "organizacao criminosa", "faccao")),
+    ("crime_organizado", ("ficco", "crime organizado", "organizacao criminosa", "associacao criminosa", "faccao")),
     ("fraudes_auxilios_beneficios", ("auxilio", "emergencial", "beneficios", "auxilio brasil")),
 ]
 
@@ -140,6 +140,7 @@ def generate_canonical_themes(cluster_summary: pd.DataFrame, config: RunConfig) 
     payload = cluster_summary.to_dict(orient="records")
     prompt = (
         "Voce e o Agente 1. Agrupe clusters exploratorios em temas canonicos amplos. "
+        "Os clusters foram gerados com texto focado em crimes e modus operandi; trate locais, orgaos, telefones, siglas regionais e nomes de operacao apenas como metadados, nunca como tema canonico. "
         "Exemplo: abuso infantil, pornografia infantil e compartilhamento de material devem virar crimes_contra_criancas. "
         "Se um cluster misto tiver subtema claro, bifurque em mais de um tema quando necessario. "
         "Nao gere regex. Nao peca revisao humana; use accept, discard ou quarantine. "

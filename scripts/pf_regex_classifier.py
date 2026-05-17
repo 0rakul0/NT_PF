@@ -74,7 +74,7 @@ BAD_LEARNED_PATTERN_TERMS = {
     "imprensa", "file", "mail", "mailto", "nesta", "neste", "nome", "refere", "telefone",
     "telefones", "users", "www",
 }
-GENERIC_CRIME_LABELS: set[str] = set()
+GENERIC_CRIME_LABELS: set[str] = {"crime_organizado"}
 NON_CRIME_LABELS: set[str] = set()
 IGNORED_TAGS = {
     "destaque",
@@ -203,6 +203,21 @@ def inference_needs_regex_rescue(inference: NoticiaLLMInference, evidence_text: 
 
 def only_crime_matches(matches: list[dict[str, object]]) -> list[dict[str, object]]:
     return [item for item in matches if canonical_label(str(item.get("label", ""))) not in NON_CRIME_LABELS]
+
+
+def filter_competitive_crime_matches(matches: list[dict[str, object]]) -> list[dict[str, object]]:
+    if len(matches) <= 1:
+        return matches
+    top_score = max(float(item.get("score", 0.0) or 0.0) for item in matches)
+    if top_score <= 0:
+        return matches[:1]
+    threshold = max(2.0, top_score * 0.35)
+    kept = []
+    for index, item in enumerate(matches):
+        score = float(item.get("score", 0.0) or 0.0)
+        if index == 0 or score >= threshold:
+            kept.append(item)
+    return kept
 
 
 def score_rules(text: str, rules: tuple[RegexRule, ...]) -> list[dict[str, object]]:
@@ -378,7 +393,7 @@ def classify_news_body(
     body_modus_matches = score_rules(normalized, modus_rules)
     tag_crime_matches = score_rules(normalized_tags, (*TAG_RULES, *crime_rules)) if normalized_tags else []
     tag_modus_matches = score_rules(normalized_tags, modus_rules) if normalized_tags else []
-    crime_matches = only_crime_matches(merge_match_scores(body_crime_matches, tag_crime_matches))
+    crime_matches = filter_competitive_crime_matches(only_crime_matches(merge_match_scores(body_crime_matches, tag_crime_matches)))
     modus_matches = merge_match_scores(body_modus_matches, tag_modus_matches)
     tag_crime_labels = {canonical_label(str(item["label"])) for item in tag_crime_matches}
     tag_modus_labels = {canonical_label(str(item["label"])) for item in tag_modus_matches}

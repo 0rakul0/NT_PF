@@ -9,6 +9,7 @@ RuleKind = Literal["crime", "modus"]
 RuleDecision = Literal["incorporar", "rejeitar", "quarentena"]
 TopicType = Literal["crime", "modus", "setor", "operacao", "tema_institucional", "misto", "ruido"]
 ThemeDecision = Literal["accept", "merge", "split", "discard", "quarantine"]
+ThemeTreeDecision = Literal["merge_into_existing", "promote_to_canonical", "keep_as_leaf", "discard", "quarantine"]
 
 
 class RegexCandidate(BaseModel):
@@ -64,7 +65,7 @@ class InitialRegexAgentResponse(BaseModel):
 
 
 class RegexIncorporationDecision(BaseModel):
-    """Decisao individual do Agente 3 sobre uma regex candidata."""
+    """Decisao individual do Agente Aprendiz de Regex sobre uma regex candidata."""
 
     decision: RuleDecision = Field(description="Decisao tomada para a regex.")
     kind: RuleKind = Field(description="Tipo da regra.")
@@ -75,7 +76,7 @@ class RegexIncorporationDecision(BaseModel):
 
 
 class LearningAgentResponse(BaseModel):
-    """Resposta padronizada do Agente 3."""
+    """Resposta padronizada do Agente Aprendiz de Regex."""
 
     batch_id: str = Field(default="", description="Identificador do lote, quando disponivel.")
     decisions: list[RegexIncorporationDecision] = Field(default_factory=list, description="Decisoes por regex.")
@@ -173,3 +174,29 @@ class InitialRegexBatchResponse(BaseModel):
     """Resposta operacional do Agente 2 para todos os temas canonicos."""
 
     themes: list[InitialRegexResponse] = Field(default_factory=list)
+
+
+class ThemeCandidateDecision(BaseModel):
+    """Decisao do Agente Organizador da Arvore sobre uma folha candidata."""
+
+    candidate_label: str = Field(description="Label candidata observada no residual.")
+    decision: ThemeTreeDecision = Field(description="Decisao global para a candidata.")
+    parent_theme: str = Field(default="", description="Tema canonico pai quando a candidata for absorvida ou mantida como folha.")
+    promoted_theme: str = Field(default="", description="Novo tema canonico quando houver promocao.")
+    merged_candidate_labels: list[str] = Field(default_factory=list, description="Labels candidatas semanticamente equivalentes que devem ser fundidas.")
+    evidence_terms: list[str] = Field(default_factory=list, description="Evidencias que sustentam a decisao.")
+    rationale: str = Field(default="", description="Justificativa curta da decisao.")
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Confianca da decisao.")
+
+
+class ThemeTreeRefinementResponse(BaseModel):
+    """Resposta do Agente Organizador da Arvore com visao global."""
+
+    decisions: list[ThemeCandidateDecision] = Field(default_factory=list)
+    promoted_canonical_themes: list[str] = Field(default_factory=list)
+    merged_into_existing_count: int = Field(default=0, ge=0)
+    promoted_count: int = Field(default=0, ge=0)
+    kept_as_leaf_count: int = Field(default=0, ge=0)
+    discarded_count: int = Field(default=0, ge=0)
+    quarantined_count: int = Field(default=0, ge=0)
+    notes: list[str] = Field(default_factory=list)

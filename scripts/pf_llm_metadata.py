@@ -987,7 +987,7 @@ def main(
 
     defer_regex_learning = os.getenv("PF_DEFER_REGEX_LEARNING_TO_AGENT", "").strip().lower() in {"1", "true", "yes"}
     if defer_regex_learning:
-        print("[regex] aprendizado automatico diferido: candidatas vao para o JSONL e o Agente 3 incorpora depois.")
+        print("[regex] aprendizado automatico diferido: candidatas vao para o JSONL e o Agente Aprendiz de Regex incorpora depois.")
 
     if processed_files:
         print(f"Arquivos ja processados encontrados: {len(processed_files)}")

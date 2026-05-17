@@ -145,6 +145,56 @@ Decisoes possiveis:
 
 Nao ha revisao humana. O que nao passar pelos criterios automaticos fica em quarentena e nao alimenta regex inicial.
 
+### Etapa obrigatoria: Agente Organizador da Arvore
+
+O Agente 1 deve permanecer responsavel apenas pela fundacao: ele ve os clusters iniciais e cria a taxonomia canonica inicial. A organizacao posterior da arvore deve ser feita por um agente separado para nao misturar responsabilidades nem fragilizar a pipeline.
+
+A metodologia correta exige:
+
+- Agente 1-Fundacao: analisa os clusters iniciais e cria a taxonomia canonica inicial.
+- Agente 3-Residual: classifica residuos e registra folhas candidatas quando nao ha tema canonico defensavel.
+- Agente Organizador da Arvore: apos a rodada incremental, e tambem em ciclos periodicos, recebe a lista completa de temas canonicos, folhas candidatas, contagens, evidencias, regex associadas e similaridade por cosseno.
+- O Agente Organizador da Arvore decide se cada candidata deve ser:
+  - agregada a um tema canonico existente;
+  - mantida como folha candidata;
+  - promovida a novo tema canonico;
+  - fundida com outras candidatas semanticamente equivalentes;
+  - descartada ou mantida em quarentena.
+
+Essa etapa preserva a premissa de interferencia humana zero, mas evita que a arvore cresca com dezenas de folhas quase duplicadas, como variacoes de falsificacao documental, seguranca privada clandestina ou fraudes em certames publicos.
+
+Entrada esperada para a reorganizacao:
+
+- temas canonicos ativos;
+- candidatos do Agente 3;
+- numero de ocorrencias por candidato;
+- titulos e evidencias textuais;
+- regex incrementais aceitas ou rejeitadas;
+- proximidade por cosseno com temas existentes;
+- cluster de origem quando existir.
+
+Saida esperada:
+
+- `canonical_theme` final ou proposto;
+- `decision`: `merge_into_existing`, `promote_to_canonical`, `keep_as_leaf`, `discard`, `quarantine`;
+- `parent_theme`, quando for folha;
+- `merged_candidate_labels`, quando houver fusao;
+- justificativa e evidencias.
+
+Artefato gerado:
+
+- `data/analise_qualitativa/incremental/insumo_agente_organizador_arvore.json`
+- `data/analise_qualitativa/incremental/arvore_temas_agent1_refinada.json`
+
+O arquivo de insumo registra explicitamente:
+
+- temas canonicos atuais;
+- candidatos do Agente 3;
+- contagem por candidato;
+- evidencias textuais;
+- regex aprendidas por tema/candidato quando houver;
+- sugestoes de proximidade por similaridade do cosseno.
+
 ## Agente 2: gerador de regex iniciais
 
 Funcao:
@@ -203,34 +253,55 @@ Artefatos:
 
 Funcao:
 
-Ler o que a LLM residual classificou nos casos que escaparam da regex, gerar ou revisar regex candidatas e decidir automaticamente se elas entram no banco de regras.
+Classificar os casos que escaparam da regex usando a lista de temas canonicos disponiveis. Quando nenhuma label canonica for defensavel, registrar um novo tema candidato ou colocar o caso em quarentena.
 
 Entrada:
 
-- Registros JSONL com `regex_rules_aprendidas`.
-- Inferencia da LLM residual.
-- Evidencia textual.
+- Noticia residual.
+- Labels canonicas disponiveis.
+- Sugestoes por similaridade do cosseno.
 - Resultado da regex anterior.
-- Tema canonico associado.
-- Exemplos positivos e negativos quando disponiveis.
-- Historico de regras do tema.
 
 Saida padronizada:
 
-- `batch_id`
-- `decisions`
-- `incorporated_count`
-- `rejected_count`
-- `quarantined_count`
-- `learned_labels`
-- `residual_risks`
-- `next_automatic_tests`
+- `decision`
+- `canonical_label`
+- `confidence`
+- `evidence_text`
+- `rationale`
+- `resumo_curto`
 
 Decisoes possiveis:
 
-- `incorporar`: regra valida, entra no banco regex.
-- `rejeitar`: regra invalida, generica, redundante ou perigosa.
-- `quarentena`: regra plausivel, mas sem evidencia automatica suficiente.
+- `classificar`: residual classificado em uma label canonica.
+- `novo_tema_candidato`: residual tem tema substantivo claro ainda nao coberto.
+- `quarentena`: residual sem encaixe confiavel.
+
+O Agente 3 nao incorpora regex. A incorporacao fica no Agente Aprendiz de Regex.
+
+## Agente Aprendiz de Regex
+
+Funcao:
+
+Receber a classificacao residual feita pelo Agente 3, gerar regex candidatas, validar as regras e incorporar apenas as que tiverem ancora de crime ou modus operandi.
+
+Entrada:
+
+- Noticia residual.
+- Revisao estruturada do Agente 3.
+- Exemplos negativos do lote.
+- Banco ativo de regex.
+
+Tool dedicada:
+
+- `aprender_regex_do_residual`
+
+Saida:
+
+- regex incorporadas;
+- regex em quarentena;
+- validacao positiva/negativa;
+- origem e evidencias.
 
 Nao existe fila de revisao humana. Quarentena significa: nao usar em producao, registrar e reavaliar automaticamente em lotes futuros.
 
@@ -309,7 +380,7 @@ Hipotese operacional:
 - Percentual enviado a LLM.
 - Tokens e custo estimado.
 - Tempo total do lote.
-- Regex aprendidas pelo Agente 3.
+- Regex aprendidas pelo Agente Aprendiz de Regex.
 - Regex rejeitadas.
 - Regex em quarentena.
 - Reducao progressiva de chamadas a LLM.
@@ -347,13 +418,17 @@ scripts/
 |-- agentes/
 |   |-- agente1_temas.py                    # Agente 1: bifurcador de temas canonicos
 |   |-- agente2_regex.py                    # Agente 2: geracao/validacao de regex
-|   |-- agente3_residual.py                 # Agente 3: revisao residual e aprendizado
+|   |-- agente3_residual.py                 # Agente 3: revisao/classificacao residual
+|   |-- agente_aprendiz_regex.py            # Agente Aprendiz de Regex: gera/incorpora regex pos-residual
+|   |-- agente_organizador_arvore.py        # Agente Organizador da Arvore
 |   `-- pf_incremental_agents_langchain.py  # Scaffold LangChain/Ollama
 |-- schemas/
 |   `-- pf_incremental_agent_schemas.py     # Schemas Pydantic dos agentes
-`-- tools/
+|-- tools/
     |-- pf_generate_langchain_tools.py      # Gerador de tools
-    `-- pf_incremental_langchain_tools.py   # Tools geradas/curadas
+    |-- pf_incremental_langchain_tools.py   # Tools geradas/curadas
+    |-- pf_regex_learning_tools.py          # Tool unica do Agente Aprendiz de Regex
+    `-- pf_theme_tree_tools.py              # Tool unica do Agente Organizador da Arvore
 
 data/analise_qualitativa/
 |-- regex_classifier_rules.json
@@ -403,7 +478,7 @@ A metodologia sera considerada bem-sucedida se demonstrar:
 
 ## Resultado observado: rodada final 15%/85%
 
-Checkpoint registrado em 2026-05-16 19:50:51 -03:00.
+Fechamento registrado em 2026-05-16.
 
 Configuracao da rodada:
 
@@ -419,31 +494,32 @@ Configuracao da rodada:
 - Agente 1: 17 temas canonicos aceitos.
 - Agente 2: 322 regex iniciais aceitas.
 
-Resultado parcial antes da interrupcao operacional:
+Resultado final:
 
-- Ultimo lote concluido: `lote_0372`.
-- Documentos processados: 3720 de 6890.
-- Classificados por regex: 3065.
-- Enviados ao Agente 3/LLM residual: 655.
-- Cobertura acumulada por regex: 82,3925%.
-- Regex incrementais incorporadas: 126.
-- Novos temas candidatos: 36.
-- Quarentenas do Agente 3: 33.
+- Lotes concluidos: 689.
+- Documentos processados: 6890 de 6890.
+- Classificados por regex: 5661.
+- Enviados ao Agente 3/LLM residual: 1229.
+- Cobertura acumulada por regex: 82,1626%.
+- Regex incrementais incorporadas: 209.
+- Novos temas candidatos: 85.
+- Quarentenas do Agente 3: 64.
 - Erros de classificacao do Agente 3: 0.
 
 Leitura metodologica:
 
-- A cobertura por regex cresceu de 75,8% nos primeiros 500 documentos para patamares recorrentes acima de 82% nos blocos seguintes.
+- A cobertura por regex saiu de 75,8% nos primeiros 500 documentos e fechou acima de 82% no acumulado final.
 - Apos o filtro de crime/modus, a incorporacao de regex ficou mais conservadora, mas mais auditavel.
 - O resultado confirma a hipotese central: a LLM residual e usada para aprender excecoes, e parte desse aprendizado passa a reduzir chamadas futuras.
 - A existencia de 36 novos temas candidatos mostra que a taxonomia inicial nao deve ser tratada como final; ela deve formar uma arvore em que folhas recorrentes podem amadurecer para novos nos canonicos.
 
 Interrupcao operacional observada:
 
-- A execucao parou apos o lote 372 por erro de escrita no arquivo ativo `data/analise_qualitativa/regex_classifier_rules.json`.
+- A execucao parou uma vez apos o lote 372 por erro de escrita no arquivo ativo `data/analise_qualitativa/regex_classifier_rules.json`.
 - O erro ocorreu durante a compactacao do banco de regex aprendido.
 - A correcao aplicada foi trocar a escrita direta por escrita atomica em arquivo temporario seguida de substituicao.
 - Foi criado `scripts/resume_final_15_llm.py` para retomar apenas os lotes pendentes, preservando os resultados ja gravados em `metrics_batches.csv`.
+- A retomada concluiu todos os 689 lotes.
 
 Artefatos do checkpoint:
 

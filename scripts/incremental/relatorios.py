@@ -3,7 +3,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from scripts.incremental.common import FIGURES_DIR, METRICS_CSV, PROJECT_ROOT, RUN_DIR, RUN_RESULT_JSON, append_event, read_json, write_json
+from scripts.incremental.common import FIGURES_DIR, METRICS_CSV, PROJECT_ROOT, REFINED_THEME_TREE_JSON, RUN_DIR, RUN_RESULT_JSON, append_event, read_json, write_json
 
 
 def plot_metrics(metrics: pd.DataFrame) -> list[object]:
@@ -58,6 +58,10 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
         total_residual = int(metrics["regex_residual"].sum())
         total_llm = int(metrics["llm_processed"].sum())
         total_learned = int(metrics["learned_rules"].sum())
+        total_new_theme_candidates = int(metrics.get("agent3_new_theme_candidates", pd.Series(dtype=int)).sum())
+        total_agent3_quarantined = int(metrics.get("agent3_quarantined", pd.Series(dtype=int)).sum())
+        total_rare_news = int(metrics.get("agent3_rare_news", pd.Series(dtype=int)).sum())
+        total_agent3_errors = int(metrics.get("agent3_errors", pd.Series(dtype=int)).sum())
         lines.extend(
             [
                 "## Lotes",
@@ -67,7 +71,11 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
                 f"- Capturadas por regex: {total_regex}",
                 f"- Residuais: {total_residual}",
                 f"- Processadas pela LLM residual: {total_llm}",
-                f"- Regras aprendidas pelo Agente 3: {total_learned}",
+                f"- Regras aprendidas pelo Agente Aprendiz de Regex: {total_learned}",
+                f"- Novos temas candidatos: {total_new_theme_candidates}",
+                f"- Noticias raras identificadas pelo Agente 3: {total_rare_news}",
+                f"- Quarentenas tecnicas do Agente 3: {total_agent3_quarantined}",
+                f"- Erros do Agente 3: {total_agent3_errors}",
                 f"- Taxa regex acumulada: {total_regex / total_docs:.2%}",
                 "",
                 "## Interacoes",
@@ -83,6 +91,20 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
         lines.extend(["", "## Graficos", ""])
         for figure in figures:
             lines.append(f"- ![]({figure.relative_to(PROJECT_ROOT).as_posix()})")
+    if REFINED_THEME_TREE_JSON.exists():
+        refined = read_json(REFINED_THEME_TREE_JSON)
+        lines.extend(
+            [
+                "",
+                "## Agente Organizador da Arvore",
+                "",
+                f"- Candidatos avaliados: {len(refined.get('decisions', []))}",
+                f"- Absorvidos por temas existentes: {refined.get('merged_into_existing_count', 0)}",
+                f"- Promovidos a novos temas canonicos: {len(set(refined.get('promoted_canonical_themes', [])))}",
+                f"- Mantidos como folhas: {refined.get('kept_as_leaf_count', 0)}",
+                f"- Arvore refinada: `{REFINED_THEME_TREE_JSON.relative_to(PROJECT_ROOT).as_posix()}`",
+            ]
+        )
     return lines
 
 
@@ -103,6 +125,8 @@ def run(foundation: dict[str, object]) -> dict[str, object]:
             "- `metrics_batches.csv`: metricas por iteracao.",
             "- `relatorio_execucao_metodologia.md`: relatorio narrativo da execucao.",
             "- `events.jsonl`: trilha completa de eventos.",
+            "- `insumo_agente_organizador_arvore.json`: insumo completo do Agente Organizador da Arvore.",
+            "- `arvore_temas_agent1_refinada.json`: reorganizacao global dos temas candidatos.",
             "- `figures/`: graficos da cobertura regex e residuos.",
         ]
     )

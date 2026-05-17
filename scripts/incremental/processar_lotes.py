@@ -5,11 +5,13 @@ from typing import Any
 
 import pandas as pd
 
-from scripts.agentes.agente3_residual import append_new_theme_candidate, generate_regex_from_review, review_residual, review_to_inference
+from scripts.agentes.agente_aprendiz_regex import generate_regex_from_review, review_to_inference
+from scripts.agentes.agente3_residual import append_new_theme_candidate, review_residual
 from scripts.incremental.common import (
     ACTIVE_REGEX_BANK_PATH,
     LOTS_DIR,
     METRICS_CSV,
+    RARE_NEWS_LABEL,
     RESERVE_CSV,
     RUN_DIR,
     THEMES_JSON,
@@ -19,7 +21,9 @@ from scripts.incremental.common import (
     read_json,
     write_json,
 )
+from scripts.incremental.noticias_raras import append_rare_news_observation
 from scripts.incremental.similaridade_cosseno import top_k_similar_themes
+from scripts.schemas.pf_incremental_agent_schemas import ResidualReviewAgentResponse
 
 try:
     from scripts.pf_regex_classifier import classify_news_body
@@ -29,7 +33,10 @@ except ModuleNotFoundError:
 
 def canonical_labels() -> list[str]:
     payload = read_json(THEMES_JSON)
-    return [str(theme["canonical_theme"]) for theme in payload.get("themes", []) if theme.get("decision") == "accept"]
+    labels = [str(theme["canonical_theme"]) for theme in payload.get("themes", []) if theme.get("decision") == "accept"]
+    if RARE_NEWS_LABEL not in labels:
+        labels.append(RARE_NEWS_LABEL)
+    return labels
 
 
 def classify_with_regex(doc: dict[str, Any], threshold: float) -> dict[str, Any]:
@@ -87,6 +94,7 @@ def run(config: RunConfig) -> dict[str, object]:
         agent3_classified = 0
         agent3_quarantined = 0
         agent3_new_theme_candidates = 0
+        agent3_rare_news = 0
         agent3_errors = 0
         residual_limit = config.max_residual_llm_per_batch
         negatives = [doc["context"] for doc in batch[:40]]
@@ -130,12 +138,41 @@ def run(config: RunConfig) -> dict[str, object]:
             llm_processed += 1
             if review.decision == "classificar":
                 agent3_classified += 1
+                if review.canonical_label == RARE_NEWS_LABEL:
+                    agent3_rare_news += 1
+                    rare_observation = append_rare_news_observation(
+                        doc,
+                        iteration,
+                        review.evidence_text,
+                        review.rationale,
+                        review.confidence,
+                    )
+                    if rare_observation.get("promoted_label"):
+                        review = ResidualReviewAgentResponse(
+                            decision="novo_tema_candidato",
+                            canonical_label=str(rare_observation["promoted_label"]),
+                            confidence=review.confidence,
+                            evidence_text=review.evidence_text,
+                            rationale=(
+                                "Noticia rara recorrente promovida automaticamente para candidato de tema: "
+                                f"{rare_observation['promoted_label']}."
+                            ),
+                            resumo_curto=review.resumo_curto,
+                        )
+                        agent3_classified -= 1
+                        agent3_rare_news -= 1
+                        agent3_new_theme_candidates += 1
+                        append_new_theme_candidate(doc, review, iteration)
             elif review.decision == "novo_tema_candidato":
                 agent3_new_theme_candidates += 1
                 append_new_theme_candidate(doc, review, iteration)
             else:
                 agent3_quarantined += 1
-            incorporated = generate_regex_from_review(doc, review, negatives) if review.decision in {"classificar", "novo_tema_candidato"} else []
+            incorporated = (
+                generate_regex_from_review(doc, review, negatives)
+                if review.decision in {"classificar", "novo_tema_candidato"} and review.canonical_label != RARE_NEWS_LABEL
+                else []
+            )
             learned_rules += len(incorporated)
             row.update(
                 {
@@ -187,6 +224,7 @@ def run(config: RunConfig) -> dict[str, object]:
                 "agent3_classified": agent3_classified,
                 "agent3_quarantined": agent3_quarantined,
                 "agent3_new_theme_candidates": agent3_new_theme_candidates,
+                "agent3_rare_news": agent3_rare_news,
                 "agent3_errors": agent3_errors,
                 "learned_rules": learned_rules,
                 "tokens_total": token_total,

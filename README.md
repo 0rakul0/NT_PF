@@ -18,8 +18,9 @@ A execucao oficial usa:
 6. Processamento dos 85% restantes em lotes incrementais.
 7. Regex como primeira camada de classificacao.
 8. LLM residual via OpenAI quando `PF_LLM_PROVIDER=openai`; fallback local com `llama3.2`.
-9. Agente 3 para incorporar aprendizados automaticamente.
-10. Graficos, metricas e README automatico por execucao.
+9. Agente 3 para classificar residuais e registrar candidatos.
+10. Agente Aprendiz de Regex para incorporar aprendizados automaticamente.
+11. Graficos, metricas e README automatico por execucao.
 
 A metodologia detalhada esta em [docs/arquitetura_treinamento_incremental.md](docs/arquitetura_treinamento_incremental.md).
 
@@ -48,7 +49,7 @@ O fluxo padrao:
 
 ## Resultado da Rodada Final
 
-Checkpoint registrado em 2026-05-16 19:50:51 -03:00:
+Fechamento registrado em 2026-05-16:
 
 - base total: 8106 noticias;
 - fundacao: 1216 noticias, 15% da base;
@@ -56,15 +57,20 @@ Checkpoint registrado em 2026-05-16 19:50:51 -03:00:
 - clusters exploratorios: 24;
 - temas canonicos aceitos pelo Agente 1: 17;
 - regex iniciais aceitas pelo Agente 2: 322;
-- ate o lote 372: 3720 documentos processados;
-- classificados por regex: 3065;
-- enviados ao Agente 3/LLM residual: 655;
-- cobertura acumulada por regex: 82,3925%;
-- regex incrementais incorporadas: 126;
-- novos temas candidatos: 36;
+- lotes concluidos: 689;
+- documentos processados na reserva: 6890;
+- classificados por regex: 5661;
+- enviados ao Agente 3/LLM residual: 1229;
+- cobertura acumulada por regex: 82,1626%;
+- regex incrementais incorporadas: 209;
+- novos temas candidatos: 85;
+- quarentenas do Agente 3: 64;
 - erros de classificacao do Agente 3: 0.
+- Agente Organizador da Arvore: 78 candidatos unicos avaliados, 13 absorvidos, 34 mantidos como folhas e 4 novos temas canonicos propostos.
 
 Durante essa rodada foi incorporado um criterio metodologico novo: regex incrementais so entram no banco ativo quando possuem ancora de crime ou modus operandi da label canonica. Regex baseadas em nome de operacao, localidade, orgao ou termo operacional generico ficam em quarentena automatica.
+
+Tambem foi corrigido o fluxo taxonomico: um agente separado, o Agente Organizador da Arvore, roda apos os lotes para olhar a arvore completa e decidir onde cada candidato se encaixa.
 
 ## Saidas
 
@@ -81,9 +87,11 @@ Principais arquivos:
 - `metrics_batches.csv`: metricas por iteracao.
 - `resumo_clusters_amostra.csv`: clusters gerados na amostra inicial.
 - `temas_canonicos_agent1.json`: saida do Agente 1.
+- `insumo_agente_organizador_arvore.json`: pacote completo visto pelo Agente Organizador da Arvore, com temas atuais, candidatos, contagens, evidencias, regex aprendidas e cosseno.
+- `arvore_temas_agent1_refinada.json`: reorganizacao global dos temas candidatos pelo Agente Organizador da Arvore.
 - `regex_iniciais_agent2.json`: saida auditavel do Agente 2.
 - `regex_banco_agent2.json`: lista consumivel de regex iniciais aprovadas antes dos lotes.
-- `data/analise_qualitativa/regex_classifier_rules.json`: banco ativo usado pelo classificador regex; comeca como copia do Agente 2 e recebe incorporacoes do Agente 3.
+- `data/analise_qualitativa/regex_classifier_rules.json`: banco ativo usado pelo classificador regex; comeca como copia do Agente 2 e recebe incorporacoes do Agente Aprendiz de Regex.
 - `events.jsonl`: eventos completos da execucao.
 - `figures/`: graficos gerados.
 

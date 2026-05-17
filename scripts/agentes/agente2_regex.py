@@ -11,9 +11,9 @@ from scripts.incremental.llm_api import invoke_json_with_fallback
 from scripts.schemas.pf_incremental_agent_schemas import InitialRegexBatchResponse, InitialRegexResponse, RegexRuleProposal
 
 try:
-    from scripts.pf_regex_classifier import append_learned_rule, clean_learned_rules_file, fold_text
+    from scripts.pf_regex_classifier import LEARNED_RULE_WEIGHT, canonical_label, clean_learned_rules_file, clear_learned_rules_cache, fold_text, group_learned_rules
 except ModuleNotFoundError:
-    from pf_regex_classifier import append_learned_rule, clean_learned_rules_file, fold_text
+    from pf_regex_classifier import LEARNED_RULE_WEIGHT, canonical_label, clean_learned_rules_file, clear_learned_rules_cache, fold_text, group_learned_rules
 
 
 GENERIC_TERMS = {
@@ -297,13 +297,13 @@ def regex_rule_candidates_for_theme(
     evidence_terms: list[str],
     positives: list[str] | None = None,
     tags: list[str] | None = None,
-    target: int = 30,
+    target: int | None = None,
 ) -> list[RegexRuleProposal]:
     positives = positives or []
     tags = tags or []
     preferred = PREFERRED_TERMS.get(label, [])
     selected_terms = [term for term in unique_keep_order([*preferred, *evidence_terms, *tags]) if term_is_domain_candidate(label, term)]
-    for text in positives[:30]:
+    for text in positives:
         selected_terms.extend(phrase for phrase in phrase_candidates_from_text(text, limit=40) if term_is_domain_candidate(label, phrase))
     selected_terms = [term for term in unique_keep_order(selected_terms) if term_is_domain_candidate(label, term)]
 
@@ -339,7 +339,7 @@ def regex_rule_candidates_for_theme(
         if len(re.findall(r"\\b([a-z0-9]{3,})", pattern.lower())) < 2:
             continue
         rules.append(RegexRuleProposal(kind="crime", label=label, pattern=pattern, rationale=f"Candidato automatico por evidencia/folha: {source_term}", risk="medio"))
-        if len(rules) >= max(target * 4, target):
+        if target is not None and len(rules) >= max(target * 4, target):
             break
     return rules
 
@@ -389,6 +389,31 @@ def copy_regex_bank(source: Path, destination: Path) -> None:
     destination.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def append_pending_rule(records: list[dict[str, object]], kind: str, label: str, pattern: str, title: str, source: str) -> bool:
+    normalized_label = canonical_label(label)
+    if not normalized_label or not pattern:
+        return False
+    for record in records:
+        if record.get("kind") == kind and record.get("label") == normalized_label and record.get("pattern") == pattern:
+            examples = record.setdefault("examples", [])
+            if isinstance(examples, list) and title and title not in examples:
+                examples.append(title)
+            record["uses"] = int(record.get("uses", 0) or 0) + 1
+            return False
+    records.append(
+        {
+            "kind": kind,
+            "label": normalized_label,
+            "pattern": pattern,
+            "weight": LEARNED_RULE_WEIGHT,
+            "source": source,
+            "uses": 1,
+            "examples": [title] if title else [],
+        }
+    )
+    return True
+
+
 def generate_initial_regex(
     themes_payload: dict[str, object],
     sample: list[dict[str, object]],
@@ -398,6 +423,7 @@ def generate_initial_regex(
 ) -> list[dict[str, object]]:
     docs_by_name = {item["arquivo"]: item for item in sample}
     responses: list[dict[str, object]] = []
+    pending_bank_records: list[dict[str, object]] = []
     prompt_themes = []
     contexts_by_theme: dict[str, tuple[list[str], list[str], list[str]]] = {}
 
@@ -441,8 +467,12 @@ def generate_initial_regex(
         "Voce e o Agente 2. Gere regex iniciais para todos os temas canonicos abaixo em uma unica resposta. "
         "A label de cada regex deve ser exatamente o canonical_theme recebido do Agente 1. "
         "Use regex curtas, auditaveis e sem acentos quando possivel. "
-        f"Gere ate {config.initial_regex_target_per_theme} regex candidatas por tema quando houver evidencias suficientes. "
-        "Cubra folhas diferentes do mesmo tema usando apenas crimes e modus operandi como pistas. "
+        + (
+            f"Gere ate {config.initial_regex_target_per_theme} regex candidatas por tema quando houver evidencias suficientes. "
+            if config.initial_regex_target_per_theme is not None
+            else "Gere todas as regex candidatas uteis quando houver evidencias suficientes; nao aplique teto artificial por tema. "
+        )
+        + "Cubra folhas diferentes do mesmo tema usando apenas crimes e modus operandi como pistas. "
         "Nao use entidades, orgaos, cidades, estados, paises, nomes de operacao ou localidades como regex. "
         "Evite termos genericos como policia, federal, operacao, crime, investigacao isolados. "
         "Retorne uma lista themes no schema InitialRegexBatchResponse.\n\n"
@@ -481,7 +511,7 @@ def generate_initial_regex(
         quarantined = []
         seen_patterns: set[str] = set()
         for rule in response.accepted_rules:
-            if len(accepted) >= config.initial_regex_target_per_theme:
+            if config.initial_regex_target_per_theme is not None and len(accepted) >= config.initial_regex_target_per_theme:
                 break
             if rule.pattern in seen_patterns:
                 continue
@@ -491,7 +521,7 @@ def generate_initial_regex(
                 continue
             ok, reason = validate_regex(rule.pattern, positives, negatives)
             record = rule.model_dump() | {"validation": reason}
-            if ok and append_learned_rule(rule.kind, theme["canonical_theme"], rule.pattern, title=f"agent2:{theme['canonical_theme']}", path=active_regex_bank_path, source="agent2_initial_regex"):
+            if ok and append_pending_rule(pending_bank_records, rule.kind, theme["canonical_theme"], rule.pattern, f"agent2:{theme['canonical_theme']}", "agent2_initial_regex"):
                 accepted.append(record | {"label": theme["canonical_theme"]})
             else:
                 quarantined.append(record)
@@ -506,5 +536,8 @@ def generate_initial_regex(
             }
         )
 
+    active_regex_bank_path.parent.mkdir(parents=True, exist_ok=True)
+    active_regex_bank_path.write_text(json.dumps(group_learned_rules(pending_bank_records), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    clear_learned_rules_cache(active_regex_bank_path)
     clean_learned_rules_file(active_regex_bank_path)
     return responses

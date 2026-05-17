@@ -14,13 +14,12 @@ from scripts.incremental.common import RunConfig
 def main() -> None:
     config = RunConfig(
         sample_fraction=0.15,
-        batch_size=10,
+        batch_size=500,
         model="llama3.2",
         reset=False,
         max_residual_llm_per_batch=None,
         max_batches=None,
         llm_timeout_seconds=180,
-        initial_regex_target_per_theme=30,
         resume_batches=True,
         local_fallback_models=("gemma3n:e2b", "llama3:8b"),
     )

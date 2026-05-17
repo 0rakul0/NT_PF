@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 
 from scripts.incremental.common import RunConfig
+from scripts.incremental.organizar_arvore_temas import run as run_theme_tree_organizer
+from scripts.incremental.reavaliar_quarentenas import run as run_rare_news_review
 from scripts.incremental.run_all_incremental import run
 from scripts.project_config import CONTENT_CSV, INDEX_CSV, NEWS_MARKDOWN_DIR, PROJECT_ROOT
 
@@ -46,7 +48,7 @@ def main() -> None:
 
     config = RunConfig(
         sample_fraction=0.15,
-        batch_size=10,
+        batch_size=500,
         seed=42,
         regex_threshold=0.85,
         temporal_strata="year",
@@ -66,6 +68,28 @@ def main() -> None:
             "returncode": 0,
         }
     )
+    started = time.perf_counter()
+    tree_result = run_theme_tree_organizer(RunConfig(reset=False))
+    steps.append(
+        {
+            "label": "agente organizador da arvore de temas",
+            "skipped": False,
+            "elapsed_seconds": round(time.perf_counter() - started, 4),
+            "returncode": 0,
+        }
+    )
+    started = time.perf_counter()
+    rare_news_result = run_rare_news_review()
+    steps.append(
+        {
+            "label": "consolidacao de noticias raras",
+            "skipped": False,
+            "elapsed_seconds": round(time.perf_counter() - started, 4),
+            "returncode": 0,
+        }
+    )
+    result["theme_tree_organizer"] = tree_result
+    result["rare_news_review"] = rare_news_result
     result["steps"] = steps
 
     output = PROJECT_ROOT / "data" / "analise_qualitativa" / "incremental" / "rodar_sistema_resultado.json"

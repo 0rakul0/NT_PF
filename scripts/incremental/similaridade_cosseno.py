@@ -23,6 +23,7 @@ from scripts.incremental.common import (
     read_json,
     write_json,
 )
+from scripts.incremental.texto_dominio import build_domain_cluster_text
 
 
 PREFERRED_TERMS_BY_LABEL = {label: list(terms) for label, terms in THEME_RULES}
@@ -44,7 +45,7 @@ def doc_matches_label(row: pd.Series, label: str) -> bool:
     terms = PREFERRED_TERMS_BY_LABEL.get(label, [])
     if not terms:
         return True
-    text = fold_text(" ".join([str(row.get("titulo", "")), str(row.get("tags", "")), str(row.get("context", ""))]))
+    text = fold_text(" ".join([str(row.get("titulo", "")), str(row.get("tags", "")), str(row.get("cluster_text", "")), str(row.get("context", ""))]))
     return any(re.search(pattern, text) for pattern in (term_pattern(term) for term in terms) if pattern)
 
 
@@ -57,7 +58,8 @@ def fit_theme_profiles() -> dict[str, Any]:
             label = str(theme["canonical_theme"])
             seed_terms = PREFERRED_TERMS_BY_LABEL.get(label, [])
             theme_seed_texts.append(" ".join([label.replace("_", " "), *seed_terms, *seed_terms]))
-    texts = cluster_rows["context"].fillna("").astype(str).tolist() + theme_seed_texts
+    text_column = "cluster_text" if "cluster_text" in cluster_rows.columns else "context"
+    texts = cluster_rows[text_column].fillna("").astype(str).tolist() + theme_seed_texts
     vectorizer = TfidfVectorizer(
         lowercase=True,
         strip_accents="unicode",
@@ -143,7 +145,8 @@ def top_k_similar_themes(text: str, top_k: int = 5) -> list[dict[str, Any]]:
     profile = load_profiles()
     if not profile or len(profile.get("labels", [])) == 0:
         return []
-    vector = profile["vectorizer"].transform([text])
+    domain_text, _terms = build_domain_cluster_text(text)
+    vector = profile["vectorizer"].transform([domain_text])
     scores = cosine_similarity(vector, profile["centroids"])[0]
     order = scores.argsort()[::-1][:top_k]
     metadata_by_label = {item["label"]: item for item in profile.get("metadata", [])}

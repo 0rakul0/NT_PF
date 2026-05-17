@@ -10,9 +10,10 @@ echo.
 echo Fluxo padrao:
 echo - sincronizar/gerar base
 echo - limpar artefatos anteriores
-echo - amostra inicial 30%% com estratificacao temporal
-echo - massa incremental 70%%
+echo - amostra inicial 15%% com estratificacao temporal
+echo - massa incremental 85%%
 echo - lotes de 10 noticias
+echo - agente separado organiza a arvore de temas
 echo - gerar metricas, graficos e README automatico
 echo.
 
