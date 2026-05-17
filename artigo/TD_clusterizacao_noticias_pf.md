@@ -35,7 +35,27 @@ O objetivo geral e construir um sistema de classificacao incremental, autonomo e
 - trate casos sem recorrencia como `noticias_raras`, sem descartar sua memoria;
 - documente metricas, evidencias, decisoes e graficos de cada rodada.
 
-## 3. Metodologia incremental proposta
+## 3. Trabalhos relacionados
+
+A metodologia proposta dialoga com cinco linhas de pesquisa: supervisao fraca, modelagem de topicos, uso de LLMs como fontes de rotulagem, construcao automatica de taxonomias e bootstrapping de regras. Essas linhas mostram que o problema de reduzir custo de rotulagem e inferencia e recorrente, mas tambem evidenciam diferencas importantes em relacao ao desenho adotado neste trabalho.
+
+Snorkel e a literatura de *data programming* tratam a rotulagem como um problema de supervisao fraca. Em vez de depender de uma base manualmente rotulada, especialistas escrevem funcoes de rotulagem que expressam heuristicas, regras, dicionarios ou sinais externos; depois, um modelo de labels combina essas fontes ruidosas. A semelhanca com este trabalho esta no uso de regras programaticas como mecanismo escalavel de classificacao. A diferenca principal e que aqui as regras nao sao apenas entradas para treinar um classificador posterior: elas permanecem como classificador deterministico operacional, versionado, auditavel e atualizado incrementalmente. Alem disso, as regras sao geradas e refinadas por agentes, sem intervencao humana no ciclo operacional.
+
+Trabalhos de supervisao fraca orientada por ontologias tambem sao proximos, especialmente quando usam expressoes regulares ou regras como fontes de labels. Eles mostram que ontologias e bases de conhecimento podem produzir sinais fracos uteis em dominios especializados. A diferenca deste trabalho e que a taxonomia nao e assumida como completamente pronta: ela nasce de clusters, e depois e reorganizada por agentes quando residuos e candidatos novos aparecem.
+
+A modelagem de topicos, especialmente abordagens como BERTopic, combina embeddings, clusterizacao e representacao de topicos por termos caracteristicos. Essa linha e semelhante a etapa de fundacao tematica, pois usa agrupamentos textuais para descobrir temas latentes. A diferenca e que este trabalho nao para na descoberta de topicos. Os clusters sao tratados como folhas exploratorias, nao como classes finais; depois sao interpretados por agentes, convertidos em temas canonicos criminais e finalmente operacionalizados por regex.
+
+Pesquisas recentes usam LLMs como funcoes de rotulagem dentro de frameworks de supervisao fraca. Esse desenho se aproxima da decisao de acionar LLM apenas nos casos residuais. A diferenca e que aqui a LLM nao e usada para rotular toda a base nem para produzir apenas labels fracos destinados a treinar outro modelo. Ela atua como revisora de excecoes, gera evidencias estruturadas e pode produzir aprendizado convertido em regex para reduzir chamadas futuras.
+
+Tambem ha trabalhos sobre LLMs gerando funcoes de rotulagem automaticamente. A semelhanca esta na tentativa de automatizar a criacao de regras. A diferenca e que este trabalho impoe uma cadeia de controle de dominio: o Agente 3 primeiro classifica ou cria candidato; o Agente Aprendiz gera regex; a regra precisa estar ancorada em crime ou modus operandi; e o Agente Organizador revisa a arvore global para evitar microtemas ou regras contaminadas por localidade e entidade.
+
+Outra linha relacionada e a construcao automatica de taxonomias com LLMs, embeddings, palavras-chave e clusterizacao. Essa literatura se aproxima do Agente 1 e do Agente Organizador da Arvore. O diferencial deste trabalho e integrar taxonomia e classificacao incremental em um mesmo ciclo fechado: a arvore nao e apenas um produto final de organizacao conceitual, mas uma estrutura operacional que afeta regex, revisao residual, noticias raras e metricas de custo.
+
+Por fim, tecnicas classicas de bootstrapping de padroes em extracao de informacao, como DIPRE e Snowball, partem de exemplos ou sementes para extrair padroes e encontrar novas instancias. A semelhanca esta no principio de transformar evidencias observadas em regras reutilizaveis. A diferenca e que este trabalho aplica esse principio a classificacao tematica incremental, com agentes especializados, memoria de noticias raras, validacao por regex e relatorios de cobertura por lote.
+
+Assim, a contribuicao deste trabalho nao esta em propor isoladamente clusterizacao, regex, LLM ou supervisao fraca. O destaque esta na engenharia do ciclo completo: uma metodologia autonoma, sem intervencao humana operacional, que descobre temas em amostra temporal, gera temas canonicos, cria regex iniciais, classifica a massa em lotes, usa LLM apenas nos residuos, aprende novas regras, reorganiza a arvore e documenta custo, cobertura, evidencias e excecoes.
+
+## 4. Metodologia incremental proposta
 
 A metodologia proposta organiza a classificacao de noticias em um ciclo incremental, autonomo e auditavel. A ideia central e separar o trabalho caro, que exige interpretacao por modelo de linguagem, do trabalho recorrente, que pode ser resolvido por regex validadas. Assim, a LLM nao e usada como classificador permanente da base inteira; ela atua nos casos residuais, produz evidencias e alimenta regras reutilizaveis para as proximas rodadas.
 
@@ -45,7 +65,7 @@ O processo parte de uma base historica de noticias e a divide em duas massas. A 
 
 A figura apresenta o conceito geral da metodologia. O ciclo comeca pela descoberta dos temas recorrentes, passa pela formalizacao desses temas em regex, processa novos lotes, envia apenas os residuos para revisao por LLM, aprende novas regras e reorganiza periodicamente a arvore tematica. O ponto essencial e que cada excecao classificada deve deixar uma trilha auditavel e, quando possivel, reduzir a chance de uma chamada futura de LLM para casos semelhantes.
 
-### 3.1 Objetivo da classificacao e pontos de atencao
+### 4.1 Objetivo da classificacao e pontos de atencao
 
 A classificacao tenta identificar o dominio criminal ou o modus operandi principal de cada noticia. O foco nao e classificar localidades, unidades da federacao, nomes de operacao, orgaos parceiros ou entidades ocasionais. Esses elementos podem ajudar na auditoria, mas nao devem virar tema canonico.
 
@@ -60,7 +80,7 @@ Os pontos frageis da metodologia exigem controle explicito:
 - casos raros nao devem virar tema definitivo antes de demonstrar recorrencia;
 - candidatos novos precisam ser comparados com todos os temas existentes antes de serem promovidos.
 
-### 3.2 Ingestao e divisao da base
+### 4.2 Ingestao e divisao da base
 
 A ingestao separa a base em duas partes. A primeira e uma amostra inicial estratificada no tempo, usada para montar a fundacao tematica. A segunda e a reserva incremental, usada para executar o ciclo de classificacao, aprendizado e medicao.
 
@@ -80,7 +100,7 @@ Na execucao documentada, a base tinha 8.106 noticias. A amostra inicial correspo
 
 A tabela apresenta a divisao operacional da base. Essa separacao sustenta a proposta de baixo custo: a amostra inicial e suficiente para criar a fundacao tematica, enquanto a maior parte da base e reservada para medir se o regex passa a dominar a classificacao.
 
-### 3.3 Texto de dominio criminal, clusterizacao e similaridade
+### 4.3 Texto de dominio criminal, clusterizacao e similaridade
 
 Antes da clusterizacao, cada noticia passa por uma etapa de normalizacao e reducao para texto de dominio criminal. Essa representacao prioriza titulo, subtitulo, tags, condutas, crimes, objetos ilicitos, modus operandi e trechos relevantes do corpo. Ao mesmo tempo, reduz o peso de localidades, nomes proprios, nomes de operacao, orgaos parceiros e termos administrativos genericos.
 
@@ -101,7 +121,7 @@ A tabela resume o efeito da consolidacao. A reducao de 34 clusters brutos para 2
 
 A figura mostra os principais grupos consolidados da fundacao tematica. Ela deve ser lida como fotografia da amostra inicial: aponta onde havia massa tematica suficiente para orientar o Agente 1, mas nao substitui a decisao canonica dos agentes.
 
-### 3.4 Agente 1: temas canonicos e arvore operacional
+### 4.4 Agente 1: temas canonicos e arvore operacional
 
 O Agente 1 recebe os clusters consolidados e decide como eles devem ser nomeados e agregados. Ele atua como bifurcador de temas: junta folhas que pertencem ao mesmo dominio criminal, separa subtemas quando existe identidade criminal distinta e impede que localidades, entidades ou nomes de operacao virem classes finais.
 
@@ -111,7 +131,7 @@ Esse agente precisa olhar o conjunto inteiro de temas disponiveis antes de decid
 
 A figura apresenta a arvore operacional produzida a partir dos clusters consolidados. A coluna da esquerda mostra temas canonicos; a coluna intermediaria mostra as folhas de cluster que alimentam cada tema; a coluna da direita resume termos dominantes usados como evidencia. Essa visualizacao deixa claro que o tema final nao e o cluster isolado, mas a agregacao analitica de folhas por familia criminal dominante.
 
-### 3.5 Agente 2: geracao de regex iniciais
+### 4.5 Agente 2: geracao de regex iniciais
 
 O Agente 2 recebe os temas canonicos do Agente 1 e as evidencias associadas a cada folha. Sua funcao e gerar regex iniciais suficientes para cobrir a diversidade observada dentro de cada tema. Nao ha limite artificial de regex por tema: a quantidade depende da variedade de condutas, objetos, termos e modos de operacao encontrados nas folhas.
 
@@ -124,7 +144,7 @@ As regex devem ser ancoradas em crime, conduta ou modus operandi. Elas nao devem
 
 A tabela mostra a escala da cobertura inicial criada pelo Agente 2. O numero alto de regex e esperado porque cada tema pode ter varias folhas internas. O objetivo nao e criar uma regra generica demais, mas um banco deterministico amplo o bastante para capturar recorrencias sem chamar LLM.
 
-### 3.6 Caminho da noticia na classificacao incremental
+### 4.6 Caminho da noticia na classificacao incremental
 
 Depois da fundacao tematica, a reserva incremental e processada em lotes. Cada noticia passa primeiro pelo parser, que estrutura titulo, subtitulo, tags, data e corpo. Em seguida, o classificador regex tenta atribuir uma label. Quando a regex classifica acima do limiar, a decisao e registrada diretamente. Quando falha, a noticia segue para o Agente 3.
 
@@ -147,7 +167,7 @@ Na execucao documentada, os lotes tinham 500 noticias, exceto o ultimo. A reserv
 
 A tabela resume os resultados operacionais sem detalhar cada lote individual. A taxa de 94,73% mostra que o classificador deterministico dominou a execucao; os 5,27% residuais concentraram o custo de LLM nos casos que realmente exigiam revisao.
 
-### 3.7 Agente 3: revisao residual
+### 4.7 Agente 3: revisao residual
 
 O Agente 3 atua apenas quando a regex nao classifica uma noticia. Ele recebe o texto estruturado, as labels canonicas existentes, sugestoes por similaridade do cosseno, tags, titulo e evidencias textuais do corpo. Sua decisao segue tres caminhos:
 
@@ -157,7 +177,7 @@ O Agente 3 atua apenas quando a regex nao classifica uma noticia. Ele recebe o t
 
 O Agente 3 nao deve criar microtema para toda excecao. Tambem nao deve forcar classificacao quando a noticia nao cabe nos temas disponiveis. Sua saida e estruturada por schema e precisa conter decisao, label, confianca, evidencia textual, justificativa e resumo curto.
 
-### 3.8 Agente Aprendiz de Regex e noticias raras
+### 4.8 Agente Aprendiz de Regex e noticias raras
 
 O Agente Aprendiz de Regex recebe uma decisao residual e tenta transformar a evidencia em regra reutilizavel. Ele nao reclassifica a noticia; sua funcao e gerar regex candidata e validar se ela tem ancora em crime ou modus operandi. Uma regra so entra no banco ativo se capturar o caso positivo, evitar exemplos negativos e nao depender apenas de localidade, entidade ou nome de operacao.
 
@@ -178,7 +198,7 @@ Na execucao documentada, 51 regras foram aprendidas no ciclo residual e permanec
 
 A tabela mostra que o ciclo residual produziu aprendizado sem transformar `noticias_raras` em categoria criminal comum. Casos raros permanecem auditaveis, mas so geram regex quando apresentam recorrencia ou quando sao absorvidos por tema defensavel.
 
-### 3.9 Agente Organizador da Arvore
+### 4.9 Agente Organizador da Arvore
 
 O Agente Organizador da Arvore executa uma revisao global depois do processamento incremental. Ele recebe os temas canonicos atuais, candidatos criados pelo Agente 3, contagens, evidencias, regex aprendidas, sugestoes por similaridade do cosseno e o banco de regex ativo.
 
@@ -186,7 +206,7 @@ Sua responsabilidade e impedir que a taxonomia cresca por acumulacao desordenada
 
 Na execucao refinada, o organizador avaliou 55 candidatos, absorveu 19 em temas existentes e promoveu 6 macrotemas: `ameacas_e_terrorismo`, `crimes_contra_saude_publica`, `crimes_de_odio_e_extremismo`, `crimes_patrimoniais`, `falsificacao_documental` e `seguranca_privada_clandestina`.
 
-### 3.10 Banco de regex, metricas e auditabilidade
+### 4.10 Banco de regex, metricas e auditabilidade
 
 O banco de regex e o classificador deterministico principal. Ele e versionado em JSON e registra label, fonte, exemplos, usos e padroes. Ao final da execucao documentada, o banco continha 23 classificadores ativos e 5.197 padroes regex ativos.
 
@@ -232,31 +252,31 @@ Cada etapa produz artefatos persistentes. Isso permite reconstruir a origem da a
 
 A tabela lista os artefatos de auditoria. Eles tornam o ciclo transparente: cada classificacao pode ser rastreada ate a regra, o agente, o lote ou a decisao residual que a produziu.
 
-## 4. Criterios de qualidade
+## 5. Criterios de qualidade
 
 A metodologia avalia qualidade por criterios operacionais e epistemicos.
 
-### 4.1 Custo
+### 5.1 Custo
 
 O custo e medido pela proporcao de noticias classificadas por regex antes de acionar LLM. Na execucao documentada, 94,73% da reserva incremental foi resolvida por regex.
 
-### 4.2 Cobertura
+### 5.2 Cobertura
 
 Cobertura e a capacidade do banco de regex capturar temas recorrentes. A cobertura aumenta quando regex aprendidas entram no banco e passam a classificar casos futuros.
 
-### 4.3 Precisao operacional
+### 5.3 Precisao operacional
 
 Precisao operacional e protegida por validadores que rejeitam regex ancoradas apenas em localidade, entidade, nome de operacao ou termo generico. O foco deve ser crime, conduta ou modus operandi.
 
-### 4.4 Estabilidade taxonomica
+### 5.4 Estabilidade taxonomica
 
 A arvore de temas nao deve crescer por acumulacao desordenada de microtemas. O Agente Organizador da Arvore consolida candidatos e evita que cada excecao vire uma categoria.
 
-### 4.5 Transparencia
+### 5.5 Transparencia
 
 Toda decisao relevante deve deixar evidencia textual, justificativa, label, fonte e arquivo de origem.
 
-## 5. Limitacoes
+## 6. Limitacoes
 
 A metodologia ainda possui limitacoes importantes.
 
@@ -270,7 +290,7 @@ Quarto, noticias raras exigem memoria incremental. Se forem ignoradas, o sistema
 
 Quinto, os resultados dependem do modelo LLM disponivel e da qualidade dos schemas estruturados. O uso de fallback local ou remoto deve ser registrado em eventos.
 
-## 6. Conclusao
+## 7. Conclusao
 
 A metodologia implementa um ciclo fechado de classificacao incremental autonomo. Ela usa uma amostra temporal para descobrir a fundacao tematica, clusterizacao e similaridade para organizar a diversidade inicial, agentes especializados para nomear temas e gerar regex, regex para classificar a maior parte da massa, LLM apenas para residuos e um mecanismo de aprendizado que converte excecoes recorrentes em regras reutilizaveis.
 
@@ -278,7 +298,7 @@ O resultado principal e a demonstracao de uma arquitetura de baixo custo e alta 
 
 Essa abordagem e transferivel para outros dominios textuais em que haja grande volume, crescimento continuo, baixa disponibilidade de rotulagem humana, necessidade de transparencia e pressao por reducao de custo de inferencia.
 
-## 7. Apendice: resultados por lote
+## 8. Apendice: resultados por lote
 
 | Lote | Noticias | Regex | Residual/LLM | Aprendizados | Taxa regex |
 |---|---:|---:|---:|---:|---:|
@@ -299,10 +319,17 @@ Essa abordagem e transferivel para outros dominios textuais em que haja grande v
 
 A tabela apresenta o detalhamento por lote que foi resumido no corpo da metodologia. Ela fica no apendice para preservar a rastreabilidade dos resultados sem interromper a narrativa principal.
 
-## 8. Referencias conceituais
+## 9. Referencias conceituais
 
 - McInnes, L.; Healy, J.; Astels, S. HDBSCAN: Hierarchical density based clustering. Journal of Open Source Software, 2017.
 - Reimers, N.; Gurevych, I. Sentence-BERT: Sentence embeddings using Siamese BERT-networks. EMNLP-IJCNLP, 2019.
-- Ratner, A. et al. Snorkel: Rapid training data creation with weak supervision. VLDB, 2020.
+- Ratner, A. et al. Snorkel: Rapid Training Data Creation with Weak Supervision. arXiv:1711.10160, 2017. https://arxiv.org/abs/1711.10160
+- Ratner, A. et al. Snorkel DryBell: A Case Study in Deploying Weak Supervision at Industrial Scale. arXiv:1812.00417, 2018. https://arxiv.org/abs/1812.00417
+- Fries, J. A. et al. Ontology-driven weak supervision for clinical entity classification in electronic health records. Nature Communications, 2021. https://www.nature.com/articles/s41467-021-22328-4
 - Blei, D. M.; Ng, A. Y.; Jordan, M. I. Latent Dirichlet Allocation. Journal of Machine Learning Research, 2003.
-- Grootendorst, M. BERTopic: Neural topic modeling with class-based TF-IDF. 2022.
+- Grootendorst, M. BERTopic: Neural topic modeling with a class-based TF-IDF procedure. arXiv:2203.05794, 2022. https://arxiv.org/abs/2203.05794
+- Smith, R. et al. Language Models in the Loop: Incorporating Prompting into Weak Supervision. arXiv:2205.02318, 2022. https://arxiv.org/abs/2205.02318
+- Guan, N.; Chen, K.; Koudas, N. Can Large Language Models Design Accurate Label Functions? arXiv:2311.00739, 2023. https://arxiv.org/abs/2311.00739
+- Huang, C.; He, G. Text Clustering as Classification with LLMs. arXiv:2410.00927, 2024. https://huggingface.co/papers/2410.00927
+- Balakrishnan, A. Automated Taxonomy Construction Using Large Language Models: A Comparative Study of Fine-Tuning and Prompt Engineering. Information, 2025. https://www.mdpi.com/2673-4117/6/11/283
+- Agichtein, E.; Gravano, L. Snowball: Extracting Relations from Large Plain-Text Collections. ACM Digital Library, 2000.

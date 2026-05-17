@@ -1,149 +1,208 @@
-# NT PF
+﻿# NT PF
 
-Atlas analitico sobre noticias de operacoes da Policia Federal brasileira.
+Metodologia incremental, autonoma e auditavel para classificar noticias publicas de operacoes da Policia Federal brasileira por temas criminais e modus operandi.
 
-## Objetivo
+O projeto combina amostragem temporal, clusterizacao exploratoria, similaridade do cosseno, agentes de IA, geracao de regex, classificacao residual por LLM e reorganizacao periodica de uma arvore tematica. A ideia central e reduzir custo de inferencia: a LLM entra apenas quando o classificador regex nao consegue resolver a noticia.
 
-O projeto implementa uma metodologia incremental autonomoma para organizar noticias publicas de operacoes da Policia Federal em temas canonicos, regras regex auditaveis e ciclos de aprendizado com LLM residual.
+## Conceito
 
-## Metodologia Atual
+A metodologia trata a classificacao como um ciclo fechado. Primeiro, uma amostra da base e usada para descobrir a fundacao tematica. Depois, os temas viram regex iniciais. A massa restante e processada em lotes: cada noticia passa por parser, regex e, se necessario, por revisao residual com LLM. Quando a LLM encontra um caso util, esse caso pode gerar aprendizado para o banco de regex ou virar candidato para reorganizacao da arvore.
 
-A execucao oficial usa:
+![Conceito circular da metodologia incremental autonoma](artigo/media/figura-1-conceito-circular-metodologia.png)
 
-1. Sincronizacao/geracao da base local de noticias.
-2. Amostra inicial de 15% da base para fundacao, estratificada temporalmente.
-3. Clusterizacao semantica da amostra.
-4. Agente 1 como bifurcador de temas canonicos.
-5. Agente 2 para gerar regex iniciais por tema.
-6. Processamento dos 85% restantes em lotes incrementais.
-7. Regex como primeira camada de classificacao.
-8. LLM residual via OpenAI quando `PF_LLM_PROVIDER=openai`; fallback local com `llama3.2`.
-9. Agente 3 para classificar residuais e registrar candidatos.
-10. Agente Aprendiz de Regex para incorporar aprendizados automaticamente.
-11. Graficos, metricas e README automatico por execucao.
+A figura resume o comportamento incremental: descobrir temas, formalizar regras, classificar lotes, revisar residuos, aprender novas regras, reorganizar a arvore e medir custo/cobertura. O objetivo nao e apenas classificar uma base, mas construir um procedimento reutilizavel para bases textuais que crescem continuamente.
 
-A metodologia detalhada esta em [docs/arquitetura_treinamento_incremental.md](docs/arquitetura_treinamento_incremental.md).
+## Objetivo da classificacao
 
-O checkpoint da rodada final 15%/85% com OpenAI esta em [docs/resultado_rodada_final_15_openai.md](docs/resultado_rodada_final_15_openai.md).
+A classificacao busca identificar o dominio criminal ou o modus operandi principal da noticia. Ela nao deve transformar localidades, nomes de operacao, orgaos parceiros ou entidades ocasionais em temas finais.
 
-## Como Rodar
+Pontos de atencao:
 
-Use apenas o arquivo:
+- clusters podem refletir lugar ou forma textual, nao crime;
+- regex muito especificas nao generalizam;
+- regex muito amplas contaminam temas diferentes;
+- nomes de operacao e localidades nao devem ser ancora principal;
+- noticias raras precisam de memoria, mas nao devem virar tema definitivo sem recorrencia;
+- candidatos novos devem ser comparados com todos os temas existentes antes de promocao.
+
+## Fluxo metodologico
+
+### 1. Ingestao e divisao da base
+
+A base e dividida em duas partes:
+
+- **fundacao tematica**: amostra temporal estratificada usada para descobrir temas e gerar regex iniciais;
+- **reserva incremental**: restante da base, processado em lotes para medir cobertura regex, residuos e aprendizado.
+
+![Fundacao tematica a partir da amostra inicial](artigo/media/figura-2-fundacao-tematica.png)
+
+Na rodada documentada, a base tinha 8.106 noticias. A fundacao usou 1.216 noticias, 15% do total, e a reserva incremental ficou com 6.890 noticias.
+
+### 2. Texto de dominio, clusterizacao e similaridade
+
+Antes da clusterizacao, o texto e reduzido para sinais de dominio criminal: titulo, subtitulo, tags, condutas, crimes, objetos ilicitos, modus operandi e trechos relevantes do corpo. Localidades, nomes proprios, nomes de operacao e termos administrativos tem peso reduzido.
+
+A clusterizacao organiza a amostra inicial em folhas exploratorias. A metodologia e compativel com HDBSCAN; quando a densidade fica instavel, o pipeline registra fallback operacional. Em seguida, a similaridade do cosseno consolida clusters semanticamente proximos.
+
+![Principais grupos consolidados da amostra inicial](artigo/media/figura-2-clusters-fundacao.png)
+
+Na execucao documentada, foram gerados 34 clusters brutos e 24 clusters consolidados. Esses clusters nao sao a classificacao final; eles sao insumo para o Agente 1.
+
+### 3. Agente 1: temas canonicos
+
+O Agente 1 recebe os clusters consolidados e cria temas canonicos por crime ou modus operandi. Ele junta folhas do mesmo dominio criminal, separa subtemas quando necessario e impede que localidades ou entidades virem classes.
+
+![Arvore operacional de temas canonicos e folhas de clusters](artigo/media/figura-6-arvore-operacional-temas-folhas.png)
+
+A figura mostra a arvore operacional: temas canonicos a esquerda, folhas de clusters no meio e termos dominantes a direita. O tema final e a agregacao analitica dessas folhas, nao o cluster isolado.
+
+### 4. Agente 2: regex iniciais
+
+O Agente 2 recebe os temas canonicos e as evidencias associadas a cada folha. Ele gera regex iniciais suficientes para cobrir a diversidade observada em cada tema. Nao ha limite artificial de regex por tema: a regra e ter ancora em crime, conduta ou modus operandi.
+
+Na rodada documentada:
+
+| Indicador | Valor |
+|---|---:|
+| Regex iniciais aceitas | 5.739 |
+| Padroes iniciais ativos apos consolidacao | 5.146 |
+
+### 5. Execucao incremental em lotes
+
+Cada noticia da reserva incremental passa pelo parser e depois pelo classificador regex. Se a regex classifica acima do limiar, a decisao e registrada. Se falha, a noticia segue para o Agente 3.
+
+![Execucao incremental em lotes com classificacao regex-first](artigo/media/figura-3-execucao-incremental-lotes.png)
+
+Esse desenho e `regex-first`: o banco deterministico resolve o que ja foi aprendido, e a LLM revisa apenas excecoes.
+
+### 6. Agente 3, aprendiz de regex e noticias raras
+
+O Agente 3 revisa apenas residuos. Ele pode classificar em tema canonico existente, criar `novo_tema_candidato` ou marcar como `noticias_raras`. O Agente Aprendiz transforma evidencias residuais em regex candidatas. Noticias raras recebem assinatura e ficam em memoria; se a assinatura reaparece, volta ao ciclo como candidata.
+
+![Aprendizado residual e reorganizacao da arvore tematica](artigo/media/figura-4-aprendizado-reorganizacao.png)
+
+Na execucao documentada, 51 regras foram aprendidas no ciclo residual. O banco final nao possui regex para `noticias_raras`; esse estado e tecnico, usado para memoria e auditoria.
+
+### 7. Agente Organizador da Arvore
+
+O Agente Organizador revisa globalmente os temas canonicos, candidatos, contagens, evidencias, regex aprendidas e sugestoes por similaridade. Sua funcao e impedir crescimento desordenado da taxonomia.
+
+Ele decide se um candidato deve ser:
+
+- absorvido por tema existente;
+- consolidado em macrotema;
+- promovido a novo tema canonico;
+- mantido como raro;
+- descartado como ruido.
+
+## Resultados da rodada documentada
+
+| Indicador | Valor |
+|---|---:|
+| Base total | 8.106 noticias |
+| Fundacao tematica | 1.216 noticias |
+| Reserva incremental | 6.890 noticias |
+| Clusters consolidados | 24 |
+| Temas canonicos iniciais | 17 |
+| Regex iniciais aceitas | 5.739 |
+| Lotes processados | 14 |
+| Capturadas por regex | 6.527 |
+| Residuais enviados a LLM | 363 |
+| Taxa regex acumulada | 94,73% |
+| Taxa residual LLM | 5,27% |
+| Regras aprendidas | 51 |
+| Noticias raras finais | 7 |
+
+![Regex versus residual por iteracao](artigo/media/figura-3-regex-vs-residual.png)
+
+O grafico mostra que a maior parte das noticias foi resolvida por regex em todos os lotes, enquanto a LLM ficou concentrada nos residuos.
+
+![Taxa regex por iteracao](artigo/media/figura-4-taxa-regex.png)
+
+A taxa regex permaneceu acima de 92% em todos os lotes, sustentando a hipotese de reducao de custo de inferencia.
+
+![Noticias por tema apos classificacao das noticias raras](artigo/media/figura-5-temas-finais.png)
+
+Os maiores temas finais foram `trafico_drogas`, `crimes_contra_criancas`, `crime_organizado` e `corrupcao_desvio_recursos_publicos`.
+
+## Trabalhos relacionados
+
+A metodologia se aproxima de linhas conhecidas, mas se diferencia pela integracao em ciclo operacional fechado.
+
+| Linha | Semelhanca | Diferenca deste projeto | Links |
+|---|---|---|---|
+| Snorkel / data programming | Usa regras programaticas e supervisao fraca. | As regex permanecem como classificador deterministico operacional, nao apenas como fonte para treinar outro modelo. | [paper](https://arxiv.org/abs/1711.10160), [repo](https://github.com/snorkel-team/snorkel) |
+| HDBSCAN | Usa clusterizacao exploratoria e deteccao de agrupamentos. | Clusters sao folhas de apoio, nao classes finais; agentes transformam folhas em temas canonicos. | [repo](https://github.com/scikit-learn-contrib/hdbscan) |
+| BERTopic | Usa embeddings, clusters e termos representativos para topicos. | A descoberta de topicos vira banco de regex incremental e auditavel. | [paper](https://arxiv.org/abs/2203.05794), [repo](https://github.com/MaartenGr/BERTopic) |
+| LLMs em weak supervision | Usa LLM como fonte de rotulagem. | A LLM atua apenas nos residuos e gera aprendizado reutilizavel. | [Language Models in the Loop](https://arxiv.org/abs/2205.02318) |
+| LLMs gerando labeling functions | Automatiza criacao de funcoes de rotulagem. | A regex gerada passa por controle de dominio, validacao e organizacao da arvore. | [paper](https://arxiv.org/abs/2311.00739) |
+| Taxonomia automatica com LLMs | Usa LLM para construir ou ajustar taxonomias. | A arvore afeta diretamente regex, residuos, noticias raras e metricas de custo. | [paper](https://www.mdpi.com/2673-4117/6/11/283) |
+| Snowball / bootstrapping de padroes | Transforma evidencias em padroes reutilizaveis. | Aplica bootstrapping a classificacao tematica incremental com agentes e auditoria por lote. | [paper](https://www.microsoft.com/en-us/research/publication/snowball-extracting-relations-from-large-plain-text-collections/) |
+
+## Como rodar
+
+Use apenas:
 
 ```bat
 rodar_sistema.bat
 ```
 
-Ele nao exige argumentos. Basta clicar duas vezes ou executar no terminal.
+O script nao exige argumentos. Ele executa a geracao/sincronizacao da base, limpa artefatos anteriores, monta a fundacao, processa os lotes incrementais, roda reorganizacao da arvore, reavalia noticias raras e gera metricas/graficos/relatorios.
 
-O fluxo padrao:
+## Saidas principais
 
-- sincroniza a base;
-- limpa artefatos anteriores;
-- usa 15% para fundacao com fragmentos de diferentes momentos da base;
-- usa 85% para execucao incremental;
-- processa lotes de 10 noticias;
-- gera clusters da amostra;
-- registra metricas por lote;
-- gera graficos e relatorios automaticos.
-
-## Resultado da Rodada Final
-
-Fechamento registrado em 2026-05-16:
-
-- base total: 8106 noticias;
-- fundacao: 1216 noticias, 15% da base;
-- reserva incremental: 6890 noticias, 85% da base;
-- clusters exploratorios: 24;
-- temas canonicos aceitos pelo Agente 1: 17;
-- regex iniciais aceitas pelo Agente 2: 322;
-- lotes concluidos: 689;
-- documentos processados na reserva: 6890;
-- classificados por regex: 5661;
-- enviados ao Agente 3/LLM residual: 1229;
-- cobertura acumulada por regex: 82,1626%;
-- regex incrementais incorporadas: 209;
-- novos temas candidatos: 85;
-- quarentenas do Agente 3: 64;
-- erros de classificacao do Agente 3: 0.
-- Agente Organizador da Arvore: 78 candidatos unicos avaliados, 13 absorvidos, 34 mantidos como folhas e 4 novos temas canonicos propostos.
-
-Durante essa rodada foi incorporado um criterio metodologico novo: regex incrementais so entram no banco ativo quando possuem ancora de crime ou modus operandi da label canonica. Regex baseadas em nome de operacao, localidade, orgao ou termo operacional generico ficam em quarentena automatica.
-
-Tambem foi corrigido o fluxo taxonomico: um agente separado, o Agente Organizador da Arvore, roda apos os lotes para olhar a arvore completa e decidir onde cada candidato se encaixa.
-
-## Saidas
-
-Os resultados ficam em:
+Os resultados de execucao ficam em:
 
 ```text
 data/analise_qualitativa/incremental/
 ```
 
-Principais arquivos:
+Principais artefatos:
 
-- `README_METRICAS.md`: resumo automatico das metricas.
-- `relatorio_execucao_metodologia.md`: relatorio da execucao.
-- `metrics_batches.csv`: metricas por iteracao.
-- `resumo_clusters_amostra.csv`: clusters gerados na amostra inicial.
-- `temas_canonicos_agent1.json`: saida do Agente 1.
-- `insumo_agente_organizador_arvore.json`: pacote completo visto pelo Agente Organizador da Arvore, com temas atuais, candidatos, contagens, evidencias, regex aprendidas e cosseno.
-- `arvore_temas_agent1_refinada.json`: reorganizacao global dos temas candidatos pelo Agente Organizador da Arvore.
-- `regex_iniciais_agent2.json`: saida auditavel do Agente 2.
-- `regex_banco_agent2.json`: lista consumivel de regex iniciais aprovadas antes dos lotes.
-- `data/analise_qualitativa/regex_classifier_rules.json`: banco ativo usado pelo classificador regex; comeca como copia do Agente 2 e recebe incorporacoes do Agente Aprendiz de Regex.
-- `events.jsonl`: eventos completos da execucao.
-- `figures/`: graficos gerados.
+- `documentos_base.jsonl`: base estruturada usada na execucao;
+- `amostra_inicial.csv`: amostra temporal da fundacao;
+- `reserva_incremental.csv`: massa processada em lotes;
+- `resumo_clusters_amostra.csv`: resumo dos clusters da amostra;
+- `temas_canonicos_agent1.json`: temas iniciais do Agente 1;
+- `regex_iniciais_agent2.json`: regex iniciais propostas;
+- `regex_classifier_rules.json`: banco ativo de regex;
+- `metrics_batches.csv`: metricas por lote;
+- `events.jsonl`: trilha completa de eventos;
+- `temas_candidatos_agent3.jsonl`: candidatos criados no residual;
+- `arvore_temas_agent1_refinada.json`: arvore refinada;
+- `noticias_raras_observacoes.jsonl`: memoria incremental de noticias raras;
+- `classificacoes_incrementais_pos_quarentena.csv`: saida final consolidada.
 
-Os lotes ficam em:
+O artigo metodologico completo esta em:
 
 ```text
-data/analise_qualitativa/lotes/
+artigo/TD_clusterizacao_noticias_pf.md
 ```
 
-## Estrutura Principal
+## Estrutura principal
 
 ```text
 NT_PF/
 |-- rodar_sistema.bat
 |-- rodar_sistema.py
+|-- artigo/
+|   |-- TD_clusterizacao_noticias_pf.md
+|   `-- media/
 |-- data/
-|   |-- noticias_markdown/
 |   |-- reference/
 |   `-- analise_qualitativa/
-|-- docs/
-|   `-- arquitetura_treinamento_incremental.md
 |-- scripts/
 |   |-- incremental/
-|   |   |-- run_all_incremental.py
-|   |   |-- run_all_incremente.py
-|   |   |-- amostragem.py
-|   |   |-- clusterizacao_inicial.py
-|   |   |-- agente1_temas.py
-|   |   |-- agente2_regex_inicial.py
-|   |   |-- processar_lotes.py
-|   |   `-- relatorios.py
 |   |-- agentes/
 |   |-- schemas/
-|   |-- tools/
-|   |-- pf_incremental_methodology_run.py
-|   |-- pf_operacoes_pipeline.py
-|   |-- pf_llm_metadata.py
-|   |-- pf_regex_classifier.py
-|   `-- project_config.py
+|   `-- tools/
 |-- pyproject.toml
 `-- uv.lock
 ```
 
-## Dependencias
-
-O ambiente usa `uv` e Python `>=3.12,<3.14`.
-
-As dependencias dos agentes LangChain ficam no grupo opcional `agents`, ja declarado no `pyproject.toml`.
-
 ## Configuracao LLM
 
-Para usar OpenAI, crie/preencha o `.env`:
+Para usar OpenAI, preencha o `.env`:
 
 ```text
 PF_LLM_PROVIDER=openai
@@ -151,10 +210,16 @@ PF_OPENAI_API_KEY=sua_chave_openai_aqui
 PF_OPENAI_MODEL=gpt-4.1-mini
 ```
 
-Fallback local compativel com os estudos LangChain:
+Fallback local:
 
 ```text
 PF_LLM_PROVIDER=ollama
 PF_OLLAMA_MODEL=llama3.2
 PF_OLLAMA_BASE_URL=http://localhost:11434
 ```
+
+## Dependencias
+
+O ambiente usa `uv` e Python `>=3.12,<3.14`.
+
+As dependencias dos agentes LangChain ficam no grupo opcional `agents`, declarado no `pyproject.toml`.
