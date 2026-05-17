@@ -35,50 +35,40 @@ O objetivo geral e construir um sistema de classificacao incremental, autonomo e
 - trate casos sem recorrencia como `noticias_raras`, sem descartar sua memoria;
 - documente metricas, evidencias, decisoes e graficos de cada rodada.
 
-## 3. Desenho geral da metodologia
+## 3. Metodologia incremental proposta
 
-A metodologia e composta por duas fases principais: fundacao tematica e execucao incremental.
+A metodologia proposta organiza a classificacao de noticias em um ciclo incremental, autonomo e auditavel. A ideia central e separar o trabalho caro, que exige interpretacao por modelo de linguagem, do trabalho recorrente, que pode ser resolvido por regex validadas. Assim, a LLM nao e usada como classificador permanente da base inteira; ela atua nos casos residuais, produz evidencias e alimenta regras reutilizaveis para as proximas rodadas.
 
-Na fundacao tematica, uma amostra temporalmente estratificada e usada para descobrir os principais dominios criminais da base. Essa amostra passa por clusterizacao exploratoria e consolidacao por similaridade. Em seguida, o Agente 1 cria temas canonicos e o Agente 2 gera regex iniciais.
+O processo parte de uma base historica de noticias e a divide em duas massas. A primeira massa forma a fundacao tematica: uma amostra temporal estratificada usada para descobrir temas, folhas e padroes iniciais. A segunda massa forma a reserva incremental: o conjunto restante, processado em lotes, que testa a capacidade do banco de regex de classificar a base com baixo custo de inferencia.
 
-Na execucao incremental, os dados restantes sao processados em lotes. Cada noticia passa primeiro pelo banco de regex. Se for classificada, o sistema apenas registra a decisao. Se nao for classificada, a noticia segue para o Agente 3, que revisa o residual usando a lista de temas canonicos e sugestoes por similaridade do cosseno. Quando o residual gera aprendizado, o Agente Aprendiz de Regex tenta transformar a evidencia em regex. Periodicamente, o Agente Organizador da Arvore revisa todos os candidatos, funde folhas equivalentes e decide o que deve ser absorvido, promovido ou mantido como raro.
+![Conceito circular da metodologia incremental autonoma](media/figura-1-conceito-circular-metodologia.png)
 
-```mermaid
-flowchart TD
-    A["Base completa de noticias"] --> B["Amostragem temporal estratificada"]
-    A --> C["Reserva incremental"]
-    B --> D["Texto de dominio criminal"]
-    D --> E["Clusterizacao exploratoria"]
-    E --> F["Consolidacao por similaridade do cosseno"]
-    F --> G["Agente 1: temas canonicos"]
-    G --> H["Agente 2: regex iniciais"]
-    H --> I["Banco de regex ativo"]
-    C --> J["Processamento em lotes"]
-    J --> K["Parser da noticia"]
-    K --> L["Classificador regex"]
-    L -- "classifica" --> M["Registro auditavel por regex"]
-    L -- "nao classifica" --> N["Agente 3: revisao residual"]
-    N -- "tema canonico" --> O["Classificacao residual"]
-    N -- "novo candidato" --> P["Tema candidato"]
-    N -- "sem encaixe" --> Q["noticias_raras"]
-    O --> R["Agente Aprendiz de Regex"]
-    P --> R
-    R --> S["Validacao e incorporacao de regex"]
-    S --> I
-    P --> T["Agente Organizador da Arvore"]
-    Q --> U["Memoria de assinaturas raras"]
-    U -- "recorrencia" --> P
-    T --> V["Arvore refinada de temas"]
-    V --> I
-```
+A figura apresenta o conceito geral da metodologia. O ciclo comeca pela descoberta dos temas recorrentes, passa pela formalizacao desses temas em regex, processa novos lotes, envia apenas os residuos para revisao por LLM, aprende novas regras e reorganiza periodicamente a arvore tematica. O ponto essencial e que cada excecao classificada deve deixar uma trilha auditavel e, quando possivel, reduzir a chance de uma chamada futura de LLM para casos semelhantes.
 
-## 4. Amostragem temporal estratificada
+### 3.1 Objetivo da classificacao e pontos de atencao
 
-A primeira decisao metodologica e nao usar a base inteira para descoberta inicial. A base e incremental e cresce continuamente; portanto, usar tudo na fundacao tornaria a etapa inicial mais cara e menos alinhada com o objetivo de baixo custo.
+A classificacao tenta identificar o dominio criminal ou o modus operandi principal de cada noticia. O foco nao e classificar localidades, unidades da federacao, nomes de operacao, orgaos parceiros ou entidades ocasionais. Esses elementos podem ajudar na auditoria, mas nao devem virar tema canonico.
 
-A metodologia seleciona uma fracao da base como amostra inicial. Na execucao documentada, a fracao foi de 15%. A selecao e estratificada temporalmente por ano para evitar que a amostra seja dominada por periodos recentes. O procedimento garante representacao minima de diferentes momentos da base e reduz o risco de temas antigos desaparecerem da fundacao.
+O classificador busca categorias como `trafico_drogas`, `crimes_contra_criancas`, `crime_organizado`, `corrupcao_desvio_recursos_publicos`, `crimes_ambientais`, `armas_municoes`, `falsificacao_documental`, `moeda_falsa` e outros temas criminais observados na base.
 
-Na rodada documentada:
+Os pontos frageis da metodologia exigem controle explicito:
+
+- clusters podem agrupar noticias por lugar, instituicao ou forma textual, e nao por crime;
+- regex muito especificas podem capturar apenas uma noticia e nao generalizar;
+- regex muito amplas podem contaminar temas diferentes;
+- nomes de operacao e localidades nao devem ser usados como ancora principal;
+- casos raros nao devem virar tema definitivo antes de demonstrar recorrencia;
+- candidatos novos precisam ser comparados com todos os temas existentes antes de serem promovidos.
+
+### 3.2 Ingestao e divisao da base
+
+A ingestao separa a base em duas partes. A primeira e uma amostra inicial estratificada no tempo, usada para montar a fundacao tematica. A segunda e a reserva incremental, usada para executar o ciclo de classificacao, aprendizado e medicao.
+
+![Fundacao tematica a partir da amostra inicial](media/figura-2-fundacao-tematica.png)
+
+A figura mostra a primeira parte da metodologia. A amostra temporal entra na etapa de texto de dominio criminal, depois passa por clusterizacao exploratoria e consolidacao por similaridade do cosseno. Em seguida, o Agente 1 ajusta os temas canonicos a partir dos clusters e o Agente 2 transforma esses temas em regex iniciais. O resultado dessa etapa e o primeiro banco de regex ativo.
+
+Na execucao documentada, a base tinha 8.106 noticias. A amostra inicial correspondeu a 15% da base, com 1.216 noticias, e a reserva incremental ficou com 6.890 noticias. A estratificacao por ano evita que a fundacao seja dominada por um periodo especifico e aumenta a chance de capturar temas recorrentes em diferentes momentos da serie historica.
 
 | Item | Valor |
 |---|---:|
@@ -88,52 +78,15 @@ Na rodada documentada:
 | Reserva incremental | 6.890 noticias |
 | Estratificacao | Ano |
 
-Distribuicao temporal da amostra inicial:
+A tabela apresenta a divisao operacional da base. Essa separacao sustenta a proposta de baixo custo: a amostra inicial e suficiente para criar a fundacao tematica, enquanto a maior parte da base e reservada para medir se o regex passa a dominar a classificacao.
 
-| Ano | Noticias |
-|---|---:|
-| 2011 | 1 |
-| 2019 | 69 |
-| 2020 | 117 |
-| 2021 | 149 |
-| 2022 | 126 |
-| 2023 | 130 |
-| 2024 | 273 |
-| 2025 | 257 |
-| 2026 | 94 |
+### 3.3 Texto de dominio criminal, clusterizacao e similaridade
 
-## 5. Texto de dominio criminal
+Antes da clusterizacao, cada noticia passa por uma etapa de normalizacao e reducao para texto de dominio criminal. Essa representacao prioriza titulo, subtitulo, tags, condutas, crimes, objetos ilicitos, modus operandi e trechos relevantes do corpo. Ao mesmo tempo, reduz o peso de localidades, nomes proprios, nomes de operacao, orgaos parceiros e termos administrativos genericos.
 
-Antes da clusterizacao, os textos sao normalizados e reduzidos a uma representacao voltada ao dominio criminal. Essa etapa existe porque textos institucionais contêm muitos sinais que ajudam a identificar documentos, mas nao devem definir temas: nomes de cidades, unidades federativas, datas, nomes de operacoes, orgaos parceiros e entidades ocasionais.
+A clusterizacao tem papel exploratorio. Ela nao define a classe final da noticia. Sua funcao e organizar a amostra inicial em folhas semanticamente proximas para que o Agente 1 consiga enxergar a diversidade tematica. A metodologia e compativel com HDBSCAN; na execucao documentada, quando a densidade ficou instavel, foi acionado `minibatch_kmeans_fallback` como alternativa operacional de baixo custo. Em ambos os casos, a clusterizacao e apenas uma etapa de apoio.
 
-O texto de dominio prioriza:
-
-- crimes;
-- condutas;
-- objetos ilicitos;
-- modus operandi;
-- termos das tags;
-- titulo, subtitulo e trechos do corpo da noticia.
-
-Ele reduz o peso de:
-
-- localidades;
-- nomes proprios;
-- nomes de operacao;
-- termos administrativos genericos;
-- informacoes acidentais.
-
-Esse filtro nao elimina a informacao original. A noticia completa continua disponivel para auditoria, LLM e validacao posterior. O objetivo e apenas impedir que a clusterizacao inicial crie temas como localidades, siglas regionais ou eventos administrativos.
-
-## 6. Clusterizacao exploratoria e consolidacao por cosseno
-
-A clusterizacao inicial tem papel exploratorio. Ela nao e a classificacao final. Seu objetivo e organizar a amostra em grupos proximos para que o Agente 1 tenha uma representacao inicial da diversidade tematica.
-
-A metodologia e compativel com HDBSCAN, especialmente quando a densidade dos embeddings favorece agrupamentos naturais e deteccao de ruido. Na execucao documentada, foi acionado `minibatch_kmeans_fallback`, uma alternativa operacional de baixo custo registrada no artefato de execucao. O uso de fallback nao altera a logica metodologica, pois a clusterizacao e apenas uma etapa de organizacao da fundacao.
-
-Depois da clusterizacao bruta, a similaridade do cosseno e usada para consolidar clusters semanticamente proximos. Essa etapa e importante porque clusters separados podem pertencer ao mesmo tema criminal. Por exemplo, clusters sobre abuso infantil, pornografia infantojuvenil e compartilhamento de material podem ser consolidados em `crimes_contra_criancas`.
-
-Na execucao documentada:
+Depois da clusterizacao bruta, a similaridade do cosseno consolida clusters semanticamente proximos. Essa etapa corrige fragmentacoes naturais: dois clusters diferentes podem representar folhas de um mesmo tema, como abuso sexual infantil, pornografia infantojuvenil e compartilhamento de material.
 
 | Item | Valor |
 |---|---:|
@@ -142,194 +95,190 @@ Na execucao documentada:
 | Grupos fundidos por cosseno | 5 |
 | Clusters de ruido | 0 |
 
-Exemplos de consolidacao por cosseno:
+A tabela resume o efeito da consolidacao. A reducao de 34 clusters brutos para 24 consolidados indica que parte da separacao inicial era granular demais para virar tema final. A similaridade do cosseno atua como apoio analitico, nao como decisor unico.
 
-| Grupo | Clusters brutos fundidos | Familia dominante | Tamanho |
-|---|---|---|---:|
-| 1 | 1, 4, 11, 22, 25, 27 | crimes_contra_criancas | 182 |
-| 2 | 2, 14, 31 | crime_organizado | 161 |
-| 7 | 7, 13 | trafico_drogas | 88 |
-| 8 | 8, 17 | crimes_ambientais | 66 |
-| 16 | 16, 29 | corrupcao_recursos_publicos | 125 |
+![Principais grupos consolidados da amostra inicial](media/figura-2-clusters-fundacao.png)
 
-![Quantidade de noticias por cluster na amostra inicial](media/figura-clusters-amostra-quantidade.png)
+A figura mostra os principais grupos consolidados da fundacao tematica. Ela deve ser lida como fotografia da amostra inicial: aponta onde havia massa tematica suficiente para orientar o Agente 1, mas nao substitui a decisao canonica dos agentes.
 
-## 7. Agentes da metodologia
+### 3.4 Agente 1: temas canonicos e arvore operacional
 
-A arquitetura usa agentes especializados, cada um com uma responsabilidade delimitada. A separacao reduz ambiguidade, melhora a auditabilidade e evita que um mesmo agente decida tudo sem controle.
+O Agente 1 recebe os clusters consolidados e decide como eles devem ser nomeados e agregados. Ele atua como bifurcador de temas: junta folhas que pertencem ao mesmo dominio criminal, separa subtemas quando existe identidade criminal distinta e impede que localidades, entidades ou nomes de operacao virem classes finais.
 
-### 7.1 Agente 1: Bifurcador de temas canonicos
+Esse agente precisa olhar o conjunto inteiro de temas disponiveis antes de decidir se uma folha e novo tema ou se deve ser absorvida por tema existente. Essa regra e importante porque a base e incremental: sem uma visao global, o sistema tenderia a acumular microtemas redundantes.
 
-O Agente 1 recebe os clusters consolidados da amostra inicial. Sua tarefa e criar temas canonicos a partir de crimes e modus operandi, nao de localidades ou entidades.
+![Arvore operacional de temas canonicos e folhas de clusters](media/figura-6-arvore-operacional-temas-folhas.png)
 
-Ele deve:
+A figura apresenta a arvore operacional produzida a partir dos clusters consolidados. A coluna da esquerda mostra temas canonicos; a coluna intermediaria mostra as folhas de cluster que alimentam cada tema; a coluna da direita resume termos dominantes usados como evidencia. Essa visualizacao deixa claro que o tema final nao e o cluster isolado, mas a agregacao analitica de folhas por familia criminal dominante.
 
-- agregar clusters que pertencem ao mesmo dominio criminal;
-- separar subtemas quando houver identidade criminal distinta;
-- criar nomes canonicos em `lowercase_com_underscores`;
-- registrar termos de evidencia;
-- descartar ou isolar ruido;
-- evitar que uma localidade vire tema.
+### 3.5 Agente 2: geracao de regex iniciais
 
-Exemplo de criterio:
+O Agente 2 recebe os temas canonicos do Agente 1 e as evidencias associadas a cada folha. Sua funcao e gerar regex iniciais suficientes para cobrir a diversidade observada dentro de cada tema. Nao ha limite artificial de regex por tema: a quantidade depende da variedade de condutas, objetos, termos e modos de operacao encontrados nas folhas.
 
-`crimes_contra_criancas` pode englobar abuso sexual infantil, pornografia infantil, disseminacao de material infantojuvenil e compartilhamento desse material pela internet, desde que a identidade criminal central seja violencia ou exploracao contra criancas e adolescentes.
-
-Na execucao documentada, o Agente 1 aceitou 17 temas canonicos iniciais.
-
-### 7.2 Agente 2: Gerador de regex iniciais
-
-O Agente 2 recebe os temas canonicos e as evidencias associadas a cada tema. Sua funcao e gerar regex suficientes para cobrir as folhas observadas dentro de cada tema.
-
-As regex devem:
-
-- ter ancora em crime, conduta ou modus operandi;
-- evitar dependência de localidade;
-- evitar nomes de operacao;
-- evitar entidades acidentais;
-- ser validadas contra exemplos positivos e negativos;
-- ser registradas com label, fonte e exemplos.
-
-Nao ha limite artificial de regex por tema. A quantidade depende da diversidade observada nas folhas de cada tema.
-
-Na execucao documentada:
+As regex devem ser ancoradas em crime, conduta ou modus operandi. Elas nao devem depender de localidade, nome de operacao, orgao parceiro ou entidade acidental. Cada regra precisa guardar label, fonte, exemplos positivos, exemplos negativos quando disponiveis e justificativa minima de incorporacao.
 
 | Item | Valor |
 |---|---:|
 | Regex iniciais aceitas | 5.739 |
-| Padrões iniciais ativos apos consolidacao | 5.146 |
+| Padroes iniciais ativos apos consolidacao | 5.146 |
 
-### 7.3 Agente 3: Revisor residual
+A tabela mostra a escala da cobertura inicial criada pelo Agente 2. O numero alto de regex e esperado porque cada tema pode ter varias folhas internas. O objetivo nao e criar uma regra generica demais, mas um banco deterministico amplo o bastante para capturar recorrencias sem chamar LLM.
 
-O Agente 3 atua apenas quando a regex nao classifica uma noticia. Ele recebe:
+### 3.6 Caminho da noticia na classificacao incremental
 
-- texto estruturado da noticia;
-- labels canonicas disponiveis;
-- sugestoes por similaridade do cosseno;
-- tags e titulo;
-- evidencias textuais do corpo.
+Depois da fundacao tematica, a reserva incremental e processada em lotes. Cada noticia passa primeiro pelo parser, que estrutura titulo, subtitulo, tags, data e corpo. Em seguida, o classificador regex tenta atribuir uma label. Quando a regex classifica acima do limiar, a decisao e registrada diretamente. Quando falha, a noticia segue para o Agente 3.
 
-Sua decisao deve seguir esta ordem:
+![Execucao incremental em lotes com classificacao regex-first](media/figura-3-execucao-incremental-lotes.png)
 
-1. Classificar em tema canonico existente, se houver encaixe defensavel.
-2. Gerar `novo_tema_candidato`, se houver tema substantivo claro ainda nao coberto.
-3. Classificar como `noticias_raras`, se nao houver encaixe nem recorrencia suficiente.
+A figura apresenta o caminho operacional de cada noticia. O banco de regex aparece antes da LLM porque a proposta e `regex-first`: resolver deterministicamente o que ja foi aprendido e reservar inferencia para os residuos. Esse desenho permite medir, lote a lote, quanto da base foi absorvido por regra e quanto ainda depende de interpretacao por modelo.
 
-O Agente 3 nao deve criar microtema para toda excecao. Ele tambem nao deve forcar uma classificacao quando a noticia nao cabe em nenhum tema existente. A saida deve ser estruturada por schema, contendo decisao, label, confianca, evidencia textual, justificativa e resumo curto.
+Na execucao documentada, os lotes tinham 500 noticias, exceto o ultimo. A reserva incremental de 6.890 noticias foi processada em 14 lotes. No acumulado, 6.527 noticias foram classificadas por regex e 363 seguiram para LLM residual.
 
-### 7.4 Agente Aprendiz de Regex
+| Indicador | Valor |
+|---|---:|
+| Noticias na reserva incremental | 6.890 |
+| Lotes processados | 14 |
+| Tamanho medio dos lotes | 492,14 |
+| Capturadas por regex | 6.527 |
+| Residuais enviados a LLM | 363 |
+| Taxa regex acumulada | 94,73% |
+| Taxa residual LLM | 5,27% |
+| Aprendizados por lote, em media | 3,64 |
 
-O Agente Aprendiz de Regex recebe uma decisao residual e tenta transformar a evidencia em uma regra reutilizavel. Ele nao reclassifica a noticia. Sua tarefa e gerar uma regex candidata e validar se ela tem ancora de crime ou modus operandi.
+A tabela resume os resultados operacionais sem detalhar cada lote individual. A taxa de 94,73% mostra que o classificador deterministico dominou a execucao; os 5,27% residuais concentraram o custo de LLM nos casos que realmente exigiam revisao.
 
-Uma regex aprendida so e incorporada se:
+### 3.7 Agente 3: revisao residual
 
-- a label for defensavel;
-- houver termos substantivos do crime ou da conduta;
-- a regex capturar o caso positivo;
-- a regex nao capturar indevidamente exemplos negativos;
-- a regra nao for apenas localidade, entidade, nome de operacao ou frase operacional generica.
+O Agente 3 atua apenas quando a regex nao classifica uma noticia. Ele recebe o texto estruturado, as labels canonicas existentes, sugestoes por similaridade do cosseno, tags, titulo e evidencias textuais do corpo. Sua decisao segue tres caminhos:
 
-Na execucao documentada:
+1. classificar em tema canonico existente, quando houver encaixe defensavel;
+2. criar `novo_tema_candidato`, quando houver subtema substantivo ainda nao coberto;
+3. marcar como `noticias_raras`, quando nao houver encaixe nem recorrencia suficiente.
+
+O Agente 3 nao deve criar microtema para toda excecao. Tambem nao deve forcar classificacao quando a noticia nao cabe nos temas disponiveis. Sua saida e estruturada por schema e precisa conter decisao, label, confianca, evidencia textual, justificativa e resumo curto.
+
+### 3.8 Agente Aprendiz de Regex e noticias raras
+
+O Agente Aprendiz de Regex recebe uma decisao residual e tenta transformar a evidencia em regra reutilizavel. Ele nao reclassifica a noticia; sua funcao e gerar regex candidata e validar se ela tem ancora em crime ou modus operandi. Uma regra so entra no banco ativo se capturar o caso positivo, evitar exemplos negativos e nao depender apenas de localidade, entidade ou nome de operacao.
+
+![Aprendizado residual e reorganizacao da arvore tematica](media/figura-4-aprendizado-reorganizacao.png)
+
+A figura mostra a parte adaptativa da metodologia. Quando o Agente 3 encontra tema canonico, o caso pode alimentar o Agente Aprendiz de Regex. Quando identifica subtema novo, gera candidato para a arvore. Quando nao ha encaixe, o caso entra como `noticias_raras` e recebe uma assinatura. Se a assinatura rara reaparece, ela deixa de ser apenas excecao e volta ao ciclo como candidato.
+
+Na execucao documentada, 51 regras foram aprendidas no ciclo residual e permaneceram ativas no banco final.
 
 | Item | Valor |
 |---|---:|
 | Regras aprendidas no ciclo residual | 51 |
-| Padrões aprendidos ativos | 51 |
-
-### 7.5 Agente Organizador da Arvore
-
-O Agente Organizador da Arvore executa uma revisao global apos o processamento incremental. Ele recebe:
-
-- temas canonicos atuais;
-- candidatos criados pelo Agente 3;
-- contagem por candidato;
-- evidencias textuais;
-- regex aprendidas;
-- sugestoes por similaridade do cosseno;
-- banco de regex ativo.
-
-Sua funcao e evitar que a arvore vire uma lista de microtemas. Ele decide se cada candidato deve:
-
-- ser absorvido por um tema existente;
-- ser consolidado em macrotema;
-- ser promovido a novo tema canonico;
-- permanecer como noticia rara;
-- ser descartado como ruido.
-
-Na execucao refinada, o organizador avaliou 55 candidatos, absorveu 19 em temas existentes e promoveu 6 macrotemas:
-
-- `ameacas_e_terrorismo`
-- `crimes_contra_saude_publica`
-- `crimes_de_odio_e_extremismo`
-- `crimes_patrimoniais`
-- `falsificacao_documental`
-- `seguranca_privada_clandestina`
-
-![Temas canonicos e folhas](media/figura-temas-canonicos-folhas.png)
-
-## 8. Noticias raras
-
-`noticias_raras` e um tema operacional, nao uma categoria criminal final no mesmo sentido dos demais temas. Ele existe para lidar com casos que nao cabem nos temas atuais e ainda nao apresentam recorrencia suficiente para virar macrotema ou regex.
-
-Essa etapa resolve uma tensao metodologica:
-
-- se todo caso raro gerar regex imediatamente, o banco fica ruidoso;
-- se nenhum caso raro gerar memoria, noticias semelhantes futuras continuarao acionando LLM;
-- portanto, a primeira ocorrencia rara deve ser registrada, mas nao deve necessariamente virar regex.
-
-A solucao implementada e uma memoria de assinaturas raras. Cada noticia rara recebe uma `rare_signature`, como:
-
-- `tortura_sequestro_carcere`;
-- `violencia_domestica_feminicidio`;
-- `assedio_sexual_coacao`;
-- `violencia_politica_atos_antidemocraticos`;
-- `execucao_mandado_prisional`.
-
-Quando uma assinatura rara reaparece, ela deixa de ser apenas rara e passa a ser promovida automaticamente para candidato de tema. A partir desse ponto, volta ao ciclo normal: o Agente 3 registra o candidato, o Agente Aprendiz pode gerar regex e o Agente Organizador decide se o padrao deve ser absorvido, promovido ou mantido raro.
-
-Regras importantes:
-
-- `noticias_raras` nao gera regex diretamente;
-- regex so nasce a partir de uma assinatura rara recorrente;
-- o banco de regex nao deve conter classificador `noticias_raras`;
-- casos raros permanecem auditaveis em arquivo proprio.
-
-Na execucao documentada:
-
-| Item | Valor |
-|---|---:|
+| Padroes aprendidos ativos | 51 |
 | Quarentenas reavaliadas | 48 |
 | Reclassificadas para macrotemas | 41 |
 | Mantidas como `noticias_raras` | 7 |
 | `noticias_raras` no banco de regex | Nao |
 
-## 9. Processamento incremental em lotes
+A tabela mostra que o ciclo residual produziu aprendizado sem transformar `noticias_raras` em categoria criminal comum. Casos raros permanecem auditaveis, mas so geram regex quando apresentam recorrencia ou quando sao absorvidos por tema defensavel.
 
-A reserva incremental e processada em lotes sequenciais. Em cada lote, cada noticia segue o mesmo caminho:
+### 3.9 Agente Organizador da Arvore
 
-1. Parser extrai titulo, subtitulo, tags, data e corpo.
-2. Classificador regex tenta atribuir label.
-3. Se a regex classifica acima do limiar, a decisao e registrada.
-4. Se a regex falha, a noticia segue para o Agente 3.
-5. O Agente 3 classifica, cria candidato ou marca como noticia rara.
-6. Casos classificados ou candidatos podem alimentar o Agente Aprendiz de Regex.
-7. Regex validas entram no banco ativo para os proximos itens e lotes.
-8. Ao final, a arvore de temas e reorganizada globalmente.
+O Agente Organizador da Arvore executa uma revisao global depois do processamento incremental. Ele recebe os temas canonicos atuais, candidatos criados pelo Agente 3, contagens, evidencias, regex aprendidas, sugestoes por similaridade do cosseno e o banco de regex ativo.
 
-Na execucao documentada, o limiar de confianca regex foi 0,85 e os lotes tinham 500 noticias, exceto o ultimo.
+Sua responsabilidade e impedir que a taxonomia cresca por acumulacao desordenada. Ele decide se um candidato deve ser absorvido por tema existente, consolidado em macrotema, promovido a novo tema canonico, mantido como raro ou descartado como ruido.
+
+Na execucao refinada, o organizador avaliou 55 candidatos, absorveu 19 em temas existentes e promoveu 6 macrotemas: `ameacas_e_terrorismo`, `crimes_contra_saude_publica`, `crimes_de_odio_e_extremismo`, `crimes_patrimoniais`, `falsificacao_documental` e `seguranca_privada_clandestina`.
+
+### 3.10 Banco de regex, metricas e auditabilidade
+
+O banco de regex e o classificador deterministico principal. Ele e versionado em JSON e registra label, fonte, exemplos, usos e padroes. Ao final da execucao documentada, o banco continha 23 classificadores ativos e 5.197 padroes regex ativos.
 
 | Item | Valor |
 |---|---:|
-| Noticias na reserva incremental | 6.890 |
-| Lotes | 14 |
-| Tamanho dos lotes | 500 |
-| Ultimo lote | 390 |
-| Capturadas por regex | 6.527 |
-| Residuais enviados a LLM | 363 |
-| Taxa regex acumulada | 94,73% |
-| Taxa residual LLM | 5,27% |
+| Classificadores ativos | 23 |
+| Padroes regex ativos | 5.197 |
+| Padroes vindos do Agente 2 | 5.146 |
+| Padroes aprendidos pelo residual | 51 |
+| Labels ativas finais no banco | 23 |
 
-## 10. Resultados por lote
+A tabela descreve a composicao do banco deterministico. A maior parte dos padroes veio da fundacao tematica, enquanto o ciclo residual adicionou regras novas para reduzir chamadas futuras de LLM.
+
+![Regex versus residual por iteracao](media/figura-3-regex-vs-residual.png)
+
+A figura compara, por iteracao, quantas noticias foram resolvidas por regex e quantas precisaram de LLM residual. O contraste evidencia que o regex domina o fluxo operacional.
+
+![Taxa regex por iteracao](media/figura-4-taxa-regex.png)
+
+A figura mostra a estabilidade da taxa de classificacao por regex ao longo dos lotes. Ela permite acompanhar se o sistema perde cobertura em algum ponto ou se o aprendizado incremental mantem a classificacao deterministica em patamar elevado.
+
+![Noticias por tema apos classificacao das noticias raras](media/figura-5-temas-finais.png)
+
+A figura apresenta a distribuicao final das noticias por tema. Os maiores volumes ficaram em `trafico_drogas`, `crimes_contra_criancas`, `crime_organizado` e `corrupcao_desvio_recursos_publicos`, enquanto `noticias_raras` permaneceu residual, com 7 casos finais.
+
+Cada etapa produz artefatos persistentes. Isso permite reconstruir a origem da amostra, os clusters, as decisoes dos agentes, as regras incorporadas, as metricas por lote e os casos raros.
+
+| Artefato | Funcao |
+|---|---|
+| `documentos_base.jsonl` | Base estruturada usada na execucao |
+| `amostra_inicial.csv` | Amostra temporal da fundacao |
+| `reserva_incremental.csv` | Massa processada em lotes |
+| `resumo_clusters_amostra.csv` | Resumo dos clusters da amostra |
+| `temas_canonicos_agent1.json` | Temas iniciais do Agente 1 |
+| `regex_iniciais_agent2.json` | Regex iniciais propostas |
+| `regex_classifier_rules.json` | Banco ativo de regex |
+| `metrics_batches.csv` | Metricas por lote |
+| `events.jsonl` | Trilha completa de eventos |
+| `temas_candidatos_agent3.jsonl` | Candidatos criados no residual |
+| `arvore_temas_agent1_refinada.json` | Arvore refinada |
+| `noticias_raras_observacoes.jsonl` | Memoria incremental de noticias raras |
+| `classificacoes_incrementais_pos_quarentena.csv` | Saida final consolidada |
+
+A tabela lista os artefatos de auditoria. Eles tornam o ciclo transparente: cada classificacao pode ser rastreada ate a regra, o agente, o lote ou a decisao residual que a produziu.
+
+## 4. Criterios de qualidade
+
+A metodologia avalia qualidade por criterios operacionais e epistemicos.
+
+### 4.1 Custo
+
+O custo e medido pela proporcao de noticias classificadas por regex antes de acionar LLM. Na execucao documentada, 94,73% da reserva incremental foi resolvida por regex.
+
+### 4.2 Cobertura
+
+Cobertura e a capacidade do banco de regex capturar temas recorrentes. A cobertura aumenta quando regex aprendidas entram no banco e passam a classificar casos futuros.
+
+### 4.3 Precisao operacional
+
+Precisao operacional e protegida por validadores que rejeitam regex ancoradas apenas em localidade, entidade, nome de operacao ou termo generico. O foco deve ser crime, conduta ou modus operandi.
+
+### 4.4 Estabilidade taxonomica
+
+A arvore de temas nao deve crescer por acumulacao desordenada de microtemas. O Agente Organizador da Arvore consolida candidatos e evita que cada excecao vire uma categoria.
+
+### 4.5 Transparencia
+
+Toda decisao relevante deve deixar evidencia textual, justificativa, label, fonte e arquivo de origem.
+
+## 5. Limitacoes
+
+A metodologia ainda possui limitacoes importantes.
+
+Primeiro, a qualidade da fundacao depende da amostra inicial. Uma amostra pequena pode deixar de observar temas raros ou emergentes. A estratificacao temporal reduz esse risco, mas nao o elimina.
+
+Segundo, clusterizacao nao equivale a categoria criminal. Clusters podem refletir formato textual, localidade ou termos institucionais. Por isso, a classificacao final depende dos agentes e dos validadores de dominio.
+
+Terceiro, regex sao interpretaveis, mas podem gerar falso positivo se forem amplas demais. A validacao por exemplos negativos e a exigencia de ancora criminal mitigam esse risco.
+
+Quarto, noticias raras exigem memoria incremental. Se forem ignoradas, o sistema perde aprendizado; se forem promovidas cedo demais, o banco fica ruidoso. Por isso, a assinatura rara recorrente e uma etapa central.
+
+Quinto, os resultados dependem do modelo LLM disponivel e da qualidade dos schemas estruturados. O uso de fallback local ou remoto deve ser registrado em eventos.
+
+## 6. Conclusao
+
+A metodologia implementa um ciclo fechado de classificacao incremental autonomo. Ela usa uma amostra temporal para descobrir a fundacao tematica, clusterizacao e similaridade para organizar a diversidade inicial, agentes especializados para nomear temas e gerar regex, regex para classificar a maior parte da massa, LLM apenas para residuos e um mecanismo de aprendizado que converte excecoes recorrentes em regras reutilizaveis.
+
+O resultado principal e a demonstracao de uma arquitetura de baixo custo e alta rastreabilidade: 94,73% da reserva incremental foi classificada por regex, enquanto 5,27% exigiu LLM residual. As noticias que nao se encaixaram imediatamente nao foram descartadas; foram convertidas em `noticias_raras`, com assinaturas auditaveis capazes de alimentar futuros candidatos quando houver recorrencia.
+
+Essa abordagem e transferivel para outros dominios textuais em que haja grande volume, crescimento continuo, baixa disponibilidade de rotulagem humana, necessidade de transparencia e pressao por reducao de custo de inferencia.
+
+## 7. Apendice: resultados por lote
 
 | Lote | Noticias | Regex | Residual/LLM | Aprendizados | Taxa regex |
 |---|---:|---:|---:|---:|---:|
@@ -348,140 +297,9 @@ Na execucao documentada, o limiar de confianca regex foi 0,85 e os lotes tinham 
 | lote_0013 | 500 | 472 | 28 | 6 | 94,40% |
 | lote_0014 | 390 | 363 | 27 | 7 | 93,08% |
 
-![Regex versus residual por iteracao](../data/analise_qualitativa/incremental/figures/regex_vs_residual_por_iteracao.png)
+A tabela apresenta o detalhamento por lote que foi resumido no corpo da metodologia. Ela fica no apendice para preservar a rastreabilidade dos resultados sem interromper a narrativa principal.
 
-![Taxa regex por iteracao](../data/analise_qualitativa/incremental/figures/taxa_regex_por_iteracao.png)
-
-## 11. Temas finais observados
-
-Apos a reorganizacao da arvore e a reavaliacao das noticias raras, os principais temas finais foram:
-
-| Tema | Noticias |
-|---|---:|
-| trafico_drogas | 1.264 |
-| crimes_contra_criancas | 1.119 |
-| crime_organizado | 1.067 |
-| corrupcao_desvio_recursos_publicos | 966 |
-| contrabando_descaminho | 552 |
-| crimes_ambientais | 490 |
-| armas_municoes | 273 |
-| crimes_previdenciarios | 241 |
-| crimes_eleitorais | 172 |
-| crimes_sistema_financeiro | 168 |
-| moeda_falsa | 139 |
-| fraudes_auxilios_beneficios | 112 |
-| radiodifusao_clandestina | 60 |
-| lavagem_dinheiro | 58 |
-| trabalho_escravo | 53 |
-| crimes_migratorios | 49 |
-| falsificacao_documental | 19 |
-| ameacas_e_terrorismo | 19 |
-| crimes_ciberneticos | 15 |
-| crimes_patrimoniais | 14 |
-| seguranca_privada_clandestina | 12 |
-| crimes_contra_saude_publica | 10 |
-| crimes_de_odio_e_extremismo | 9 |
-| noticias_raras | 7 |
-
-![Noticias por tema apos classificacao das noticias raras](../data/analise_qualitativa/incremental/figures/noticias_por_tema_pos_quarentena.png)
-
-## 12. Banco de regex
-
-O banco de regex e o classificador deterministico principal. Ele e versionado em JSON e registra label, fonte, exemplos, usos e padroes.
-
-Na execucao documentada:
-
-| Item | Valor |
-|---|---:|
-| Classificadores ativos | 23 |
-| Padroes regex ativos | 5.197 |
-| Padroes vindos do Agente 2 | 5.146 |
-| Padroes aprendidos pelo residual | 51 |
-| Labels ativas finais no banco | 23 |
-
-O banco final nao possui regex para `noticias_raras`. Isso e intencional: noticias raras acumulam assinatura, e somente assinaturas recorrentes podem ser promovidas para candidato e gerar regex.
-
-## 13. Auditabilidade
-
-Cada etapa produz artefatos persistentes. Isso permite auditar:
-
-- qual amostra foi usada;
-- quais clusters foram gerados;
-- quais clusters foram fundidos por similaridade;
-- quais temas canonicos foram aceitos;
-- quais regex foram geradas;
-- quais noticias passaram por regex;
-- quais noticias foram para LLM;
-- qual evidencia sustentou cada decisao residual;
-- quais regex foram aprendidas;
-- quais candidatos foram promovidos ou absorvidos;
-- quais noticias permaneceram como raras.
-
-Principais arquivos:
-
-| Artefato | Funcao |
-|---|---|
-| `documentos_base.jsonl` | Base estruturada usada na execucao |
-| `amostra_inicial.csv` | Amostra temporal da fundacao |
-| `reserva_incremental.csv` | Massa processada em lotes |
-| `resumo_clusters_amostra.csv` | Resumo dos clusters da amostra |
-| `temas_canonicos_agent1.json` | Temas iniciais do Agente 1 |
-| `regex_iniciais_agent2.json` | Regex iniciais propostas |
-| `regex_classifier_rules.json` | Banco ativo de regex |
-| `metrics_batches.csv` | Metricas por lote |
-| `events.jsonl` | Trilha completa de eventos |
-| `temas_candidatos_agent3.jsonl` | Candidatos criados no residual |
-| `arvore_temas_agent1_refinada.json` | Arvore refinada |
-| `noticias_raras_observacoes.jsonl` | Memoria incremental de noticias raras |
-| `classificacoes_incrementais_pos_quarentena.csv` | Saida final consolidada |
-
-## 14. Criterios de qualidade
-
-A metodologia avalia qualidade por criterios operacionais e epistemicos.
-
-### 14.1 Custo
-
-O custo e medido pela proporcao de noticias classificadas por regex antes de acionar LLM. Na execucao documentada, 94,73% da reserva incremental foi resolvida por regex.
-
-### 14.2 Cobertura
-
-Cobertura e a capacidade do banco de regex capturar temas recorrentes. A cobertura aumenta quando regex aprendidas entram no banco e passam a classificar casos futuros.
-
-### 14.3 Precisao operacional
-
-Precisao operacional e protegida por validadores que rejeitam regex ancoradas apenas em localidade, entidade, nome de operacao ou termo generico. O foco deve ser crime, conduta ou modus operandi.
-
-### 14.4 Estabilidade taxonomica
-
-A arvore de temas nao deve crescer por acumulacao desordenada de microtemas. O Agente Organizador da Arvore consolida candidatos e evita que cada excecao vire uma categoria.
-
-### 14.5 Transparencia
-
-Toda decisao relevante deve deixar evidencia textual, justificativa, label, fonte e arquivo de origem.
-
-## 15. Limitacoes
-
-A metodologia ainda possui limitacoes importantes.
-
-Primeiro, a qualidade da fundacao depende da amostra inicial. Uma amostra pequena pode deixar de observar temas raros ou emergentes. A estratificacao temporal reduz esse risco, mas nao o elimina.
-
-Segundo, clusterizacao nao equivale a categoria criminal. Clusters podem refletir formato textual, localidade ou termos institucionais. Por isso, a classificacao final depende dos agentes e dos validadores de dominio.
-
-Terceiro, regex sao interpretaveis, mas podem gerar falso positivo se forem amplas demais. A validacao por exemplos negativos e a exigencia de ancora criminal mitigam esse risco.
-
-Quarto, noticias raras exigem memoria incremental. Se forem ignoradas, o sistema perde aprendizado; se forem promovidas cedo demais, o banco fica ruidoso. Por isso, a assinatura rara recorrente e uma etapa central.
-
-Quinto, os resultados dependem do modelo LLM disponivel e da qualidade dos schemas estruturados. O uso de fallback local ou remoto deve ser registrado em eventos.
-
-## 16. Conclusao
-
-A metodologia implementa um ciclo fechado de classificacao incremental autonomo. Ela usa uma amostra temporal para descobrir a fundacao tematica, clusterizacao e similaridade para organizar a diversidade inicial, agentes especializados para nomear temas e gerar regex, regex para classificar a maior parte da massa, LLM apenas para residuos e um mecanismo de aprendizado que converte excecoes recorrentes em regras reutilizaveis.
-
-O resultado principal e a demonstracao de uma arquitetura de baixo custo e alta rastreabilidade: 94,73% da reserva incremental foi classificada por regex, enquanto 5,27% exigiu LLM residual. As noticias que nao se encaixaram imediatamente nao foram descartadas; foram convertidas em `noticias_raras`, com assinaturas auditaveis capazes de alimentar futuros candidatos quando houver recorrencia.
-
-Essa abordagem e transferivel para outros dominios textuais em que haja grande volume, crescimento continuo, baixa disponibilidade de rotulagem humana, necessidade de transparencia e pressao por reducao de custo de inferencia.
-
-## 17. Referencias conceituais
+## 8. Referencias conceituais
 
 - McInnes, L.; Healy, J.; Astels, S. HDBSCAN: Hierarchical density based clustering. Journal of Open Source Software, 2017.
 - Reimers, N.; Gurevych, I. Sentence-BERT: Sentence embeddings using Siamese BERT-networks. EMNLP-IJCNLP, 2019.
