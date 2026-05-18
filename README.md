@@ -25,21 +25,21 @@ Pontos de atencao:
 - documentos raros precisam de memoria, mas nao devem virar tema definitivo sem recorrencia;
 - candidatos novos devem ser comparados com todos os temas existentes antes de promocao.
 
-## 3. Estudo de caso: not?cias da Pol?cia Federal
+## 3. Estudo de caso: noticias da Policia Federal
 
-A aplica??o pr?tica usa not?cias p?blicas de opera??es da Pol?cia Federal brasileira. Essa base foi escolhida por representar um dom?nio textual real, volumoso e heterog?neo, com linguagem institucional, termos especializados, localidades, nomes de opera??o, ?rg?os parceiros e atualiza??o temporal.
+A aplicacao pratica usa noticias publicas de operacoes da Policia Federal brasileira. Essa base foi escolhida por representar um dominio textual real, volumoso e heterogeneo, com linguagem institucional, termos especializados, localidades, nomes de operacao, orgaos parceiros e atualizacao temporal.
 
-No estudo de caso, a classifica??o busca identificar o dom?nio criminal ou o modus operandi principal da not?cia. Localidades, nomes de opera??o e entidades ocasionais s?o preservados para auditoria, mas n?o devem virar temas finais.
+No estudo de caso, a classificacao busca identificar o dominio criminal ou o modus operandi principal da noticia. Localidades, nomes de operacao e entidades ocasionais sao preservados para auditoria, mas nao devem virar temas finais.
 
 | Item | Valor |
 |---|---:|
-| Base total do estudo de caso | 8.106 not?cias |
-| Amostra de funda??o | 1.216 not?cias |
-| Reserva incremental | 6.890 not?cias |
-| Crit?rio de estratifica??o | Ano |
-| Dom?nio de classifica??o | Crime ou modus operandi |
+| Base total do estudo de caso | 8.106 noticias |
+| Amostra de fundacao | 1.216 noticias |
+| Reserva incremental | 6.890 noticias |
+| Criterio de estratificacao | Ano |
+| Dominio de classificacao | Crime ou modus operandi |
 
-A tabela mostra como a metodologia foi instanciada empiricamente. A base PF n?o ? o foco principal do projeto; ela ? a aplica??o usada para medir cobertura, custo, aprendizado residual e estabilidade da ?rvore tem?tica.
+A tabela mostra como a metodologia foi instanciada empiricamente. A base PF nao e o foco principal do projeto; ela e a aplicacao usada para medir cobertura, custo, aprendizado residual e estabilidade da arvore tematica.
 
 ## 4. Trabalhos relacionados
 
