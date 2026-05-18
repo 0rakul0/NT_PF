@@ -90,6 +90,8 @@ def run(config: RunConfig) -> dict[str, object]:
         llm_processed = 0
         learned_rules = 0
         token_total = 0
+        prompt_tokens_total = 0
+        completion_tokens_total = 0
         agent3_attempted = 0
         agent3_classified = 0
         agent3_quarantined = 0
@@ -122,7 +124,7 @@ def run(config: RunConfig) -> dict[str, object]:
                 }
             )
             try:
-                review, provider, model_name = review_residual(doc, allowed_labels, config, cosine_candidates)
+                review, provider, model_name, token_usage = review_residual(doc, allowed_labels, config, cosine_candidates)
             except Exception as exc:
                 agent3_errors += 1
                 row.update(
@@ -136,6 +138,9 @@ def run(config: RunConfig) -> dict[str, object]:
                 append_event({"stage": "llm_residual", "iteration": iteration, "arquivo": doc["arquivo"], "status": "error", "error": str(exc)})
                 continue
             llm_processed += 1
+            prompt_tokens_total += token_usage.prompt_tokens
+            completion_tokens_total += token_usage.completion_tokens
+            token_total += token_usage.total_tokens
             if review.decision == "classificar":
                 agent3_classified += 1
                 if review.canonical_label == RARE_NEWS_LABEL:
@@ -195,7 +200,11 @@ def run(config: RunConfig) -> dict[str, object]:
                     "arquivo": doc["arquivo"],
                     "provider": provider,
                     "model": model_name,
-                    "tokens": {"total_tokens": 0},
+                    "tokens": {
+                        "prompt_tokens": token_usage.prompt_tokens,
+                        "completion_tokens": token_usage.completion_tokens,
+                        "total_tokens": token_usage.total_tokens,
+                    },
                     "canonical_labels_available": allowed_labels,
                     "cosine_candidates": cosine_candidates,
                     "agent3_review": review.model_dump(),
@@ -228,6 +237,9 @@ def run(config: RunConfig) -> dict[str, object]:
                 "agent3_errors": agent3_errors,
                 "learned_rules": learned_rules,
                 "tokens_total": token_total,
+                "prompt_tokens_total": prompt_tokens_total,
+                "completion_tokens_total": completion_tokens_total,
+                "avg_tokens_per_llm": round(token_total / llm_processed, 4) if llm_processed else 0,
                 "regex_rate": round(regex_accepted / docs, 6) if docs else 0,
                 "cumulative_docs": cumulative_docs,
                 "cumulative_regex_accepted": cumulative_regex,

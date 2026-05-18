@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 from scripts.incremental.common import NEW_THEME_CANDIDATES_JSONL, RARE_NEWS_LABEL, RunConfig
-from scripts.incremental.llm_api import invoke_json_with_fallback
+from scripts.incremental.llm_api import TokenUsage, ZERO_TOKEN_USAGE, invoke_json_with_fallback
 from scripts.pf_llm_models import normalize_slug
 from scripts.schemas.pf_incremental_agent_schemas import ResidualReviewAgentResponse
 
@@ -60,10 +60,10 @@ def review_residual(
     allowed_labels: list[str],
     config: RunConfig,
     cosine_candidates: list[dict[str, Any]],
-) -> tuple[ResidualReviewAgentResponse, str, str]:
+) -> tuple[ResidualReviewAgentResponse, str, str, TokenUsage]:
     deterministic = deterministic_new_theme_candidate(doc, allowed_labels)
     if deterministic is not None:
-        return deterministic, "deterministic", "theme_candidate_rules"
+        return deterministic, "deterministic", "theme_candidate_rules", ZERO_TOKEN_USAGE
 
     labels_block = "\n".join(f"- {label}" for label in allowed_labels)
     tags = ", ".join(str(tag) for tag in doc.get("parsed", {}).get("tags", []) if str(tag).strip()) or "sem_tags"
@@ -100,18 +100,18 @@ Tags:
 Texto:
 {doc["context"][:1400]}
 """.strip()
-    review, provider, model_name = invoke_json_with_fallback(prompt, ResidualReviewAgentResponse, config, "agente3_review")
+    review, provider, model_name, token_usage = invoke_json_with_fallback(prompt, ResidualReviewAgentResponse, config, "agente3_review")
     if review.decision == "novo_tema_candidato":
         candidate_label = normalize_slug(review.canonical_label)
         if not candidate_label:
-            return rare_news_review(review, "Novo tema candidato sem label valida."), provider, model_name
-        return review.model_copy(update={"canonical_label": candidate_label}), provider, model_name
+            return rare_news_review(review, "Novo tema candidato sem label valida."), provider, model_name, token_usage
+        return review.model_copy(update={"canonical_label": candidate_label}), provider, model_name, token_usage
     if review.decision != "classificar":
-        return rare_news_review(review), provider, model_name
+        return rare_news_review(review), provider, model_name, token_usage
     canonical_label = map_to_canonical_label([review.canonical_label], allowed_labels)
     if not canonical_label:
-        return rare_news_review(review, "Label retornada fora da lista canonica permitida."), provider, model_name
-    return review.model_copy(update={"canonical_label": canonical_label}), provider, model_name
+        return rare_news_review(review, "Label retornada fora da lista canonica permitida."), provider, model_name, token_usage
+    return review.model_copy(update={"canonical_label": canonical_label}), provider, model_name, token_usage
 
 
 def append_new_theme_candidate(doc: dict[str, Any], review: ResidualReviewAgentResponse, iteration: int) -> None:

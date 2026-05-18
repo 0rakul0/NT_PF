@@ -148,7 +148,7 @@ def generate_canonical_themes(cluster_summary: pd.DataFrame, config: RunConfig) 
         + json.dumps(payload, ensure_ascii=False)[:24000]
     )
     try:
-        themes, provider, model_name = invoke_json_with_fallback(prompt, OperationalThemeBifurcationResponse, config, "agente1_temas")
+        themes, provider, model_name, _token_usage = invoke_json_with_fallback(prompt, OperationalThemeBifurcationResponse, config, "agente1_temas")
         append_event({"stage": "agente1_temas", "status": "llm_ok", "provider": provider, "model": model_name})
         if not any(theme.decision == "accept" for theme in themes.themes):
             append_event({"stage": "agente1_temas", "status": "fallback_empty_llm"})

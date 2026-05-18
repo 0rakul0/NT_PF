@@ -466,7 +466,7 @@ def refine_theme_tree(config: RunConfig) -> ThemeTreeRefinementResponse:
         + json.dumps(candidates, ensure_ascii=False)
     )
     try:
-        response, provider, model_name = invoke_json_with_fallback(prompt, ThemeTreeRefinementResponse, config, "agente_organizador_arvore")
+        response, provider, model_name, _token_usage = invoke_json_with_fallback(prompt, ThemeTreeRefinementResponse, config, "agente_organizador_arvore")
         append_event({"stage": "agente_organizador_arvore", "status": "llm_ok", "provider": provider, "model": model_name})
         if not response.decisions and candidates:
             append_event({"stage": "agente_organizador_arvore", "status": "fallback_empty_decisions"})

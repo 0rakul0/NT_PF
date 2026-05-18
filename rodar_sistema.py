@@ -9,6 +9,7 @@ from pathlib import Path
 from scripts.incremental.common import RunConfig
 from scripts.incremental.organizar_arvore_temas import run as run_theme_tree_organizer
 from scripts.incremental.reavaliar_quarentenas import run as run_rare_news_review
+from scripts.incremental.resumo_custo_tokens import run as run_token_cost_summary
 from scripts.incremental.run_all_incremental import run
 from scripts.project_config import CONTENT_CSV, INDEX_CSV, NEWS_MARKDOWN_DIR, PROJECT_ROOT
 
@@ -88,8 +89,19 @@ def main() -> None:
             "returncode": 0,
         }
     )
+    started = time.perf_counter()
+    token_cost_summary = run_token_cost_summary()
+    steps.append(
+        {
+            "label": "resumo de custo por tokens",
+            "skipped": False,
+            "elapsed_seconds": round(time.perf_counter() - started, 4),
+            "returncode": 0,
+        }
+    )
     result["theme_tree_organizer"] = tree_result
     result["rare_news_review"] = rare_news_result
+    result["token_cost_summary"] = token_cost_summary
     result["steps"] = steps
 
     output = PROJECT_ROOT / "data" / "analise_qualitativa" / "incremental" / "rodar_sistema_resultado.json"

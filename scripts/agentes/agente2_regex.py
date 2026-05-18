@@ -479,7 +479,7 @@ def generate_initial_regex(
         + json.dumps(prompt_themes, ensure_ascii=False)
     )
     try:
-        batch_response, provider, model_name = invoke_json_with_fallback(prompt, InitialRegexBatchResponse, config, "agente2_regex_inicial")
+        batch_response, provider, model_name, _token_usage = invoke_json_with_fallback(prompt, InitialRegexBatchResponse, config, "agente2_regex_inicial")
         append_event({"stage": "agente2_regex_inicial", "status": "llm_ok", "provider": provider, "model": model_name})
         response_by_theme = {item.canonical_theme: item for item in batch_response.themes}
     except Exception as exc:
