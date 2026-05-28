@@ -1,0 +1,100 @@
+{
+  "trafico_drogas": [
+    "trafic\\w+\\s+de\\s+drogas?",
+    "\\bcocaina\\b|\\bcloridrato\\b|\\bcrack\\b|\\bmaconha\\b|\\bskunk\\b",
+    "\\bentorpecente\\w*\\b|\\bdrogas?\\b",
+    "mula\\s+do\\s+trafico|transporte\\s+de\\s+drogas?",
+    "rota\\s+do\\s+trafico|trafico\\s+internacional"
+  ],
+  "crimes_contra_criancas": [
+    "pornografia\\s+infantil|abuso\\s+sexual\\s+infantil",
+    "estupro\\s+de\\s+vulneravel|exploracao\\s+sexual",
+    "criancas?\\s+e\\s+adolescentes?|infantojuvenil",
+    "armazenamento|compartilhamento|divulgacao",
+    "arquivos?\\s+(?:de\\s+)?(?:abuso|conteudo)\\s+(?:sexual|infantil)"
+  ],
+  "crime_organizado": [
+    "organizacao\\s+criminosa|grupo\\s+criminoso",
+    "\\bfaccao\\b|\\bfaccoes\\b|\\bpcc\\b|\\bcomando\\s+vermelho\\b",
+    "lideranca\\s+criminosa|integrantes?\\s+de\\s+faccao",
+    "nucleo\\s+(?:financeiro|juridico|operacional|logistico)",
+    "associacao\\s+criminosa"
+  ],
+  "corrupcao_desvio_recursos_publicos": [
+    "corrupcao|peculato|propina",
+    "desvio\\s+de\\s+recursos|desvios\\s+de\\s+verbas?",
+    "fraude\\s+(?:em|a)\\s+licitacao|licitacoes",
+    "superfaturamento|contratos?\\s+publicos?",
+    "recursos\\s+publicos|verbas?\\s+federais?"
+  ],
+  "crimes_ambientais": [
+    "garimpo\\s+ilegal|minera\\w+\\s+ilegal|extracao\\s+ilegal",
+    "madeira\\s+ilegal|desmatamento|queimada",
+    "crime\\w*\\s+ambientais?|dano\\s+ambiental",
+    "animais?\\s+silvestres?|fauna",
+    "licenca\\s+ambiental|autorizacao\\s+ambiental"
+  ],
+  "armas_municoes": [
+    "arma\\w*\\s+de\\s+fogo|porte\\s+ilegal\\s+de\\s+arma",
+    "\\bmunic(?:ao|oes)\\b|municoes",
+    "\\bfuzil\\b|\\bpistola\\b|\\brevolver\\b",
+    "trafico\\s+de\\s+armas|comercio\\s+ilegal\\s+de\\s+armas",
+    "aquisicao\\s+ilegal\\s+de\\s+armas?"
+  ],
+  "falsificacao_documental": [
+    "documentos?\\s+falsos?|documentacao\\s+falsa",
+    "falsificacao\\s+de\\s+documentos?|falsidade\\s+ideologica",
+    "identidade\\s+falsa|passaporte\\s+falso",
+    "certidao\\s+falsa|carteira\\s+falsa",
+    "uso\\s+de\\s+documento\\s+falso"
+  ],
+  "moeda_falsa": [
+    "moeda\\s+falsa|cedulas?\\s+falsas?",
+    "notas?\\s+falsas?",
+    "dinheiro\\s+falso",
+    "falsificacao\\s+de\\s+moeda",
+    "encomenda\\w*\\s+(?:com|de)\\s+(?:cedulas|notas)"
+  ],
+  "contrabando_descaminho": [
+    "contrabando|descaminho",
+    "cigarros?\\s+(?:eletronicos?|estrangeiros?)|vape",
+    "mercadorias?\\s+estrangeiras?",
+    "importacao\\s+irregular",
+    "produtos?\\s+sem\\s+documentacao\\s+fiscal"
+  ],
+  "lavagem_dinheiro": [
+    "lavagem\\s+de\\s+(?:dinheiro|capitais)",
+    "ocultacao\\s+de\\s+bens|dissimular\\s+valores",
+    "movimentacao\\s+financeira\\s+suspeita",
+    "bens\\s+e\\s+valores|bloqueio\\s+de\\s+bens",
+    "operadores?\\s+financeiros?"
+  ],
+  "crimes_ciberneticos": [
+    "fraudes?\\s+(?:bancarias?\\s+)?(?:ciberneticas?|eletronicas?|digitais?)",
+    "invasao\\s+a\\s+sistemas?|ataque\\s+cibernetico",
+    "rede\\s+social|internet|aplicativo",
+    "phishing|malware|hacker",
+    "contas?\\s+bancarias?\\s+invadidas?"
+  ],
+  "crimes_eleitorais": [
+    "compra\\s+de\\s+votos?|corrupcao\\s+eleitoral",
+    "crimes?\\s+eleitorais?|boca\\s+de\\s+urna",
+    "candidato|eleitores?|campanha\\s+eleitoral",
+    "financiamento\\s+de\\s+candidatura",
+    "tre\\b|justica\\s+eleitoral"
+  ],
+  "fraude_previdenciaria": [
+    "\\binss\\b|previdenciari\\w+",
+    "aposentadoria|pensao|beneficios?",
+    "forca-tarefa\\s+previdenciaria",
+    "beneficio\\s+de\\s+prestacao\\s+continuada|\\bbpc\\b|\\bloas\\b",
+    "estelionato\\s+contra\\s+o\\s+inss"
+  ],
+  "trabalho_escravo": [
+    "trabalho\\s+(?:escravo|analogo\\s+a\\s+escravidao)",
+    "condicoes\\s+degradantes",
+    "trabalhadores?\\s+resgatados?",
+    "jornada\\s+exaustiva",
+    "aliciamento\\s+de\\s+trabalhadores?"
+  ]
+}
