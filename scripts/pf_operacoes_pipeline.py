@@ -44,6 +44,8 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/135.0.0.0 Safari/537.36"
 )
+FETCH_MAX_RETRIES = 5
+FETCH_RETRY_BASE_SLEEP_SECONDS = 2.0
 
 PUBLISHED_RE = re.compile(
     r"publicado\s+(?P<date>\d{2}/\d{2}/\d{4})\s+"
@@ -145,9 +147,25 @@ def build_session() -> requests.Session:
 
 
 def fetch_soup(session: requests.Session, url: str, timeout: int) -> BeautifulSoup:
-    response = session.get(url, timeout=timeout)
-    response.raise_for_status()
-    return BeautifulSoup(response.text, "lxml")
+    last_error: Exception | None = None
+    for attempt in range(1, FETCH_MAX_RETRIES + 1):
+        try:
+            response = session.get(url, timeout=timeout)
+            response.raise_for_status()
+            return BeautifulSoup(response.text, "lxml")
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt >= FETCH_MAX_RETRIES:
+                break
+
+            sleep_for = FETCH_RETRY_BASE_SLEEP_SECONDS * attempt
+            print(
+                f"[fetch] tentativa {attempt}/{FETCH_MAX_RETRIES} falhou; "
+                f"aguardando {sleep_for:.1f}s | {url} | {exc}"
+            )
+            time.sleep(sleep_for)
+
+    raise RuntimeError(f"Falha ao baixar URL apos {FETCH_MAX_RETRIES} tentativas: {url}") from last_error
 
 
 def parse_listing_date(raw_text: str | None) -> tuple[str | None, str | None, str | None]:
@@ -951,6 +969,12 @@ def save_manifest(content_csv: Path, manifest: pd.DataFrame) -> None:
     manifest.to_csv(content_csv, index=False, encoding="utf-8-sig")
 
 
+def initialize_output_paths(index_csv: Path, content_csv: Path, markdown_dir: Path) -> None:
+    index_csv.parent.mkdir(parents=True, exist_ok=True)
+    content_csv.parent.mkdir(parents=True, exist_ok=True)
+    markdown_dir.mkdir(parents=True, exist_ok=True)
+
+
 def download_new_site_articles(
     session: requests.Session,
     df_site_rows: pd.DataFrame,
@@ -1020,6 +1044,8 @@ def main() -> None:
     index_csv = DEFAULT_INDEX_CSV
     content_csv = DEFAULT_CONTENT_CSV
     markdown_dir = DEFAULT_MARKDOWN_DIR
+    initialize_output_paths(index_csv, content_csv, markdown_dir)
+    print(f"[sync] pasta markdown: {markdown_dir}")
 
     session = build_session()
     site_count, first_page_df = infer_site_count(
