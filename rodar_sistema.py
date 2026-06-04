@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -11,7 +12,7 @@ from scripts.incremental.organizar_arvore_temas import run as run_theme_tree_org
 from scripts.incremental.reavaliar_quarentenas import run as run_rare_news_review
 from scripts.incremental.resumo_custo_tokens import run as run_token_cost_summary
 from scripts.incremental.run_all_incremental import run
-from scripts.project_config import CONTENT_CSV, INDEX_CSV, NEWS_MARKDOWN_DIR, PROJECT_ROOT
+from scripts.project_config import CONTENT_CSV, INDEX_CSV, NEWS_MARKDOWN_DIR, PROJECT_ROOT, get_llm_settings
 
 
 def run_command(command: list[str], label: str, skip: bool = False) -> dict[str, object]:
@@ -37,6 +38,49 @@ def ensure_base_inputs() -> None:
         raise FileNotFoundError(f"Entradas obrigatorias ausentes:\n{formatted}")
 
 
+def env_float(name: str, default: float) -> float:
+    value = os.getenv(name, "").strip()
+    return float(value) if value else default
+
+
+def env_int(name: str, default: int) -> int:
+    value = os.getenv(name, "").strip()
+    return int(value) if value else default
+
+
+def env_optional_int(name: str) -> int | None:
+    value = os.getenv(name, "").strip()
+    return int(value) if value else None
+
+
+def env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name, "").strip().lower()
+    if not value:
+        return default
+    return value in {"1", "true", "yes", "sim", "s"}
+
+
+def build_run_config(reset: bool = True) -> RunConfig:
+    llm_settings = get_llm_settings()
+    return RunConfig(
+        sample_fraction=env_float("PF_SAMPLE_FRACTION", 0.15),
+        batch_size=env_int("PF_BATCH_SIZE", 500),
+        seed=env_int("PF_RANDOM_SEED", 42),
+        regex_threshold=env_float("PF_REGEX_THRESHOLD", 0.85),
+        temporal_strata=os.getenv("PF_TEMPORAL_STRATA", "year").strip() or "year",
+        model=llm_settings.ollama.model_name,
+        base_url=llm_settings.ollama.base_url,
+        max_docs=env_optional_int("PF_MAX_DOCS"),
+        reset=reset,
+        max_residual_llm_per_batch=env_optional_int("PF_MAX_RESIDUAL_LLM_PER_BATCH"),
+        max_batches=env_optional_int("PF_MAX_BATCHES"),
+        llm_timeout_seconds=env_int("PF_LLM_TIMEOUT_SECONDS", 180),
+        agent3_min_confidence=env_float("PF_AGENT3_MIN_CONFIDENCE", 0.55),
+        initial_regex_target_per_theme=env_optional_int("PF_INITIAL_REGEX_TARGET_PER_THEME"),
+        resume_batches=env_bool("PF_RESUME_BATCHES", True),
+    )
+
+
 def main() -> None:
     steps: list[dict[str, object]] = []
     steps.append(
@@ -47,18 +91,7 @@ def main() -> None:
     )
     ensure_base_inputs()
 
-    config = RunConfig(
-        sample_fraction=0.15,
-        batch_size=500,
-        seed=42,
-        regex_threshold=0.85,
-        temporal_strata="year",
-        model="llama3.2",
-        base_url="http://localhost:11434",
-        max_docs=None,
-        reset=True,
-        max_residual_llm_per_batch=None,
-    )
+    config = build_run_config(reset=True)
     started = time.perf_counter()
     result = run(config)
     steps.append(
@@ -70,7 +103,7 @@ def main() -> None:
         }
     )
     started = time.perf_counter()
-    tree_result = run_theme_tree_organizer(RunConfig(reset=False))
+    tree_result = run_theme_tree_organizer(build_run_config(reset=False))
     steps.append(
         {
             "label": "agente organizador da arvore de temas",

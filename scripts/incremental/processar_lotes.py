@@ -82,8 +82,15 @@ def run(config: RunConfig) -> dict[str, object]:
     batches = [reserve[index : index + config.batch_size] for index in range(0, len(reserve), config.batch_size)]
     if config.max_batches is not None:
         batches = batches[: config.max_batches]
+    total_batches = len(batches)
+    total_docs = sum(len(batch) for batch in batches)
+    print(
+        f"[classificacao] iniciando {total_batches} lotes, {total_docs} noticias na reserva incremental",
+        flush=True,
+    )
     for iteration, batch in enumerate(batches, start=1):
         if iteration in completed_iterations:
+            print(f"[classificacao] lote {iteration}/{total_batches} ja processado, pulando", flush=True)
             continue
         started = time.perf_counter()
         rows = []
@@ -102,16 +109,34 @@ def run(config: RunConfig) -> dict[str, object]:
         negatives = [doc["context"] for doc in batch[:40]]
         regex_accepted = 0
         regex_residual = 0
+        print(
+            f"[classificacao] lote {iteration}/{total_batches} iniciado ({len(batch)} noticias)",
+            flush=True,
+        )
 
-        for doc in batch:
+        for doc_index, doc in enumerate(batch, start=1):
             row = classify_with_regex(doc, config.regex_threshold)
             rows.append(row)
             if row["regex_accepted"]:
                 regex_accepted += 1
+                if doc_index % 50 == 0 or doc_index == len(batch):
+                    print(
+                        "[classificacao] "
+                        f"lote {iteration}/{total_batches}: {doc_index}/{len(batch)} noticias, "
+                        f"regex={regex_accepted}, residuos={regex_residual}, llm={llm_processed}",
+                        flush=True,
+                    )
                 continue
 
             regex_residual += 1
             if residual_limit is not None and agent3_attempted >= residual_limit:
+                if doc_index % 50 == 0 or doc_index == len(batch):
+                    print(
+                        "[classificacao] "
+                        f"lote {iteration}/{total_batches}: {doc_index}/{len(batch)} noticias, "
+                        f"regex={regex_accepted}, residuos={regex_residual}, llm={llm_processed}",
+                        flush=True,
+                    )
                 continue
 
             agent3_attempted += 1
@@ -134,8 +159,13 @@ def run(config: RunConfig) -> dict[str, object]:
                         "agent3_decision": "error",
                     "agent3_rationale": str(exc),
                 }
-            )
+                )
                 append_event({"stage": "llm_residual", "iteration": iteration, "arquivo": doc["arquivo"], "status": "error", "error": str(exc)})
+                print(
+                    "[classificacao] "
+                    f"lote {iteration}/{total_batches}: erro na revisao LLM de {doc['arquivo']}: {exc}",
+                    flush=True,
+                )
                 continue
             llm_processed += 1
             prompt_tokens_total += token_usage.prompt_tokens
@@ -211,6 +241,14 @@ def run(config: RunConfig) -> dict[str, object]:
                     "agent2_incremental_regex": incorporated,
                 }
             )
+            if doc_index % 50 == 0 or doc_index == len(batch) or llm_processed % 10 == 0:
+                print(
+                    "[classificacao] "
+                    f"lote {iteration}/{total_batches}: {doc_index}/{len(batch)} noticias, "
+                    f"regex={regex_accepted}, residuos={regex_residual}, llm={llm_processed}, "
+                    f"ultimo_provider={provider}/{model_name}",
+                    flush=True,
+                )
 
         batch_df = pd.DataFrame(rows)
         batch_output = LOTS_DIR / f"lote_{iteration:04d}_classificacoes.csv"
@@ -251,6 +289,13 @@ def run(config: RunConfig) -> dict[str, object]:
             }
         )
         pd.DataFrame(metrics).to_csv(METRICS_CSV, index=False, encoding="utf-8-sig")
+        print(
+            "[classificacao] "
+            f"lote {iteration}/{total_batches} concluido: docs={docs}, regex={regex_accepted}, "
+            f"residuos={regex_residual}, llm={llm_processed}, regras_aprendidas={learned_rules}, "
+            f"taxa_regex={regex_accepted / docs:.2%}, tempo={metrics[-1]['elapsed_seconds']}s",
+            flush=True,
+        )
 
     metrics_df = pd.DataFrame(metrics)
     metrics_df.to_csv(METRICS_CSV, index=False, encoding="utf-8-sig")

@@ -1,0 +1,428 @@
+D:\github\NT_PF\.venv\Scripts\python.exe D:\github\NT_PF\rodar_sistema.py 
+[rodar_sistema] iniciando: sincronizacao da base
+[sync] pasta markdown: D:\github\NT_PF\data\noticias_markdown
+[collect] offset=0 items=60
+[collect] offset=8220 items=18
+[sync] noticias no site: 8238
+[sync] markdowns locais: 8195
+[sync] diferenca estimada: 43
+[sync] paginas iniciais a verificar: 1
+[collect] reutilizando primeira pagina em memoria com 60 itens
+[sync] novas noticias identificadas no site: 37
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-operacao-para-combater-fraude-contra-a-caixa-economica-federal
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-operacao-contra-o-abuso-sexual-infantojuvenil-no-parana
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-investiga-site-falso-que-simulava-pagina-oficial-do-governo
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/ficco-sp-apreende-mais-de-250-kg-de-cocaina-e-fuzil-em-sao-roque
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-combate-mineracao-ilegal-no-vale-do-paraiba
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-operacao-contra-o-contrabando-e-o-comercio-ilegal-de-cigarros-convencionais-e-eletronicos
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-operacao-de-combate-ao-trafico-de-drogas
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-desarticula-grupo-criminoso-no-tocantins
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-e-ministerio-publico-federal-combatem-fraudes-cartoriais-e-grilagem-de-terras-da-uniao-no-sul-da-bahia
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-cumpre-mandado-de-busca-e-apreensao-contra-organizacao-criminosa-investigada-por-lavagem-de-dinheiro
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-e-ibama-combatem-crime-ambiental-no-df-um-homem-foi-preso-em-flagrante
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-desarticula-venda-ilegal-de-cigarros-no-rn
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-operacao-contra-o-trafico-internacional-de-drogas-e-lavagem-de-dinheiro-no-rn
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-operacao-contra-a-extracao-ilegal-de-madeira-no-rio-de-janeiro
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-e-cgu-investigam-corrupcao-e-fraudes-licitatorias-em-recife-pe
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-mira-trafico-internacional-drogas-e-bloqueia-mais-de-r-631-milhoes
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-nova-fase-de-operacao-contra-fraudes-postais-na-bahia
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-faz-operacao-contra-o-trafico-de-drogas-em-mato-grosso-e-minas-gerais
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-nova-fase-de-operacao-contra-fraudes-em-contratos-publicos-no-piaui
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-investiga-contrabando-internacional-de-mercurio-no-amazonas
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-prende-investigado-por-abuso-sexual-infantojuvenil-na-bahia
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-deflagra-operacao-contra-fraudes-com-falsas-centrais-telefonicas
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-combate-organizacao-criminosa-especializada-no-trafico-internacional-de-cocaina
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-desarticula-esquema-milionario-em-regiao-aduaneira-de-itajai-sc
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-cumpre-mandados-em-investigacao-sobre-fraudes-em-financiamentos-habitacionais
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-apreende-carga-de-cigarros-paraguaios-e-prende-investigado-em-sao-paulo
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/pf-e-forcas-de-seguranca-estaduais-combatem-trafico-de-drogas-e-tentativa-de-governanca-criminal-de-faccoes-criminosas-em-mg
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/06/ficcos-efetuam-87-prisoes-e-apreendem-mais-de-1-4-toneladas-de-drogas-pelo-pais
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/pf-prende-investigada-por-trafico-de-mulheres
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/pf-e-pm-al-destroem-2-8-mil-pes-de-maconha-e-cumprem-22-mandados-de-busca-em-alagoas-e-pernambuco
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/ficco-sp-apreende-mais-de-1-4-tonelada-de-maconha-e-prende-motorista-em-flagrante
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/pf-regulariza-situacao-migratoria-de-familia-resgatada-de-trabalho-analogo-a-escravidao
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/ficco-mt-apura-fraudes-no-cumprimento-de-penas
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/pf-deflagra-operacao-contra-fraudes-previdenciarias
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/pf-deflagra-operacao-para-identificar-envolvidos-em-roubo-de-ouro-e-desarticular-associacao-criminosa-em-manaus-am
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/ficco-pi-desarticula-organizacao-criminosa-de-trafico-de-drogas-no-piaui
+[sync] baixando: https://www.gov.br/pf/pt-br/assuntos/noticias/2026/05/pf-apura-uso-de-documentos-falsos-para-compra-ilegal-de-armas-de-fogo
+[sync] linhas novas anexadas ao indice a partir do site: 37
+[sync] linhas novas anexadas ao indice a partir dos markdowns locais: 0
+[sync] indice salvo em: D:\github\NT_PF\data\pf_operacoes_index.csv
+[sync] manifesto salvo em: D:\github\NT_PF\data\pf_operacoes_conteudos.csv
+[sync] markdown dir: D:\github\NT_PF\data\noticias_markdown
+D:\github\NT_PF\.venv\Lib\site-packages\sklearn\cluster\_hdbscan\hdbscan.py:722: FutureWarning:
+
+The default value of `copy` will change from False to True in 1.10. Explicitly set a value for `copy` to silence this warning.
+
+[classificacao] iniciando 14 lotes, 6997 noticias na reserva incremental
+[classificacao] lote 1/14 iniciado (500 noticias)
+[classificacao] lote 1/14: 50/500 noticias, regex=48, residuos=2, llm=2
+[classificacao] lote 1/14: 100/500 noticias, regex=98, residuos=2, llm=2
+[classificacao] lote 1/14: 150/500 noticias, regex=148, residuos=2, llm=2
+[classificacao] lote 1/14: 200/500 noticias, regex=198, residuos=2, llm=2
+[classificacao] lote 1/14: 250/500 noticias, regex=248, residuos=2, llm=2
+[classificacao] lote 1/14: 300/500 noticias, regex=298, residuos=2, llm=2
+[classificacao] lote 1/14: 350/500 noticias, regex=348, residuos=2, llm=2
+[classificacao] lote 1/14: 400/500 noticias, regex=395, residuos=5, llm=5
+[classificacao] lote 1/14: 450/500 noticias, regex=444, residuos=6, llm=6
+[classificacao] lote 1/14: 500/500 noticias, regex=493, residuos=7, llm=7
+[classificacao] lote 1/14 concluido: docs=500, regex=493, residuos=7, llm=7, regras_aprendidas=0, taxa_regex=98.60%, tempo=853.8103s
+[classificacao] lote 2/14 iniciado (500 noticias)
+[classificacao] lote 2/14: 50/500 noticias, regex=44, residuos=6, llm=6
+[classificacao] lote 2/14: 100/500 noticias, regex=93, residuos=7, llm=7
+[classificacao] lote 2/14: 150/500 noticias, regex=142, residuos=8, llm=8
+[classificacao] lote 2/14: 179/500 noticias, regex=169, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 2/14: 200/500 noticias, regex=187, residuos=13, llm=13, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 2/14: 250/500 noticias, regex=235, residuos=15, llm=15
+[classificacao] lote 2/14: 300/500 noticias, regex=284, residuos=16, llm=16
+[classificacao] lote 2/14: 350/500 noticias, regex=331, residuos=19, llm=19
+[classificacao] lote 2/14: 387/500 noticias, regex=367, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 2/14: 400/500 noticias, regex=380, residuos=20, llm=20
+[classificacao] lote 2/14: 450/500 noticias, regex=425, residuos=25, llm=25
+[classificacao] lote 2/14: 500/500 noticias, regex=473, residuos=27, llm=27
+[classificacao] lote 2/14 concluido: docs=500, regex=473, residuos=27, llm=27, regras_aprendidas=1, taxa_regex=94.60%, tempo=920.9377s
+[classificacao] lote 3/14 iniciado (500 noticias)
+[classificacao] lote 3/14: 50/500 noticias, regex=49, residuos=1, llm=1
+[classificacao] lote 3/14: 100/500 noticias, regex=99, residuos=1, llm=1
+[classificacao] lote 3/14: 150/500 noticias, regex=148, residuos=2, llm=2
+[classificacao] lote 3/14: 200/500 noticias, regex=195, residuos=5, llm=5
+[classificacao] lote 3/14: 250/500 noticias, regex=245, residuos=5, llm=5
+[classificacao] lote 3/14: 300/500 noticias, regex=291, residuos=9, llm=9, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 3/14: 314/500 noticias, regex=304, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 3/14: 350/500 noticias, regex=334, residuos=16, llm=16
+[classificacao] lote 3/14: 400/500 noticias, regex=381, residuos=19, llm=19
+[classificacao] lote 3/14: 450/500 noticias, regex=431, residuos=19, llm=19
+[classificacao] lote 3/14: 484/500 noticias, regex=464, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 3/14: 500/500 noticias, regex=480, residuos=20, llm=20
+[classificacao] lote 3/14 concluido: docs=500, regex=480, residuos=20, llm=20, regras_aprendidas=0, taxa_regex=96.00%, tempo=868.8426s
+[classificacao] lote 4/14 iniciado (500 noticias)
+[classificacao] lote 4/14: 50/500 noticias, regex=49, residuos=1, llm=1
+[classificacao] lote 4/14: 100/500 noticias, regex=94, residuos=6, llm=6
+[classificacao] lote 4/14: 150/500 noticias, regex=144, residuos=6, llm=6
+[classificacao] lote 4/14: 200/500 noticias, regex=194, residuos=6, llm=6
+[classificacao] lote 4/14: 250/500 noticias, regex=243, residuos=7, llm=7
+[classificacao] lote 4/14: 300/500 noticias, regex=292, residuos=8, llm=8
+[classificacao] lote 4/14: 350/500 noticias, regex=341, residuos=9, llm=9
+[classificacao] lote 4/14: 400/500 noticias, regex=391, residuos=9, llm=9
+[classificacao] lote 4/14: 421/500 noticias, regex=411, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 4/14: 450/500 noticias, regex=439, residuos=11, llm=11
+[classificacao] lote 4/14: 500/500 noticias, regex=489, residuos=11, llm=11
+[classificacao] lote 4/14 concluido: docs=500, regex=489, residuos=11, llm=11, regras_aprendidas=1, taxa_regex=97.80%, tempo=825.9781s
+[classificacao] lote 5/14 iniciado (500 noticias)
+[classificacao] lote 5/14: 50/500 noticias, regex=49, residuos=1, llm=1
+[classificacao] lote 5/14: 100/500 noticias, regex=95, residuos=5, llm=5
+[classificacao] lote 5/14: 150/500 noticias, regex=144, residuos=6, llm=6
+[classificacao] lote 5/14: 186/500 noticias, regex=176, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 5/14: 200/500 noticias, regex=187, residuos=13, llm=13
+[classificacao] lote 5/14: 250/500 noticias, regex=234, residuos=16, llm=16
+[classificacao] lote 5/14: 271/500 noticias, regex=251, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 5/14: 300/500 noticias, regex=279, residuos=21, llm=21
+[classificacao] lote 5/14: 350/500 noticias, regex=324, residuos=26, llm=26
+[classificacao] lote 5/14: 400/500 noticias, regex=374, residuos=26, llm=26
+[classificacao] lote 5/14: 409/500 noticias, regex=379, residuos=30, llm=30, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 5/14: 450/500 noticias, regex=416, residuos=34, llm=34
+[classificacao] lote 5/14: 500/500 noticias, regex=463, residuos=37, llm=37
+[classificacao] lote 5/14 concluido: docs=500, regex=463, residuos=37, llm=37, regras_aprendidas=1, taxa_regex=92.60%, tempo=918.632s
+[classificacao] lote 6/14 iniciado (500 noticias)
+[classificacao] lote 6/14: 50/500 noticias, regex=45, residuos=5, llm=5
+[classificacao] lote 6/14: 100/500 noticias, regex=91, residuos=9, llm=9
+[classificacao] lote 6/14: 117/500 noticias, regex=107, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 6/14: 150/500 noticias, regex=138, residuos=12, llm=12
+[classificacao] lote 6/14: 200/500 noticias, regex=188, residuos=12, llm=12
+[classificacao] lote 6/14: 250/500 noticias, regex=235, residuos=15, llm=15
+[classificacao] lote 6/14: 300/500 noticias, regex=281, residuos=19, llm=19
+[classificacao] lote 6/14: 306/500 noticias, regex=286, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 6/14: 350/500 noticias, regex=330, residuos=20, llm=20
+[classificacao] lote 6/14: 400/500 noticias, regex=378, residuos=22, llm=22
+[classificacao] lote 6/14: 450/500 noticias, regex=428, residuos=22, llm=22
+[classificacao] lote 6/14: 500/500 noticias, regex=476, residuos=24, llm=24
+[classificacao] lote 6/14 concluido: docs=500, regex=476, residuos=24, llm=24, regras_aprendidas=0, taxa_regex=95.20%, tempo=831.5707s
+[classificacao] lote 7/14 iniciado (500 noticias)
+[classificacao] lote 7/14: 50/500 noticias, regex=50, residuos=0, llm=0
+[classificacao] lote 7/14: 100/500 noticias, regex=95, residuos=5, llm=5
+[classificacao] lote 7/14: 150/500 noticias, regex=144, residuos=6, llm=6
+[classificacao] lote 7/14: 192/500 noticias, regex=182, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 7/14: 200/500 noticias, regex=190, residuos=10, llm=10
+[classificacao] lote 7/14: 250/500 noticias, regex=239, residuos=11, llm=11
+[classificacao] lote 7/14: 300/500 noticias, regex=289, residuos=11, llm=11
+[classificacao] lote 7/14: 350/500 noticias, regex=336, residuos=14, llm=14
+[classificacao] lote 7/14: 400/500 noticias, regex=386, residuos=14, llm=14
+[classificacao] lote 7/14: 450/500 noticias, regex=434, residuos=16, llm=16
+[classificacao] lote 7/14: 500/500 noticias, regex=482, residuos=18, llm=18
+[classificacao] lote 7/14 concluido: docs=500, regex=482, residuos=18, llm=18, regras_aprendidas=0, taxa_regex=96.40%, tempo=800.6372s
+[classificacao] lote 8/14 iniciado (500 noticias)
+[classificacao] lote 8/14: 50/500 noticias, regex=46, residuos=4, llm=4
+[classificacao] lote 8/14: 100/500 noticias, regex=94, residuos=6, llm=6
+[classificacao] lote 8/14: 143/500 noticias, regex=133, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 8/14: 150/500 noticias, regex=138, residuos=12, llm=12
+[classificacao] lote 8/14: 200/500 noticias, regex=188, residuos=12, llm=12
+[classificacao] lote 8/14: 250/500 noticias, regex=237, residuos=13, llm=13
+[classificacao] lote 8/14: 300/500 noticias, regex=282, residuos=18, llm=18
+[classificacao] lote 8/14: 350/500 noticias, regex=331, residuos=19, llm=19
+[classificacao] lote 8/14: 360/500 noticias, regex=340, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 8/14: 400/500 noticias, regex=378, residuos=22, llm=22
+[classificacao] lote 8/14: 450/500 noticias, regex=422, residuos=28, llm=28
+[classificacao] lote 8/14: 458/500 noticias, regex=428, residuos=30, llm=30, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 8/14: 500/500 noticias, regex=469, residuos=31, llm=31
+[classificacao] lote 8/14 concluido: docs=500, regex=469, residuos=31, llm=31, regras_aprendidas=0, taxa_regex=93.80%, tempo=832.7821s
+[classificacao] lote 9/14 iniciado (500 noticias)
+[classificacao] lote 9/14: 50/500 noticias, regex=48, residuos=2, llm=2
+[classificacao] lote 9/14: 100/500 noticias, regex=97, residuos=3, llm=3
+[classificacao] lote 9/14: 150/500 noticias, regex=145, residuos=5, llm=5
+[classificacao] lote 9/14: 200/500 noticias, regex=194, residuos=6, llm=6
+[classificacao] lote 9/14: 250/500 noticias, regex=244, residuos=6, llm=6
+[classificacao] lote 9/14: 300/500 noticias, regex=294, residuos=6, llm=6
+[classificacao] lote 9/14: 350/500 noticias, regex=344, residuos=6, llm=6
+[classificacao] lote 9/14: 400/500 noticias, regex=392, residuos=8, llm=8
+[classificacao] lote 9/14: 450/500 noticias, regex=442, residuos=8, llm=8
+[classificacao] lote 9/14: 477/500 noticias, regex=467, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 9/14: 500/500 noticias, regex=489, residuos=11, llm=11
+[classificacao] lote 9/14 concluido: docs=500, regex=489, residuos=11, llm=11, regras_aprendidas=0, taxa_regex=97.80%, tempo=776.1982s
+[classificacao] lote 10/14 iniciado (500 noticias)
+[classificacao] lote 10/14: 20/500 noticias, regex=10, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 10/14: 50/500 noticias, regex=39, residuos=11, llm=11
+[classificacao] lote 10/14: 100/500 noticias, regex=84, residuos=16, llm=16
+[classificacao] lote 10/14: 150/500 noticias, regex=133, residuos=17, llm=17
+[classificacao] lote 10/14: 200/500 noticias, regex=183, residuos=17, llm=17
+[classificacao] lote 10/14: 234/500 noticias, regex=214, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 10/14: 250/500 noticias, regex=229, residuos=21, llm=21
+[classificacao] lote 10/14: 300/500 noticias, regex=277, residuos=23, llm=23
+[classificacao] lote 10/14: 350/500 noticias, regex=325, residuos=25, llm=25
+[classificacao] lote 10/14: 400/500 noticias, regex=371, residuos=29, llm=29
+[classificacao] lote 10/14: 428/500 noticias, regex=398, residuos=30, llm=30, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 10/14: 450/500 noticias, regex=416, residuos=34, llm=34
+[classificacao] lote 10/14: 484/500 noticias, regex=444, residuos=40, llm=40, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 10/14: 500/500 noticias, regex=460, residuos=40, llm=40
+[classificacao] lote 10/14 concluido: docs=500, regex=460, residuos=40, llm=40, regras_aprendidas=4, taxa_regex=92.00%, tempo=887.0594s
+[classificacao] lote 11/14 iniciado (500 noticias)
+[classificacao] lote 11/14: 50/500 noticias, regex=46, residuos=4, llm=4
+[classificacao] lote 11/14: 100/500 noticias, regex=95, residuos=5, llm=5
+[classificacao] lote 11/14: 150/500 noticias, regex=144, residuos=6, llm=6
+[classificacao] lote 11/14: 200/500 noticias, regex=191, residuos=9, llm=9
+[classificacao] lote 11/14: 202/500 noticias, regex=192, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 11/14: 250/500 noticias, regex=239, residuos=11, llm=11
+[classificacao] lote 11/14: 300/500 noticias, regex=289, residuos=11, llm=11
+[classificacao] lote 11/14: 350/500 noticias, regex=335, residuos=15, llm=15
+[classificacao] lote 11/14: 400/500 noticias, regex=382, residuos=18, llm=18
+[classificacao] lote 11/14: 405/500 noticias, regex=385, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 11/14: 450/500 noticias, regex=428, residuos=22, llm=22
+[classificacao] lote 11/14: 500/500 noticias, regex=475, residuos=25, llm=25, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 11/14 concluido: docs=500, regex=475, residuos=25, llm=25, regras_aprendidas=1, taxa_regex=95.00%, tempo=825.5158s
+[classificacao] lote 12/14 iniciado (500 noticias)
+[classificacao] lote 12/14: 50/500 noticias, regex=48, residuos=2, llm=2, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 12/14: 100/500 noticias, regex=97, residuos=3, llm=3
+[classificacao] lote 12/14: 150/500 noticias, regex=144, residuos=6, llm=6
+[classificacao] lote 12/14: 166/500 noticias, regex=156, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 12/14: 200/500 noticias, regex=189, residuos=11, llm=11
+[classificacao] lote 12/14: 250/500 noticias, regex=236, residuos=14, llm=14
+[classificacao] lote 12/14: 300/500 noticias, regex=282, residuos=18, llm=18
+[classificacao] lote 12/14: 329/500 noticias, regex=309, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 12/14: 350/500 noticias, regex=327, residuos=23, llm=23
+[classificacao] lote 12/14: 400/500 noticias, regex=373, residuos=27, llm=27
+[classificacao] lote 12/14: 450/500 noticias, regex=421, residuos=29, llm=29
+[classificacao] lote 12/14: 457/500 noticias, regex=427, residuos=30, llm=30, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 12/14: 500/500 noticias, regex=468, residuos=32, llm=32
+[classificacao] lote 12/14 concluido: docs=500, regex=468, residuos=32, llm=32, regras_aprendidas=1, taxa_regex=93.60%, tempo=841.4395s
+[classificacao] lote 13/14 iniciado (500 noticias)
+[classificacao] lote 13/14: 50/500 noticias, regex=45, residuos=5, llm=5
+[classificacao] lote 13/14: 100/500 noticias, regex=92, residuos=8, llm=8
+[classificacao] lote 13/14: 122/500 noticias, regex=112, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 13/14: 150/500 noticias, regex=139, residuos=11, llm=11
+[classificacao] lote 13/14: 200/500 noticias, regex=188, residuos=12, llm=12
+[classificacao] lote 13/14: 250/500 noticias, regex=234, residuos=16, llm=16
+[classificacao] lote 13/14: 300/500 noticias, regex=282, residuos=18, llm=18
+[classificacao] lote 13/14: 341/500 noticias, regex=321, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 13/14: 350/500 noticias, regex=328, residuos=22, llm=22, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 13/14: 400/500 noticias, regex=374, residuos=26, llm=26
+[classificacao] lote 13/14: 450/500 noticias, regex=422, residuos=28, llm=28
+[classificacao] lote 13/14: 500/500 noticias, regex=471, residuos=29, llm=29
+[classificacao] lote 13/14 concluido: docs=500, regex=471, residuos=29, llm=29, regras_aprendidas=1, taxa_regex=94.20%, tempo=829.605s
+[classificacao] lote 14/14 iniciado (497 noticias)
+[classificacao] lote 14/14: 50/497 noticias, regex=50, residuos=0, llm=0
+[classificacao] lote 14/14: 100/497 noticias, regex=96, residuos=4, llm=4
+[classificacao] lote 14/14: 150/497 noticias, regex=143, residuos=7, llm=7
+[classificacao] lote 14/14: 191/497 noticias, regex=181, residuos=10, llm=10, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 14/14: 200/497 noticias, regex=188, residuos=12, llm=12, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 14/14: 250/497 noticias, regex=236, residuos=14, llm=14
+[classificacao] lote 14/14: 300/497 noticias, regex=286, residuos=14, llm=14
+[classificacao] lote 14/14: 343/497 noticias, regex=323, residuos=20, llm=20, ultimo_provider=openai/gpt-4.1-mini
+[classificacao] lote 14/14: 350/497 noticias, regex=330, residuos=20, llm=20
+[classificacao] lote 14/14: 400/497 noticias, regex=378, residuos=22, llm=22
+[classificacao] lote 14/14: 450/497 noticias, regex=424, residuos=26, llm=26
+[classificacao] lote 14/14: 497/497 noticias, regex=468, residuos=29, llm=29
+[classificacao] lote 14/14 concluido: docs=497, regex=468, residuos=29, llm=29, regras_aprendidas=1, taxa_regex=94.16%, tempo=828.0164s
+{
+  "sampling": {
+    "stage": "amostragem",
+    "base_docs": 8232,
+    "sample_docs": 1235,
+    "reserve_docs": 6997,
+    "sample_fraction": 0.15,
+    "temporal_strata": "year",
+    "sample_strata_counts": {
+      "2011": 1,
+      "2019": 69,
+      "2020": 117,
+      "2021": 149,
+      "2022": 126,
+      "2023": 130,
+      "2024": 273,
+      "2025": 257,
+      "2026": 113
+    },
+    "docs_jsonl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\documentos_base.jsonl",
+    "sample_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\amostra_inicial.csv",
+    "reserve_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\reserva_incremental.csv"
+  },
+  "clusters": {
+    "stage": "clusterizacao_inicial",
+    "algorithm": "minibatch_kmeans_fallback",
+    "sample_docs": 1235,
+    "clusters_total": 27,
+    "raw_clusters_total": 35,
+    "noise_clusters": 0,
+    "cosine_merge_groups": 3,
+    "cosine_merges": [
+      {
+        "cosine_group_id": 2,
+        "merged_raw_cluster_ids": [
+          2,
+          9,
+          20,
+          24,
+          25,
+          32
+        ],
+        "dominant_family": "crimes_contra_criancas",
+        "size": 182
+      },
+      {
+        "cosine_group_id": 4,
+        "merged_raw_cluster_ids": [
+          4,
+          19
+        ],
+        "dominant_family": "corrupcao_recursos_publicos",
+        "size": 64
+      },
+      {
+        "cosine_group_id": 10,
+        "merged_raw_cluster_ids": [
+          10,
+          13,
+          30
+        ],
+        "dominant_family": "trafico_drogas",
+        "size": 116
+      }
+    ],
+    "cluster_assignments_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\cluster_assignments_amostra.csv",
+    "cluster_summary_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\resumo_clusters_amostra.csv"
+  },
+  "themes": {
+    "stage": "agente1_temas",
+    "themes_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\temas_canonicos_agent1.json",
+    "themes_accepted": 17,
+    "quarantined_cluster_ids": [],
+    "discarded_cluster_ids": []
+  },
+  "cosine": {
+    "stage": "similaridade_cosseno",
+    "profile_pkl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\perfis_cosseno_temas.pkl",
+    "profile_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\perfis_cosseno_temas.json",
+    "themes_profiled": 17
+  },
+  "initial_regex": {
+    "stage": "agente2_regex_inicial",
+    "initial_regex_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\regex_iniciais_agent2.json",
+    "agent2_regex_bank": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\regex_banco_agent2.json",
+    "active_regex_bank": "D:\\github\\NT_PF\\data\\analise_qualitativa\\regex_classifier_rules.json",
+    "initial_regex_accepted": 6629
+  },
+  "batches": {
+    "stage": "processar_lotes",
+    "metrics_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+    "batches": 14
+  },
+  "reports": {
+    "stage": "relatorios",
+    "metrics": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+    "metrics_readme": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\README_METRICAS.md",
+    "figures": [
+      "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\figures\\regex_vs_residual_por_iteracao.png",
+      "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\figures\\taxa_regex_por_iteracao.png"
+    ],
+    "report": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\relatorio_execucao_metodologia.md"
+  },
+  "theme_tree_organizer": {
+    "stage": "agente_organizador_arvore",
+    "theme_refinement_input_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\insumo_agente_organizador_arvore.json",
+    "refined_theme_tree_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\arvore_temas_agent1_refinada.json",
+    "decisions": 8,
+    "promoted_count": 4,
+    "promoted_unique_count": 2,
+    "promoted_canonical_themes": [
+      "ameacas_e_terrorismo",
+      "seguranca_privada_clandestina"
+    ],
+    "merged_into_existing_count": 3,
+    "kept_as_leaf_count": 1,
+    "discarded_count": 0,
+    "quarantined_count": 0
+  },
+  "rare_news_review": {
+    "stage": "reavaliar_quarentenas",
+    "quarantines_reviewed": 0,
+    "rescued": 0,
+    "rare_news": 43,
+    "review_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\quarentenas_reavaliacao.csv",
+    "output_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\classificacoes_incrementais_pos_quarentena.csv",
+    "summary_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\status_pos_quarentena.csv",
+    "theme_counts_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\noticias_por_tema_pos_quarentena.csv",
+    "figure": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\figures\\noticias_por_tema_pos_quarentena.png"
+  },
+  "token_cost_summary": {
+    "llm_residual_calls": 341,
+    "prompt_tokens_total": 338112,
+    "completion_tokens_total": 65389,
+    "tokens_total": 403501,
+    "avg_tokens_per_llm": 1183.2874,
+    "source_metrics_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+    "source_events_jsonl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\events.jsonl"
+  },
+  "steps": [
+    {
+      "label": "sincronizacao da base",
+      "skipped": false,
+      "elapsed_seconds": 78.4739,
+      "returncode": 0
+    },
+    {
+      "label": "metodologia incremental",
+      "skipped": false,
+      "elapsed_seconds": 12089.6563,
+      "returncode": 0
+    },
+    {
+      "label": "agente organizador da arvore de temas",
+      "skipped": false,
+      "elapsed_seconds": 4.9758,
+      "returncode": 0
+    },
+    {
+      "label": "consolidacao de noticias raras",
+      "skipped": false,
+      "elapsed_seconds": 2.8105,
+      "returncode": 0
+    },
+    {
+      "label": "resumo de custo por tokens",
+      "skipped": false,
+      "elapsed_seconds": 0.026,
+      "returncode": 0
+    }
+  ]
+}
+
+Process finished with exit code 0

@@ -11,7 +11,16 @@ from scripts.incremental.common import CLUSTER_SUMMARY_CSV, FIGURES_DIR, PROJECT
 
 ARTICLE_MEDIA_DIR = PROJECT_ROOT / "artigo" / "media"
 OUTPUT_ARTICLE = ARTICLE_MEDIA_DIR / "figura-temas-canonicos-folhas.png"
+OUTPUT_ARTICLE_EXAMPLE = ARTICLE_MEDIA_DIR / "figura-6-arvore-operacional-temas-folhas.png"
+OUTPUT_ARTICLE_COMPLETE = ARTICLE_MEDIA_DIR / "figura-6-arvore-operacional-temas-folhas-completa.png"
 OUTPUT_RESULTS = FIGURES_DIR / "temas_canonicos_folhas.png"
+
+EXAMPLE_THEMES = [
+    "crimes_contra_criancas",
+    "trafico_drogas",
+    "corrupcao_desvio_recursos_publicos",
+    "crimes_ambientais",
+]
 
 THEME_LABELS = {
     "armas_municoes": "armas_municoes",
@@ -69,7 +78,22 @@ def build_tree_rows() -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["theme", "size"], ascending=[True, False]).reset_index(drop=True)
 
 
-def draw_tree(rows: pd.DataFrame, output_path: Path) -> None:
+def build_example_rows(rows: pd.DataFrame, max_leaves_per_theme: int = 3) -> pd.DataFrame:
+    theme_order = {theme: index for index, theme in enumerate(EXAMPLE_THEMES)}
+    example = rows.loc[rows["theme"].isin(EXAMPLE_THEMES)].copy()
+    example["theme_order"] = example["theme"].map(theme_order)
+    example = example.sort_values(["theme_order", "size"], ascending=[True, False])
+    example = example.groupby("theme", group_keys=False).head(max_leaves_per_theme)
+    return example.drop(columns=["theme_order"]).reset_index(drop=True)
+
+
+def draw_tree(
+    rows: pd.DataFrame,
+    output_path: Path,
+    *,
+    title: str = "Arvore operacional: temas canonicos e folhas de clusters consolidados",
+    subtitle: str = "Folhas agrupadas por familia criminal dominante; locais e entidades nao definem tema.",
+) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     themes = rows["theme"].drop_duplicates().tolist()
     theme_counts = rows.groupby("theme")["size"].sum().to_dict()
@@ -89,10 +113,10 @@ def draw_tree(rows: pd.DataFrame, output_path: Path) -> None:
         theme_positions[theme] = (start_y + end_y) / 2
         current_y += theme_gap
 
-    height = max(8.5, current_y * 0.42 + 1.5)
-    fig, ax = plt.subplots(figsize=(16, height), dpi=180)
+    height = max(5.8, current_y * 0.46 + 1.5)
+    fig, ax = plt.subplots(figsize=(13.6, height), dpi=180)
     ax.set_xlim(0, 1)
-    ax.set_ylim(current_y, -1)
+    ax.set_ylim(current_y, -1.35)
     ax.axis("off")
 
     theme_x = 0.04
@@ -111,19 +135,23 @@ def draw_tree(rows: pd.DataFrame, output_path: Path) -> None:
             va="center",
             fontsize=9.5,
             weight="bold",
-            bbox={"boxstyle": "round,pad=0.45", "facecolor": color, "edgecolor": "#334155", "linewidth": 0.7, "alpha": 0.9},
+            bbox={
+                "boxstyle": "round,pad=0.45",
+                "facecolor": color,
+                "edgecolor": "#334155",
+                "linewidth": 0.7,
+                "alpha": 0.9,
+            },
         )
 
     for index, row in rows.iterrows():
         y = y_positions[int(index)]
         theme_y = theme_positions[row["theme"]]
         ax.plot([0.30, leaf_x - 0.025], [theme_y, y], color="#94a3b8", linewidth=0.8, alpha=0.75)
-        raw = str(row["raw_cluster_ids"])
-        raw_suffix = f" raw:{raw}" if " | " in raw else ""
         ax.text(
             leaf_x,
             y,
-            f"{row['leaf_label']}{raw_suffix}",
+            f"{row['leaf_label']}",
             ha="left",
             va="center",
             fontsize=8.2,
@@ -131,8 +159,8 @@ def draw_tree(rows: pd.DataFrame, output_path: Path) -> None:
         )
         ax.text(detail_x, y, str(row["leaf_detail"]), ha="left", va="center", fontsize=7.8, color="#334155")
 
-    ax.text(0.04, -0.65, "Arvore operacional: temas canonicos e folhas de clusters consolidados", fontsize=15, weight="bold")
-    ax.text(0.04, -0.25, "Folhas agrupadas por familia criminal dominante; locais e entidades nao definem tema.", fontsize=8.8, color="#475569")
+    ax.text(0.04, -1.0, title, fontsize=15, weight="bold")
+    ax.text(0.04, -0.58, subtitle, fontsize=8.8, color="#475569")
     fig.tight_layout()
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
@@ -140,9 +168,17 @@ def draw_tree(rows: pd.DataFrame, output_path: Path) -> None:
 
 def run() -> list[Path]:
     rows = build_tree_rows()
+    example_rows = build_example_rows(rows)
     draw_tree(rows, OUTPUT_ARTICLE)
+    draw_tree(rows, OUTPUT_ARTICLE_COMPLETE)
     draw_tree(rows, OUTPUT_RESULTS)
-    return [OUTPUT_ARTICLE, OUTPUT_RESULTS]
+    draw_tree(
+        example_rows,
+        OUTPUT_ARTICLE_EXAMPLE,
+        title="Exemplo de arvore operacional: temas canonicos e folhas",
+        subtitle="Recorte ilustrativo com temas representativos; a arvore completa permanece nos artefatos da execucao.",
+    )
+    return [OUTPUT_ARTICLE, OUTPUT_ARTICLE_COMPLETE, OUTPUT_RESULTS, OUTPUT_ARTICLE_EXAMPLE]
 
 
 def main() -> None:

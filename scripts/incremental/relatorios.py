@@ -25,7 +25,7 @@ def plot_metrics(metrics: pd.DataFrame) -> list[object]:
     fig, ax = plt.subplots(figsize=(11, 5))
     ax.plot(metrics["iteration"], metrics["regex_rate"], marker="o", label="Taxa regex")
     ax.plot(metrics["iteration"], metrics["cumulative_regex_rate"], marker="o", label="Taxa acumulada")
-    ax.set_ylim(0, 1)
+    ax.set_ylim(0.88, 1)
     ax.set_title("Cobertura regex por iteracao")
     ax.set_xlabel("Iteracao")
     ax.set_ylabel("Proporcao")
