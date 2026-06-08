@@ -12,7 +12,7 @@ Esse processo é difícil porque grandes bases textuais são heterogêneas, cres
 
 Modelos de linguagem ampliam a capacidade de interpretar textos e podem apoiar tarefas de classificação, extração de evidências e nomeação de temas. No entanto, usar LLM em toda a base pode ser caro, pouco previsível e menos reprodutível quando não há uma camada determinística de verificação. A proposta deste trabalho parte dessa tensão: usar LLM onde ela agrega mais valor, isto é, nos resíduos e exceções, e converter parte desse aprendizado em regras auditáveis para reduzir chamadas futuras. Com isso, busca-se um ciclo de aprendizado contínuo que contribua para diminuir custos operacionais ao longo do tempo.
 
-Este Texto para Discussão tem como objetivo propor uma metodologia incremental, autônoma e transparente para clusterizar, classificar e aprender continuamente a partir de grandes bases textuais. A proposta busca responder a um problema operacional comum a instituições que lidam com dados textuais em larga escala: como organizar temas recorrentes, reconhecer exceções, reduzir custo de inferência e preservar rastreabilidade ao longo de sucessivas rodadas de dados. A metodologia é aplicada empiricamente a notícias públicas da Polícia Federal, por constituírem uma base real, volumosa, heterogênea e marcada por termos especializados; nessa aplicação, o alvo de classificação é crime ou modus operandi. O texto está organizado da seguinte forma: a seção 2 apresenta o referencial teórico; a seção 3 discute trabalhos relacionados; a seção 4 detalha a metodologia; a seção 5 apresenta a avaliação experimental; a seção 6 apresenta a conclusão, os critérios de qualidade e as limitações observadas; e o Apêndice registra métricas por lote.
+Este Texto para Discussão tem como objetivo propor uma metodologia incremental, autônoma e transparente para clusterizar, classificar e aprender continuamente a partir de grandes bases textuais. A proposta busca responder a um problema operacional comum a instituições que lidam com dados textuais em larga escala: como organizar temas recorrentes, reconhecer exceções, reduzir custo de inferência e preservar rastreabilidade ao longo de sucessivas rodadas de dados. A metodologia é aplicada empiricamente a notícias públicas da Polícia Federal, por constituírem uma base real, volumosa, heterogênea e marcada por termos especializados; nessa aplicação, o alvo de classificação é crime ou modus operandi. Na amostra de fundação, a clusterização gerou 35 clusters brutos, posteriormente consolidados em 27 folhas temáticas e organizados em 17 temas canônicos, indicando que os agrupamentos exploratórios precisavam ser interpretados e refinados antes de se tornarem categorias operacionais. O texto está organizado da seguinte forma: a seção 2 apresenta o referencial teórico; a seção 3 discute trabalhos relacionados; a seção 4 detalha a metodologia; a seção 5 apresenta a avaliação experimental; a seção 6 apresenta a conclusão, os critérios de qualidade e as limitações observadas; e o Apêndice registra métricas por lote.
 
 Assim, o resultado esperado não se limita à classificação pontual da base usada como aplicação, mas consiste em um procedimento transferível de clusterização, classificação e treinamento incremental autônomo, com rastreabilidade e menor dependência de intervenção humana no ciclo operacional.
 
@@ -66,7 +66,11 @@ Técnicas clássicas de *bootstrapping* de padrões, como Snowball, partem de ev
 
 ## 4. Metodologia
 
-A metodologia proposta organiza grandes coleções textuais em um ciclo incremental, autônomo e auditável. Primeiro, uma amostra inicial é extraída da base e transformada em texto de domínio, isto é, uma representação textual orientada ao alvo substantivo da classificação. Em seguida, essa amostra é vetorizada, dividida em clusters por HDBSCAN e refinada por similaridade do cosseno, de modo que folhas semanticamente próximas possam ser aproximadas antes da nomeação temática. O Agente 1 recebe os clusters consolidados e gera temas canônicos; o Agente 2 recebe esses temas e produz regex iniciais; o classificador regex aplica essas regras aos lotes incrementais; e apenas os documentos não classificados seguem para revisão residual por LLM. As decisões residuais podem gerar novas regex, temas candidatos, registros de documentos raros ou ajustes na árvore temática, fechando o ciclo e reduzindo a dependência de inferência nos lotes seguintes.
+Esta seção descreve a metodologia proposta, seus artefatos, seus componentes e o modo como o ciclo incremental de classificação é executado e auditado. A descrição parte da visão geral do fluxo, define a unidade documental e o alvo de classificação, apresenta os contratos entre componentes e detalha a fundação temática, a geração de regex, a execução incremental e a revisão residual por LLM.
+
+### 4.1 Visão geral do ciclo metodológico
+
+A metodologia organiza grandes coleções textuais em um ciclo incremental, autônomo e auditável. Primeiro, uma amostra inicial é extraída da base e transformada em texto de domínio, isto é, uma representação textual orientada ao alvo substantivo da classificação. Em seguida, essa amostra é vetorizada, dividida em clusters por HDBSCAN e refinada por similaridade do cosseno, de modo que folhas semanticamente próximas possam ser aproximadas antes da nomeação temática. O Agente 1 recebe os clusters consolidados e gera temas canônicos; o Agente 2 recebe esses temas e produz regex iniciais; o classificador regex aplica essas regras aos lotes incrementais; e apenas os documentos não classificados seguem para revisão residual por LLM. As decisões residuais podem gerar novas regex, temas candidatos, registros de documentos raros ou ajustes na árvore temática, fechando o ciclo e reduzindo a dependência de inferência nos lotes seguintes.
 
 A Figura 1 sintetiza esse ciclo completo. Ela mostra a fundação temática, a execução incremental e o fechamento por aprendizado residual, deixando explícito que o banco de regex e a árvore refinada retroalimentam os lotes seguintes.
 
@@ -74,69 +78,7 @@ A Figura 1 sintetiza esse ciclo completo. Ela mostra a fundação temática, a e
 
 *Figura 1 - Ciclo completo da metodologia incremental.*
 
-### 4.1 Visão geral do ciclo metodológico
-
-Depois da visão gráfica, o ciclo completo pode ser formalizado pelo seguinte pseudocódigo. Ele explicita entradas, saídas e pontos de atualização, evitando que a metodologia dependa apenas de descrição narrativa.
-
-```text
-Entrada:
-  B = base textual
-  y = alvo substantivo de classificação
-  p = fração da amostra de fundação
-  L = tamanho dos lotes incrementais
-
-Procedimento:
-  D <- ingerir_e_estruturar(B)
-  definir_controles_de_dominio(y)
-  A, R <- dividir_base(D, p)
-
-  T_A <- construir_texto_de_dominio(A, y)
-  E_A <- gerar_embeddings(T_A)
-  C <- executar_HDBSCAN(E_A)
-  F <- consolidar_clusters_por_cosseno(C, E_A)
-  Temas <- agente_1_nomear_temas(F, y)
-  Regex <- agente_2_gerar_regex(Temas, F, y)
-  Regex <- validar_e_versionar_regex(Regex)
-  Candidatos <- lista_vazia()
-  Raros <- lista_vazia()
-  Metricas <- lista_vazia()
-
-  para cada lote em dividir_em_lotes(R, L):
-      para cada documento d no lote:
-          x <- parser(d)
-          t <- construir_texto_de_dominio(x, y)
-          decisao <- classificar_por_regex(t, Regex)
-
-          se decisao.tem_label:
-              registrar_classificacao(d, decisao, origem="regex")
-          senao:
-              residual <- montar_pacote_residual(d, t, Temas, Regex)
-              revisao <- agente_3_revisar_residual(residual)
-              registrar_classificacao(d, revisao, origem="LLM")
-
-              se revisao.acao_aprendizado == "gerar_regex":
-                  regra <- agente_aprendiz_gerar_regex(revisao)
-                  se validar_regex(regra):
-                      Regex <- adicionar_regra(Regex, regra)
-
-              se revisao.tema_candidato:
-                  Candidatos <- registrar_tema_candidato(revisao)
-
-              se revisao.documento_raro:
-                  Raros <- registrar_documento_raro(revisao)
-
-      Temas <- organizador_revisar_arvore(Temas, Regex, Candidatos, Raros, Metricas)
-      Metricas <- registrar_metricas_do_lote(lote, Regex, Temas)
-
-Saídas:
-  classificações finais
-  banco de regex versionado
-  árvore temática refinada
-  métricas por lote
-  trilha de auditoria
-```
-
-Esse pseudocódigo explicita a passagem entre componentes. Cada etapa recebe um artefato, produz outro e o entrega à etapa seguinte. Com isso, o método pode ser implementado, auditado e reproduzido sem depender apenas de uma descrição narrativa.
+O ciclo é executado por transferência explícita de artefatos entre componentes. A base textual é ingerida e estruturada; a amostra de fundação produz embeddings, clusters, folhas consolidadas, temas canônicos e regex iniciais; a reserva incremental é processada em lotes; documentos classificados por regex são registrados diretamente; documentos residuais seguem para revisão por LLM; e as decisões residuais podem atualizar o banco de regras, a árvore temática, a lista de candidatos, o registro de notícias raras e as métricas do lote. Assim, cada etapa recebe uma entrada definida, produz uma saída verificável e alimenta a etapa seguinte.
 
 ### 4.2 Unidade documental, alvo de classificação e controles de domínio
 
@@ -210,27 +152,11 @@ O Agente 2 recebe os temas canônicos produzidos pelo Agente 1 e as evidências 
 
 Cada regex candidata é avaliada antes de entrar no banco ativo. A validação verifica se o padrão captura exemplos positivos, evita exemplos negativos, não depende de metadados acidentais e pode ser interpretado por um avaliador humano. Regras aprovadas são versionadas com label, padrão, origem, evidências, exemplos e data de inclusão. O resultado dessa etapa é o banco `regex_classifier_rules.json`, usado como classificador determinístico principal na execução incremental.
 
-```text
-Entrada do Agente 2:
-  tema canônico
-  folhas associadas
-  trechos positivos
-  termos frequentes
-  controles de domínio
+A Figura 3 resume esse contrato operacional. Ela explicita quais informações alimentam o Agente 2, quais produtos são esperados e quais critérios impedem que uma regex entre no banco ativo quando depende de sinais acidentais ou amplia excessivamente a classe.
 
-Saída do Agente 2:
-  regex candidata
-  label associada
-  evidências positivas
-  sinais proibidos ou acidentais
-  justificativa da regra
+![Contrato operacional do Agente 2 para geração de regex](media/figura-3-agente2-regex.png)
 
-Critério de aceite:
-  capturar evidência substantiva
-  rejeitar dependência de localidade, órgão ou nome de operação
-  ser rastreável até exemplos observados
-  não ampliar excessivamente a classe
-```
+*Figura 3 - Contrato operacional do Agente 2 para geração e validação de regex.*
 
 ### 4.6 Execução incremental em lotes
 
@@ -416,7 +342,7 @@ A redução de 35 clusters brutos para 27 clusters consolidados indica que parte
 
 ![Principais grupos consolidados da amostra inicial](media/figura-2-clusters-fundacao.png)
 
-*Figura 3 - Principais grupos consolidados da amostra inicial.*
+*Figura 4 - Principais grupos consolidados da amostra inicial.*
 
 ### 5.4 Banco inicial de regex
 
@@ -454,13 +380,13 @@ A figura a seguir compara, por iteração, quantos documentos foram resolvidos p
 
 ![Regex versus residual por iteração](media/figura-3-regex-vs-residual.png)
 
-*Figura 4 - Documentos classificados por regex e enviados à revisão residual por lote.*
+*Figura 5 - Documentos classificados por regex e enviados à revisão residual por lote.*
 
 A figura seguinte mostra a taxa de classificação por regex ao longo dos lotes. A variação entre lotes indica que a cobertura depende da composição temática de cada rodada, mas a taxa acumulada permanece elevada.
 
 ![Taxa regex por iteração](media/figura-4-taxa-regex.png)
 
-*Figura 5 - Taxa de classificação por regex ao longo dos lotes.*
+*Figura 6 - Taxa de classificação por regex ao longo dos lotes.*
 
 O custo operacional foi medido pelo consumo de tokens nas chamadas residuais. A execução registrou 341 chamadas LLM, 338.112 tokens de prompt, 65.389 tokens de conclusão e 403.501 tokens totais, com média de 1.183,29 tokens por chamada residual. Esses valores mostram o custo associado apenas aos documentos que escaparam das regras; em uma estratégia que acionasse LLM para toda a reserva, o número de chamadas seria 6.997. A tabela a seguir detalha as medidas de custo.
 
@@ -496,7 +422,7 @@ Esses resultados indicam que o residual funcionou como mecanismo de aprendizado 
 
 ![Top 10 temas consolidados após classificação das notícias raras](media/figura-5-temas-finais.png)
 
-*Figura 6 - Top 10 temas consolidados após classificação das notícias raras.*
+*Figura 7 - Top 10 temas consolidados após classificação das notícias raras.*
 
 ### 5.7 Interpretação e ameaças à validade
 
@@ -571,7 +497,7 @@ A Tabela 12 apresenta o detalhamento por lote usado na avaliação experimental.
 
 ### 8.2 Distribuição final por tema consolidado
 
-A Tabela 13 apresenta a distribuição final por tema após a reorganização da árvore e a consolidação de labels operacionais equivalentes. Essa tabela complementa a Figura 6, que mostra apenas o Top 10.
+A Tabela 13 apresenta a distribuição final por tema após a reorganização da árvore e a consolidação de labels operacionais equivalentes. Essa tabela complementa a Figura 7, que mostra apenas o Top 10.
 
 **Tabela 13 - Distribuição final por tema consolidado.**
 
