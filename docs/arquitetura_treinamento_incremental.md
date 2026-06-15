@@ -1,18 +1,18 @@
-# Metodologia alvo: treinamento incremental autonomo por temas canonicos, regex e LLM
+# Metodologia alvo: treinamento incremental autonomo por temas canonicos, discriminadores, WNN e LLM
 
-Este documento descreve a metodologia alvo do projeto. A proposta e criar um ciclo fechado, sem interferencia humana, para transformar uma base textual incremental em uma taxonomia canonica, gerar regex iniciais, classificar novos dados por regras deterministicas e usar a LLM apenas nos residuos que escaparem das regras.
+Este documento descreve a metodologia alvo do projeto. A proposta e criar um ciclo fechado, sem interferencia humana, para transformar uma base textual incremental em uma taxonomia canonica, gerar discriminadores auditaveis, classificar novos dados por regras deterministicas e por memoria associativa WNN, e usar a LLM apenas nos residuos que escaparem dessas camadas.
 
 O ponto central e separar duas fases:
 
-1. **Fase de fundacao**: usa uma amostra minima viavel da base para descobrir temas canonicos e criar o banco inicial de regex.
-2. **Fase incremental**: processa o restante da base, e depois os novos dados diarios, em lotes que passam apenas pela camada regex/LLM/aprendizado.
+1. **Fase de fundacao**: usa uma amostra minima viavel da base para descobrir temas canonicos e criar o banco inicial de discriminadores.
+2. **Fase incremental**: processa o restante da base, e depois os novos dados diarios, em lotes que passam pelas camadas regex forte, WNN, LLM residual e aprendizado.
 
 ## Desenho resumido
 
 ```mermaid
 flowchart TD
-    A["Base completa<br/>ex.: 8 mil noticias"] --> B["Amostra inicial barata e representativa<br/>15% estratificada no tempo"]
-    A --> C["Reserva incremental<br/>85% restantes"]
+    A["Base completa<br/>ex.: 8 mil noticias"] --> B["Amostra inicial barata e representativa<br/>10% estratificada no tempo"]
+    A --> C["Reserva incremental<br/>90% restantes"]
 
     B --> D["Espaco semantico da amostra<br/>TF-IDF/SVD, HDBSCAN, cosseno"]
     D --> E["Clusters exploratorios<br/>termos, titulos, trechos, tags"]
@@ -21,17 +21,22 @@ flowchart TD
     F --> G["Temas canonicos amplos<br/>ex.: crimes_contra_criancas"]
     G --> H["Blocos tematicos<br/>um tema engloba varios clusters relacionados"]
 
-    H --> I["Agente 2<br/>gerador de regex iniciais"]
-    I --> J["Banco inicial de regex<br/>por tema canonico"]
+    H --> I["Agente 2<br/>gerador de discriminadores"]
+    I --> J["Regex fortes<br/>classificacao direta"]
+    I --> Y["Banco de flags WNN<br/>sensores binarios auditaveis"]
 
     C --> K["Divisao em N lotes incrementais"]
     K --> L["Lote N"]
-    J --> M["Classificador regex"]
+    J --> M["Classificador regex forte"]
+    Y --> Z["WNN<br/>memoria associativa abstensiva"]
     L --> M
 
     M --> N{"Regex resolveu?"}
     N -- "sim" --> O["Classificacao deterministica"]
-    N -- "nao" --> P["LLM residual<br/>OpenAI gpt-4.1-mini<br/>fallback local llama3.2"]
+    N -- "nao" --> Z
+    Z --> AA{"WNN resolveu<br/>com margem?"}
+    AA -- "sim" --> AB["Classificacao WNN"]
+    AA -- "nao" --> P["LLM residual<br/>OpenAI gpt-4.1-mini<br/>fallback local llama3.2"]
 
     P --> Q["Classificacao estruturada<br/>+ evidencia textual<br/>+ aprendizado candidato"]
     Q --> R["Agente 3<br/>curador automatico de aprendizado"]
@@ -40,6 +45,7 @@ flowchart TD
     S -- "nao" --> T["Rejeicao ou quarentena automatica"]
 
     O --> U["Metricas do lote"]
+    AB --> U
     P --> U
     R --> U
     T --> U
@@ -68,15 +74,15 @@ Assim, o tema canonico nao precisa ser identico ao cluster. Ele funciona como um
 
 ## Fase 1: amostra inicial representativa
 
-A base completa nao deve ser enviada integralmente para a etapa de descoberta inicial. A rodada final da metodologia usa uma amostra inicial de 15% da base historica, estratificada temporalmente.
+A base completa nao deve ser enviada integralmente para a etapa de descoberta inicial. A configuracao atual usa uma amostra inicial de 10% da base historica, estratificada temporalmente.
 
 Regras da amostra:
 
 - Sorteio reprodutivel com seed registrada.
 - Estratificacao opcional por ano para evitar concentracao temporal.
 - Registro do hash da amostra e da base completa.
-- A amostra serve apenas para descobrir temas canonicos e criar regex iniciais.
-- Os 85% restantes ficam reservados para testar o ciclo incremental.
+- A amostra serve apenas para descobrir temas canonicos e criar discriminadores iniciais.
+- Os 90% restantes ficam reservados para testar o ciclo incremental.
 - A amostra deve conter fragmentos de diferentes momentos da base, evitando concentrar toda a fundacao em um periodo recente ou antigo.
 
 Artefatos esperados:
@@ -195,11 +201,11 @@ O arquivo de insumo registra explicitamente:
 - regex aprendidas por tema/candidato quando houver;
 - sugestoes de proximidade por similaridade do cosseno.
 
-## Agente 2: gerador de regex iniciais
+## Agente 2: gerador de discriminadores
 
 Funcao:
 
-Receber cada bloco tematico canonico aprovado pelo Agente 1 e gerar regex iniciais para classificar esse tema no restante da base.
+Receber cada bloco tematico canonico aprovado pelo Agente 1 e gerar discriminadores auditaveis para classificar esse tema no restante da base. Um discriminador pode ser uma regex forte, usada para classificacao direta, ou uma flag/sensor binario, usada pela WNN.
 
 Entrada:
 
@@ -209,14 +215,15 @@ Entrada:
 - Evidencias textuais.
 - Exemplos positivos.
 - Exemplos negativos ou regras de exclusao.
-- Labels regex ja existentes.
+- Labels e discriminadores ja existentes.
 
 Saida padronizada:
 
 - `theme_id`
 - `canonical_theme`
-- `regex_candidates`
-- `accepted_initial_rules`
+- `strong_regex_candidates`
+- `wnn_discriminators`
+- `accepted_strong_rules`
 - `rejected_candidates`
 - `quarantined_candidates`
 - `coverage_estimate`
@@ -226,21 +233,22 @@ Regras:
 
 - O Agente 2 nao altera a taxonomia.
 - O Agente 2 nao chama a LLM residual.
-- Ele so produz regex e valida automaticamente.
-- Regex aprovadas entram no banco inicial.
-- Regex duvidosas ficam em quarentena automatica.
+- Ele produz discriminadores e valida automaticamente.
+- Regex fortes aprovadas entram em `regex_classifier_rules.json`.
+- Flags/sensores aprovados entram em `wnn_feature_bank.json`.
+- Discriminadores duvidosos ficam em quarentena automatica.
 
 ## Fase 3: reserva incremental em lotes
 
-Somente depois que os temas canonicos e regex iniciais existirem, os 85% restantes sao divididos em lotes.
+Somente depois que os temas canonicos e os discriminadores iniciais existirem, os 90% restantes sao divididos em lotes de 500 noticias.
 
 Politica de lote:
 
 - Ordenacao por data para simular chegada incremental, ou sorteio controlado para experimento.
 - Cada lote registra tamanho, periodo, hash da entrada e versao das regras antes/depois.
 - Os lotes nao passam pelo Agente 1.
-- Os lotes nao passam pelo Agente 2, exceto quando for necessario regenerar regex iniciais por nova versao de tema.
-- O fluxo normal do lote e regex -> LLM residual -> Agente 3.
+- Os lotes nao passam pelo Agente 2, exceto quando for necessario regenerar discriminadores por nova versao de tema.
+- O fluxo normal do lote e regex forte -> WNN -> LLM residual -> Agente 3.
 
 Artefatos:
 
@@ -253,7 +261,7 @@ Artefatos:
 
 Funcao:
 
-Classificar os casos que escaparam da regex usando a lista de temas canonicos disponiveis. Quando nenhuma label canonica for defensavel, registrar um novo tema candidato ou colocar o caso em quarentena.
+Classificar os casos que escaparam da regex forte e da WNN usando a lista de temas canonicos disponiveis. Quando nenhuma label canonica for defensavel, registrar um novo tema candidato ou colocar o caso em quarentena.
 
 Entrada:
 
@@ -261,6 +269,7 @@ Entrada:
 - Labels canonicas disponiveis.
 - Sugestoes por similaridade do cosseno.
 - Resultado da regex anterior.
+- Resultado da WNN, incluindo flags ativas, top labels, confianca e margem.
 
 Saida padronizada:
 
@@ -404,7 +413,7 @@ scripts/
 |-- incremental/
 |   |-- run_all_incremental.py              # Orquestrador que encadeia as etapas
 |   |-- run_all_incremente.py              # Alias do orquestrador
-|   |-- amostragem.py                       # Base completa -> 15% temporal / 85% reserva
+|   |-- amostragem.py                       # Base completa -> amostra temporal configuravel / reserva incremental
 |   |-- clusterizacao_inicial.py            # HDBSCAN/cosseno na amostra
 |   |-- agente1_temas.py                    # Etapa/orquestracao do Agente 1
 |   |-- agente2_regex_inicial.py            # Etapa/orquestracao do Agente 2

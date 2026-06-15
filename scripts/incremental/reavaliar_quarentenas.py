@@ -178,6 +178,15 @@ def _row_label_and_status(row: pd.Series, label_map: dict[str, str], status_map:
         label = str(inference.get("identidade_canonica", "") or inference.get("canonical_label", "")).strip()
         return label or "quarentena", "classificado_regex" if label else "quarentena_regex_sem_label"
 
+    if bool(row.get("wnn_accepted", False)):
+        inference = _safe_literal_dict(row.get("inference", {}))
+        label = str(
+            row.get("wnn_top_label", "")
+            or inference.get("identidade_canonica", "")
+            or inference.get("canonical_label", "")
+        ).strip()
+        return label or "quarentena", "classificado_wnn" if label else "quarentena_wnn_sem_label"
+
     decision = str(row.get("agent3_decision", "") or "").strip()
     label = str(row.get("agent3_canonical_label", "") or "").strip()
     if decision == "classificar":
@@ -213,8 +222,7 @@ def build_refined_classification_csv() -> Path:
 
 
 def run() -> dict[str, object]:
-    if not INPUT_CSV.exists():
-        build_refined_classification_csv()
+    build_refined_classification_csv()
 
     df = pd.read_csv(INPUT_CSV)
     df["label_pos_quarentena"] = df["label_final_arvore_refinada"]

@@ -2,11 +2,11 @@
 
 Metodologia incremental, autonoma e auditavel para clusterizar, organizar e classificar grandes quantidades de textos. As noticias publicas de operacoes da Policia Federal brasileira sao usadas como aplicacao pratica da metodologia.
 
-O projeto combina amostragem temporal, clusterizacao exploratoria, similaridade do cosseno, agentes de IA, geracao de regex, classificacao residual por LLM e reorganizacao periodica de uma arvore tematica. A ideia central e reduzir custo de inferencia: a LLM entra apenas quando o classificador regex nao consegue resolver o documento.
+O projeto combina amostragem temporal, clusterizacao exploratoria, similaridade do cosseno, agentes de IA, geracao de discriminadores auditaveis, classificacao por regex forte, camada WNN, classificacao residual por LLM e reorganizacao periodica de uma arvore tematica. A ideia central e reduzir custo de inferencia: a LLM entra apenas quando as camadas auditaveis nao conseguem resolver o documento.
 
 ## 1. Introducao
 
-A metodologia trata a clusterizacao e classificacao como um ciclo fechado. Primeiro, uma amostra da base e usada para descobrir a fundacao tematica. Depois, os temas viram regex iniciais. A massa restante e processada em lotes: cada documento passa por parser, regex e, se necessario, por revisao residual com LLM. Quando a LLM encontra um caso util, esse caso pode gerar aprendizado para o banco de regex ou virar candidato para reorganizacao da arvore.
+A metodologia trata a clusterizacao e classificacao como um ciclo fechado. Primeiro, uma amostra da base e usada para descobrir a fundacao tematica. Depois, os temas viram discriminadores: regex fortes para decisao direta e flags/sensores para a WNN. A massa restante e processada em lotes: cada documento passa por parser, regex forte, WNN e, se necessario, revisao residual com LLM. Quando a LLM encontra um caso util, esse caso pode gerar aprendizado para o banco de regras/discriminadores ou virar candidato para reorganizacao da arvore.
 
 ![Conceito circular da metodologia incremental autonoma](artigo/media/figura-1-conceito-circular-metodologia.png)
 
@@ -168,6 +168,15 @@ rodar_sistema.bat
 
 O script nao exige argumentos. Ele executa a geracao/sincronizacao da base, limpa artefatos anteriores, monta a fundacao, processa os lotes incrementais, roda reorganizacao da arvore, reavalia noticias raras e gera metricas/graficos/relatorios.
 
+Configuracao padrao atual:
+
+- `PF_SAMPLE_FRACTION=0.10`: fundacao tematica com 10% da base.
+- `PF_BATCH_SIZE=500`: processamento incremental em lotes de 500 noticias.
+- `PF_THEME_TREE_REVIEW_INTERVAL_BATCHES=1`: revisao da arvore ao final de cada lote.
+- `PF_INITIAL_REGEX_TARGET_PER_THEME=0`: regex deterministica desativada; Agente 2 gera discriminadores WNN.
+- `PF_WNN_ENABLED=true`: ativa a camada WNN entre regex forte e LLM residual.
+- `PF_WNN_MAX_DISCRIMINATORS_PER_THEME=35`: limita o banco de sensores por tema.
+
 ## 8. Saidas principais
 
 Os resultados de execucao ficam em:
@@ -185,6 +194,7 @@ Principais artefatos:
 - `temas_canonicos_agent1.json`: temas iniciais do Agente 1;
 - `regex_iniciais_agent2.json`: regex iniciais propostas;
 - `regex_classifier_rules.json`: banco ativo de regex;
+- `wnn_feature_bank.json`: banco ativo de discriminadores/flags para WNN;
 - `metrics_batches.csv`: metricas por lote;
 - `resumo_custo_tokens.json` e `resumo_custo_tokens.md`: consumo de tokens por chamadas LLM residuais;
 - `events.jsonl`: trilha completa de eventos;

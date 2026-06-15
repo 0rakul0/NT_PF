@@ -42,7 +42,10 @@ def review_to_inference(review: ResidualReviewAgentResponse) -> NoticiaLLMInfere
     return NoticiaLLMInference(
         identidade_canonica=review.canonical_label,
         classificacao="Por crime",
-        crimes_mais_presentes=[review.canonical_label],
+        crimes_mais_presentes=[review.canonical_label, *review.marcadores_secundarios],
+        tema_principal=review.tema_principal or review.canonical_label,
+        marcadores_secundarios=review.marcadores_secundarios,
+        relacao_operacional=review.relacao_operacional or "tema_unico",
         modus_operandi=[],
         resumo_curto=review.resumo_curto,
         resumo_estruturado={},

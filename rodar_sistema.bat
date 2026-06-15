@@ -3,17 +3,23 @@ setlocal
 
 cd /d "%~dp0"
 
+if "%PF_SKIP_SYNC%"=="" set PF_SKIP_SYNC=true
+if "%PF_PRESERVE_PREVIOUS_RUN%"=="" set PF_PRESERVE_PREVIOUS_RUN=false
+
 echo ============================================================
 echo Rodando sistema NT_PF
 echo ============================================================
 echo.
 echo Fluxo padrao:
-echo - sincronizar/gerar base
+echo - sincronizar/gerar base: PF_SKIP_SYNC=%PF_SKIP_SYNC%
+echo - preservar execucao anterior: PF_PRESERVE_PREVIOUS_RUN=%PF_PRESERVE_PREVIOUS_RUN%
 echo - limpar artefatos anteriores
-echo - amostra inicial 15%% com estratificacao temporal
-echo - massa incremental 85%%
-echo - lotes de 10 noticias
-echo - agente separado organiza a arvore de temas
+echo - amostra inicial 10%% com estratificacao temporal
+echo - massa incremental 90%%
+echo - lotes de 500 noticias
+echo - Agente 2 gera discriminadores para a WNN
+echo - regex deterministica desativada por padrao
+echo - agente separado revisa a arvore ao final de cada lote
 echo - gerar metricas, graficos e README automatico
 echo.
 
@@ -43,6 +49,7 @@ echo.
 if "%EXIT_CODE%"=="0" (
     echo Execucao concluida com sucesso.
     echo Resultados em: data\analise_qualitativa\incremental
+    echo Dashboard em: data\analise_qualitativa\dashboard_comparacao.html
 ) else (
     echo Execucao terminou com erro. Codigo: %EXIT_CODE%
 )

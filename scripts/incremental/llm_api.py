@@ -64,7 +64,11 @@ def invoke_ollama_json(prompt: str, schema: type[SchemaT], config: RunConfig, ti
             {"role": "user", "content": prompt},
         ],
         format=schema.model_json_schema(),
-        options={"temperature": 0, "num_ctx": 4096, "num_predict": 1024},
+        options={
+            "temperature": 0,
+            "num_ctx": config.ollama_num_ctx,
+            "num_predict": config.ollama_num_predict,
+        },
         keep_alive="10m",
     )
     content = response.message.content or ""

@@ -379,6 +379,9 @@ Regras:
 - setor_afetado deve usar somente uma categoria permitida;
 - marque precisa_reprocessamento=true quando houver ambiguidade, texto insuficiente ou conflito entre crime, tags e corpo;
 - se houver crime claro, classificacao deve ser "Por crime" e identidade_canonica deve ser igual ao crime principal quando ele ja iniciar com "crimes_", ou iniciar com "crime_" nos demais casos;
+- quando houver mais de um marcador, preencha tema_principal, marcadores_secundarios e relacao_operacional;
+- nao funda dominios distintos apenas por coocorrencia: mineracao ilegal + trafico de drogas sem grupo organizado explicito deve usar relacao_operacional="coocorrencia_sem_fusao";
+- quando houver cadeia operacional clara com organizacao/faccao/associacao, trafico, lavagem, armas ou outros eixos conectados, use tema_principal="crime_organizado" e relacao_operacional="crime_organizado_multidominio" ou "cadeia_operacional";
 - se nao houver crime claro, use "Com operacao nomeada" apenas quando houver nome de operacao explicito no contexto;
 - se nao houver crime nem operacao clara, use "Outras";
 - escreva labels em lowercase, ascii simples e underscores.
@@ -616,6 +619,9 @@ def coerce_inference_payload(payload: Any) -> dict[str, Any]:
 
     crime_labels = coerce_label_list(crimes, crime=True)
     modus_labels = coerce_label_list(modus)
+    tema_principal = normalize_object_key(str(normalized_payload.get("tema_principal", "") or ""))
+    marcadores_secundarios = coerce_label_list(normalized_payload.get("marcadores_secundarios", []), crime=True)
+    relacao_operacional = normalize_object_key(str(normalized_payload.get("relacao_operacional", "") or ""))
     canonical_identidade = canonical_identity(identidade, crime_labels)
     if not crime_labels:
         identity_label = canonical_label(canonical_identidade.removeprefix("crime_"))
@@ -628,6 +634,9 @@ def coerce_inference_payload(payload: Any) -> dict[str, Any]:
         "identidade_canonica": canonical_identidade,
         "classificacao": classificacao,
         "crimes_mais_presentes": crime_labels,
+        "tema_principal": tema_principal or (crime_labels[0] if crime_labels else ""),
+        "marcadores_secundarios": [label for label in marcadores_secundarios if label not in crime_labels[:1]],
+        "relacao_operacional": relacao_operacional or ("coocorrencia_sem_fusao" if marcadores_secundarios else "tema_unico"),
         "modus_operandi": modus_labels,
         "resumo_curto": resumo_curto,
         "resumo_estruturado": resumo_estruturado,

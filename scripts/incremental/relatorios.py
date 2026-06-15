@@ -10,28 +10,36 @@ def plot_metrics(metrics: pd.DataFrame) -> list[object]:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     figures = []
     fig, ax = plt.subplots(figsize=(11, 5))
-    ax.bar(metrics["iteration"], metrics["regex_accepted"], label="Regex")
-    ax.bar(metrics["iteration"], metrics["regex_residual"], bottom=metrics["regex_accepted"], label="Residual")
-    ax.set_title("Regex e residuos por iteracao")
+    wnn_accepted = metrics["wnn_accepted"] if "wnn_accepted" in metrics else pd.Series([0] * len(metrics), index=metrics.index)
+    post_wnn_residual = metrics["post_wnn_residual"] if "post_wnn_residual" in metrics else metrics["regex_residual"]
+    composite = metrics.get("wnn_multi_discriminator_candidates", pd.Series([0] * len(metrics), index=metrics.index))
+    ax.bar(metrics["iteration"], wnn_accepted, label="WNN")
+    ax.bar(metrics["iteration"], post_wnn_residual, bottom=wnn_accepted, label="Residual pos-WNN")
+    ax.bar(metrics["iteration"], composite, label="Candidatos compostos", alpha=0.7)
+    ax.set_title("WNN, residuais e candidatos compostos por iteracao")
     ax.set_xlabel("Iteracao")
     ax.set_ylabel("Noticias")
     ax.legend()
     fig.tight_layout()
-    output = FIGURES_DIR / "regex_vs_residual_por_iteracao.png"
+    output = FIGURES_DIR / "wnn_residual_candidatos_por_iteracao.png"
     fig.savefig(output, dpi=160)
     plt.close(fig)
     figures.append(output)
 
     fig, ax = plt.subplots(figsize=(11, 5))
-    ax.plot(metrics["iteration"], metrics["regex_rate"], marker="o", label="Taxa regex")
-    ax.plot(metrics["iteration"], metrics["cumulative_regex_rate"], marker="o", label="Taxa acumulada")
-    ax.set_ylim(0.88, 1)
-    ax.set_title("Cobertura regex por iteracao")
+    wnn_rate = metrics.get("wnn_rate", metrics["wnn_accepted"] / metrics["docs"])
+    llm_rate = metrics["llm_processed"] / metrics["docs"]
+    candidate_rate = metrics.get("wnn_multi_discriminator_candidates", pd.Series([0] * len(metrics), index=metrics.index)) / metrics["docs"]
+    ax.plot(metrics["iteration"], wnn_rate, marker="o", label="Taxa WNN")
+    ax.plot(metrics["iteration"], llm_rate, marker="o", label="Taxa LLM residual")
+    ax.plot(metrics["iteration"], candidate_rate, marker="o", label="Taxa candidatos compostos")
+    ax.set_ylim(0, 1)
+    ax.set_title("Taxas WNN, LLM e candidatos por iteracao")
     ax.set_xlabel("Iteracao")
     ax.set_ylabel("Proporcao")
     ax.legend()
     fig.tight_layout()
-    output = FIGURES_DIR / "taxa_regex_por_iteracao.png"
+    output = FIGURES_DIR / "taxas_wnn_llm_candidatos_por_iteracao.png"
     fig.savefig(output, dpi=160)
     plt.close(fig)
     figures.append(output)
@@ -48,17 +56,19 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
             f"- Clusters gerados: {foundation['clusters_total']}",
             f"- Clusters de ruido: {foundation['noise_clusters']}",
             f"- Temas canonicos aceitos: {foundation['themes_accepted']}",
-            f"- Regex iniciais aceitas: {foundation['initial_regex_accepted']}",
+            f"- Discriminadores WNN: {foundation.get('wnn_discriminators', 0)}",
             "",
         ]
     )
     if not metrics.empty:
         total_docs = int(metrics["docs"].sum())
-        total_regex = int(metrics["regex_accepted"].sum())
-        total_residual = int(metrics["regex_residual"].sum())
+        total_wnn = int(metrics.get("wnn_accepted", pd.Series(dtype=int)).sum())
+        total_post_wnn_residual = int(metrics.get("post_wnn_residual", metrics["regex_residual"]).sum())
         total_llm = int(metrics["llm_processed"].sum())
         total_learned = int(metrics["learned_rules"].sum())
+        total_composite = int(metrics.get("wnn_multi_discriminator_candidates", pd.Series(dtype=int)).sum())
         total_new_theme_candidates = int(metrics.get("agent3_new_theme_candidates", pd.Series(dtype=int)).sum())
+        total_rare_promoted = int(metrics.get("rare_promoted_candidates", pd.Series(dtype=int)).sum())
         total_agent3_quarantined = int(metrics.get("agent3_quarantined", pd.Series(dtype=int)).sum())
         total_rare_news = int(metrics.get("agent3_rare_news", pd.Series(dtype=int)).sum())
         total_agent3_errors = int(metrics.get("agent3_errors", pd.Series(dtype=int)).sum())
@@ -68,15 +78,17 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
                 "",
                 f"- Iteracoes documentadas: {len(metrics)}",
                 f"- Noticias nos lotes: {total_docs}",
-                f"- Capturadas por regex: {total_regex}",
-                f"- Residuais: {total_residual}",
+                f"- Capturadas por WNN: {total_wnn}",
+                f"- Residuais apos WNN: {total_post_wnn_residual}",
                 f"- Processadas pela LLM residual: {total_llm}",
-                f"- Regras aprendidas pelo Agente Aprendiz de Regex: {total_learned}",
+                f"- Marcadores aprendidos para WNN: {total_learned}",
+                f"- Candidatos compostos WNN: {total_composite}",
                 f"- Novos temas candidatos: {total_new_theme_candidates}",
+                f"- Noticias raras promovidas a candidato: {total_rare_promoted}",
                 f"- Noticias raras identificadas pelo Agente 3: {total_rare_news}",
                 f"- Quarentenas tecnicas do Agente 3: {total_agent3_quarantined}",
                 f"- Erros do Agente 3: {total_agent3_errors}",
-                f"- Taxa regex acumulada: {total_regex / total_docs:.2%}",
+                f"- Taxa WNN acumulada: {total_wnn / total_docs:.2%}",
                 "",
                 "## Interacoes",
                 "",
@@ -84,8 +96,9 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
         )
         for _, row in metrics.iterrows():
             lines.append(
-                f"- {row['batch_id']}: docs={int(row['docs'])}, regex={int(row['regex_accepted'])}, residual={int(row['regex_residual'])}, "
-                f"llm={int(row['llm_processed'])}, aprendizados={int(row['learned_rules'])}, taxa_regex={row['regex_rate']:.2%}"
+                f"- {row['batch_id']}: docs={int(row['docs'])}, residual={int(row.get('post_wnn_residual', row.get('regex_residual', 0)))}, "
+                f"wnn={int(row.get('wnn_accepted', 0))}, llm={int(row['llm_processed'])}, aprendizados={int(row['learned_rules'])}, "
+                f"candidatos_compostos={int(row.get('wnn_multi_discriminator_candidates', 0))}, taxa_wnn={row.get('wnn_rate', 0):.2%}"
             )
     if figures:
         lines.extend(["", "## Graficos", ""])
@@ -127,7 +140,7 @@ def run(foundation: dict[str, object]) -> dict[str, object]:
             "- `events.jsonl`: trilha completa de eventos.",
             "- `insumo_agente_organizador_arvore.json`: insumo completo do Agente Organizador da Arvore.",
             "- `arvore_temas_agent1_refinada.json`: reorganizacao global dos temas candidatos.",
-            "- `figures/`: graficos da cobertura regex e residuos.",
+            "- `figures/`: graficos WNN, LLM residual e candidatos compostos.",
         ]
     )
     readme.write_text("\n".join(readme_lines) + "\n", encoding="utf-8")

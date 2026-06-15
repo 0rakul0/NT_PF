@@ -24,9 +24,12 @@ RUN_DIR = ANALYSIS_DIR / "incremental"
 LOTS_DIR = ANALYSIS_DIR / "lotes"
 FIGURES_DIR = RUN_DIR / "figures"
 EVENTS_JSONL = RUN_DIR / "events.jsonl"
+RUN_SNAPSHOTS_DIR = ANALYSIS_DIR / "run_snapshots"
+DASHBOARD_HTML = ANALYSIS_DIR / "dashboard_comparacao.html"
 
 ACTIVE_REGEX_BANK_PATH = ANALYSIS_DIR / "regex_classifier_rules.json"
 AGENT2_REGEX_BANK_PATH = RUN_DIR / "regex_banco_agent2.json"
+WNN_FEATURE_BANK_PATH = ANALYSIS_DIR / "wnn_feature_bank.json"
 
 DOCS_JSONL = RUN_DIR / "documentos_base.jsonl"
 SAMPLE_CSV = RUN_DIR / "amostra_inicial.csv"
@@ -50,24 +53,41 @@ RARE_NEWS_DESCRIPTION = "Noticias residuais raras, sem encaixe defensavel nos te
 RARE_NEWS_PROMOTION_THRESHOLD = 2
 
 
+def news_body_text(parsed: dict[str, Any]) -> str:
+    body = str(parsed.get("corpo", "") or "").strip()
+    if body:
+        return body
+    return build_llm_context(parsed)
+
+
 @dataclass(frozen=True)
 class RunConfig:
-    sample_fraction: float = 0.30
+    sample_fraction: float = 0.10
     batch_size: int = 500
     seed: int = 42
     regex_threshold: float = 0.85
+    regex_enabled: bool = False
+    wnn_enabled: bool = True
+    wnn_confidence_threshold: float = 0.50
+    wnn_margin_threshold: float = 0.12
+    wnn_min_active_discriminators: int = 2
+    wnn_max_discriminators_per_theme: int = 35
     temporal_strata: str = "year"
-    model: str = "llama3.2"
+    model: str = "llama3.1:latest"
     base_url: str = "http://localhost:11434"
     max_docs: int | None = None
     reset: bool = True
     max_residual_llm_per_batch: int | None = None
     max_batches: int | None = None
     llm_timeout_seconds: int = 180
+    ollama_num_ctx: int = 131072
+    ollama_num_predict: int = 1024
     agent3_min_confidence: float = 0.55
-    initial_regex_target_per_theme: int | None = None
+    initial_regex_target_per_theme: int | None = 0
     resume_batches: bool = True
-    local_fallback_models: tuple[str, ...] = ("gemma3n:e2b", "llama3:8b")
+    preserve_previous_run: bool = True
+    theme_tree_review_interval_batches: int = 1
+    local_fallback_models: tuple[str, ...] = ("llama3.1:latest", "gemma3n:e2b", "llama3:8b")
 
 
 def workspace_path(path: Path) -> Path:
@@ -93,7 +113,46 @@ def reset_outputs() -> list[str]:
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
     RUN_DIR.mkdir(parents=True, exist_ok=True)
     ACTIVE_REGEX_BANK_PATH.write_text("[]\n", encoding="utf-8")
+    WNN_FEATURE_BANK_PATH.write_text("{}\n", encoding="utf-8")
     return deleted
+
+
+def snapshot_existing_run(label: str = "") -> dict[str, object]:
+    """Preserve current run artifacts before a reset so experiments remain comparable."""
+
+    candidates = [
+        RUN_DIR,
+        LOTS_DIR,
+        ACTIVE_REGEX_BANK_PATH,
+        WNN_FEATURE_BANK_PATH,
+        DASHBOARD_HTML,
+    ]
+    existing = [path for path in candidates if path.exists()]
+    if not existing:
+        return {"created": False, "reason": "no_previous_artifacts"}
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    suffix = re.sub(r"[^a-zA-Z0-9_-]+", "_", label.strip()) if label.strip() else "previous"
+    snapshot_dir = RUN_SNAPSHOTS_DIR / f"{timestamp}_{suffix}"
+    snapshot_dir.mkdir(parents=True, exist_ok=False)
+
+    copied: list[str] = []
+    for path in existing:
+        destination = snapshot_dir / path.name
+        if path.is_dir():
+            shutil.copytree(path, destination)
+        else:
+            shutil.copy2(path, destination)
+        copied.append(str(destination))
+
+    manifest = {
+        "created_at": timestamp,
+        "label": label or "previous",
+        "snapshot_dir": str(snapshot_dir),
+        "copied": copied,
+    }
+    write_json(snapshot_dir / "snapshot_manifest.json", manifest)
+    return {"created": True, "snapshot_dir": str(snapshot_dir), "copied": copied}
 
 
 def append_event(event: dict[str, Any]) -> None:
@@ -144,6 +203,7 @@ def load_docs(max_docs: int | None = None) -> list[dict[str, Any]]:
                 "titulo": str(parsed.get("titulo", "")),
                 "tags": parsed.get("tags", []),
                 "parsed": parsed,
+                "body_text": news_body_text(parsed),
                 "context": build_llm_context(parsed),
             }
         )
@@ -246,7 +306,7 @@ def llm(model: str, base_url: str, timeout_seconds: int = 180, json_schema: dict
         base_url=base_url,
         temperature=0,
         format=json_schema or "json",
-        num_ctx=4096,
+        num_ctx=int(os.getenv("PF_OLLAMA_NUM_CTX", "131072")),
         num_predict=1024,
         keep_alive="10m",
         sync_client_kwargs={"timeout": timeout_seconds},

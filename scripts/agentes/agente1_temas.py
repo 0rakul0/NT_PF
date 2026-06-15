@@ -22,7 +22,7 @@ THEME_RULES: list[tuple[str, tuple[str, ...]]] = [
     ("contrabando_descaminho", ("contrabando", "cigarros", "descaminho", "produtos eletronicos")),
     ("lavagem_dinheiro", ("lavagem", "dinheiro", "ocultacao", "milhoes")),
     ("armas_municoes", ("arma", "armas", "fogo", "municoes", "arma fogo")),
-    ("trabalho_escravo", ("trabalho escravo", "trabalhadores", "condicoes analogas", "resgate")),
+    ("trabalho_escravo", ("trabalho escravo", "trabalho analogo", "condicoes analogas", "condicao analoga", "trabalhadores resgatados", "resgate trabalhadores")),
     ("crimes_ciberneticos", ("cibernetico", "internet", "invasao", "sistemas", "dispositivos")),
     ("crimes_migratorios", ("migracao ilegal", "imigracao", "migrantes", "passaportes")),
     ("crimes_previdenciarios", ("previdencia", "inss", "beneficio", "beneficios", "aposentadoria")),
@@ -32,6 +32,23 @@ THEME_RULES: list[tuple[str, tuple[str, ...]]] = [
 ]
 
 PREFERRED_EVIDENCE: dict[str, list[str]] = {label: list(needles[:4]) for label, needles in THEME_RULES}
+KNOWN_CANONICAL_LABELS = [label for label, _needles in THEME_RULES]
+
+CANONICAL_THEME_ALIASES = {
+    "contrabando": "contrabando_descaminho",
+    "crime_ambiental": "crimes_ambientais",
+    "ambiental": "crimes_ambientais",
+    "fraude": "fraudes_auxilios_beneficios",
+    "trabalho_analogo_escravidao": "trabalho_escravo",
+    "trabalho_analogo_a_escravidao": "trabalho_escravo",
+    "crime_trabalho_escravo": "trabalho_escravo",
+    "trafico": "trafico_drogas",
+    "drogas": "trafico_drogas",
+    "crime_trafico_drogas": "trafico_drogas",
+    "crime_corrupcao_desvio_recursos_publicos": "corrupcao_desvio_recursos_publicos",
+    "corrupcao_recursos_publicos": "corrupcao_desvio_recursos_publicos",
+    "crime_armas_municoes": "armas_municoes",
+}
 
 GENERIC_EVIDENCE_SLUGS = {
     "acre",
@@ -94,7 +111,13 @@ def infer_canonical_themes(terms: list[str]) -> list[str]:
     return [candidates[0]] if candidates else ["tema_operacional"]
 
 
+def normalize_theme_label(value: str) -> str:
+    label = slug(value)
+    return CANONICAL_THEME_ALIASES.get(label, label)
+
+
 def evidence_matches_label(label: str, term: str) -> bool:
+    label = normalize_theme_label(label)
     term_slug = slug(term)
     if not term_slug or term_slug in GENERIC_EVIDENCE_SLUGS:
         return False
@@ -106,13 +129,12 @@ def fallback_themes(cluster_summary: pd.DataFrame) -> OperationalThemeBifurcatio
     groups: dict[str, dict[str, object]] = {}
     for _, row in cluster_summary.loc[cluster_summary["cluster_id"] != -1].iterrows():
         terms = [term.strip() for term in str(row["top_terms"]).split(" | ") if term.strip()]
-        tags = [tag.strip() for tag in str(row.get("sample_tags", "")).split(" | ") if tag.strip()]
-        titles = [title.strip() for title in str(row.get("sample_titles", "")).split(" | ") if title.strip()]
-        labels = infer_canonical_themes([*terms, *tags, *titles])
+        domain_terms = [term.strip() for term in str(row.get("domain_terms", "")).split(" | ") if term.strip()]
+        labels = [normalize_theme_label(label) for label in infer_canonical_themes([*terms, *domain_terms])]
         for label in labels:
             group = groups.setdefault(label, {"cluster_ids": [], "evidence_terms": [], "subthemes": []})
             group["cluster_ids"].append(int(row["cluster_id"]))
-            for term in [*PREFERRED_EVIDENCE.get(label, []), *terms, *tags[:8]]:
+            for term in [*PREFERRED_EVIDENCE.get(label, []), *terms]:
                 if term not in PREFERRED_EVIDENCE.get(label, []) and not evidence_matches_label(label, term):
                     continue
                 if term and term not in group["evidence_terms"]:
@@ -130,19 +152,25 @@ def fallback_themes(cluster_summary: pd.DataFrame) -> OperationalThemeBifurcatio
             decision="accept",
         )
         for label, data in sorted(groups.items())
-        if label != "tema_operacional"
+        if label in KNOWN_CANONICAL_LABELS and data.get("evidence_terms")
     ]
     noise = [-1] if -1 in set(cluster_summary["cluster_id"]) else []
     return OperationalThemeBifurcationResponse(themes=themes, quarantined_cluster_ids=noise)
 
 
 def generate_canonical_themes(cluster_summary: pd.DataFrame, config: RunConfig) -> OperationalThemeBifurcationResponse:
-    payload = cluster_summary.to_dict(orient="records")
+    hidden_metadata = {"sample_titles", "sample_tags", "titulo", "tags"}
+    payload = [
+        {key: value for key, value in row.items() if key not in hidden_metadata}
+        for row in cluster_summary.to_dict(orient="records")
+    ]
     prompt = (
         "Voce e o Agente 1. Agrupe clusters exploratorios em temas canonicos amplos. "
         "Os clusters foram gerados com texto focado em crimes e modus operandi; trate locais, orgaos, telefones, siglas regionais e nomes de operacao apenas como metadados, nunca como tema canonico. "
         "Exemplo: abuso infantil, pornografia infantil e compartilhamento de material devem virar crimes_contra_criancas. "
         "Se um cluster misto tiver subtema claro, bifurque em mais de um tema quando necessario. "
+        "Nao funda dominios distintos apenas por coocorrencia: mineracao ilegal + trafico de drogas sem ponte operacional deve permanecer multi-rotulo/subtema separado. "
+        "Se trafico, lavagem, armas e organizacao/faccao/associacao aparecerem conectados como cadeia operacional, agrupe sob crime_organizado e registre os eixos como subtemas/evidencias. "
         "Nao gere regex. Nao peca revisao humana; use accept, discard ou quarantine. "
         "Clusters:\n"
         + json.dumps(payload, ensure_ascii=False)[:24000]
@@ -150,8 +178,27 @@ def generate_canonical_themes(cluster_summary: pd.DataFrame, config: RunConfig) 
     try:
         themes, provider, model_name, _token_usage = invoke_json_with_fallback(prompt, OperationalThemeBifurcationResponse, config, "agente1_temas")
         append_event({"stage": "agente1_temas", "status": "llm_ok", "provider": provider, "model": model_name})
-        if not any(theme.decision == "accept" for theme in themes.themes):
-            append_event({"stage": "agente1_temas", "status": "fallback_empty_llm"})
+        normalized_themes: list[OperationalCanonicalTheme] = []
+        for theme in themes.themes:
+            normalized_themes.append(theme.model_copy(update={"canonical_theme": normalize_theme_label(theme.canonical_theme)}))
+        themes = themes.model_copy(update={"themes": normalized_themes})
+        accepted = [theme for theme in themes.themes if theme.decision == "accept"]
+        populated = [
+            theme
+            for theme in accepted
+            if theme.included_cluster_ids and theme.evidence_terms
+        ]
+        known_coverage = {theme.canonical_theme for theme in accepted}.intersection(KNOWN_CANONICAL_LABELS)
+        if len(accepted) < 10 or len(populated) < max(6, int(0.5 * len(accepted))) or len(known_coverage) < 8:
+            append_event(
+                {
+                    "stage": "agente1_temas",
+                    "status": "fallback_low_quality_llm",
+                    "accepted": len(accepted),
+                    "populated": len(populated),
+                    "known_coverage": sorted(known_coverage),
+                }
+            )
             return fallback_themes(cluster_summary)
         return themes
     except Exception as exc:

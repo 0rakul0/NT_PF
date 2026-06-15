@@ -90,6 +90,11 @@ DOMAIN_PHRASES: tuple[str, ...] = (
     "trafico de armas",
     "trafico internacional",
     "trabalho escravo",
+    "trabalho analogo a escravidao",
+    "condicoes analogas a escravidao",
+    "condicao analoga a de escravo",
+    "resgate de trabalhadores",
+    "trabalhadores resgatados",
     "uso de documento falso",
 )
 
@@ -138,6 +143,10 @@ DOMAIN_ANCHORS: tuple[str, ...] = (
     "soneg",
     "trafic",
     "trabalho escrav",
+    "trabalho analog",
+    "condicoes analog",
+    "condicao analog",
+    "trabalhadores resgat",
 )
 
 DOMAIN_STEM_LABELS: tuple[tuple[str, str], ...] = (
@@ -181,6 +190,10 @@ DOMAIN_STEM_LABELS: tuple[tuple[str, str], ...] = (
     ("soneg", "sonegacao"),
     ("trafic", "trafico"),
     ("trabalho escrav", "trabalho escravo"),
+    ("trabalho analog", "trabalho escravo"),
+    ("condicoes analog", "trabalho escravo"),
+    ("condicao analog", "trabalho escravo"),
+    ("trabalhadores resgat", "trabalho escravo"),
 )
 
 LOCATION_ENTITY_STOPWORDS: set[str] = {
@@ -374,19 +387,15 @@ def build_domain_cluster_text(doc: dict[str, Any] | str) -> tuple[str, list[str]
     else:
         parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
         parts = [
-            str(doc.get("titulo", "")),
-            str(parsed.get("subtitulo", "")),
-            " ".join(flatten_tags(doc.get("tags", []))),
+            str(doc.get("body_text", "")),
             str(parsed.get("corpo", "")),
-            str(doc.get("context", "")),
         ]
         text = "\n".join(part for part in parts if part)
-        tags = doc.get("tags", [])
+        tags = []
 
     terms = domain_terms_from_text(text)
-    tag_terms = informative_domain_tags(tags)
     sentences = domain_sentences(text)
-    weighted_terms = [token_slug(term) for term in terms] * 8 + [token_slug(term) for term in tag_terms] * 4
+    weighted_terms = [token_slug(term) for term in terms] * 8
     cluster_text = " ".join([*weighted_terms, *sentences[:4]]).strip()
     if not cluster_text:
         cluster_text = "tema_criminal_indefinido " + clean_domain_tokens(text)[:1200]

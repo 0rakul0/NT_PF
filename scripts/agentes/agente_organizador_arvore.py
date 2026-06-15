@@ -12,12 +12,14 @@ from scripts.incremental.common import (
     REFINED_THEME_TREE_JSON,
     THEME_REFINEMENT_INPUT_JSON,
     THEMES_JSON,
+    WNN_FEATURE_BANK_PATH,
     RunConfig,
     append_event,
     read_json,
     read_jsonl,
     write_json,
 )
+from scripts.pf_wnn_classifier import compact_feature_bank, parent_theme
 from scripts.incremental.llm_api import invoke_json_with_fallback
 from scripts.incremental.similaridade_cosseno import top_k_similar_themes
 from scripts.schemas.pf_incremental_agent_schemas import ThemeCandidateDecision, ThemeTreeRefinementResponse
@@ -153,6 +155,8 @@ def _candidate_groups() -> list[dict[str, Any]]:
                 "iterations": [],
                 "learned_regex": [],
                 "cosine_candidates": [],
+                "marcadores_secundarios": [],
+                "relacoes_operacionais": [],
             },
         )
         item["count"] += 1
@@ -164,9 +168,18 @@ def _candidate_groups() -> list[dict[str, Any]]:
             "evidence_text": row.get("evidence_text", ""),
             "rationale": row.get("rationale", ""),
             "confidence": row.get("confidence", 0),
+            "tema_principal": row.get("tema_principal", ""),
+            "marcadores_secundarios": row.get("marcadores_secundarios", []),
+            "relacao_operacional": row.get("relacao_operacional", ""),
         }
         if len(item["examples"]) < 5:
             item["examples"].append(example)
+        for marker in row.get("marcadores_secundarios", []) if isinstance(row.get("marcadores_secundarios", []), list) else []:
+            if marker not in item["marcadores_secundarios"]:
+                item["marcadores_secundarios"].append(marker)
+        relation = str(row.get("relacao_operacional", "") or "").strip()
+        if relation and relation not in item["relacoes_operacionais"]:
+            item["relacoes_operacionais"].append(relation)
         for value in (row.get("evidence_text", ""), row.get("rationale", ""), row.get("titulo", "")):
             for term in str(value).replace(";", ".").replace(",", ".").split("."):
                 term = " ".join(term.split()).strip()
@@ -426,6 +439,51 @@ def _apply_refined_tree_to_regex_bank(response: ThemeTreeRefinementResponse) -> 
     return {"remapped_classifiers": remapped, "removed_classifiers": removed, "merged_classifiers": merged}
 
 
+def _apply_refined_tree_to_wnn_bank(response: ThemeTreeRefinementResponse) -> dict[str, int]:
+    if not WNN_FEATURE_BANK_PATH.exists():
+        return {"remapped_discriminators": 0, "removed_discriminators": 0}
+    mapping = _refined_label_map(response)
+    if not mapping:
+        return {"remapped_discriminators": 0, "removed_discriminators": 0}
+    payload = read_json(WNN_FEATURE_BANK_PATH)
+    if not isinstance(payload, dict):
+        return {"remapped_discriminators": 0, "removed_discriminators": 0}
+    discriminators = payload.get("discriminators", [])
+    if not isinstance(discriminators, list):
+        return {"remapped_discriminators": 0, "removed_discriminators": 0}
+
+    remapped = 0
+    removed = 0
+    for item in discriminators:
+        if not isinstance(item, dict):
+            continue
+        original_label = str(item.get("label", "")).strip()
+        target = mapping.get(original_label, original_label)
+        if target in {"", RARE_NEWS_LABEL}:
+            item["__remove__"] = True
+            removed += 1
+            continue
+        if target != original_label:
+            item["label"] = parent_theme(target)
+            item["remapped_from"] = original_label
+            item["source"] = f"tree_remapped:{item.get('source', '')}"
+            remapped += 1
+    payload["discriminators"] = [
+        item
+        for item in discriminators
+        if isinstance(item, dict) and not item.pop("__remove__", False)
+    ]
+    write_json(WNN_FEATURE_BANK_PATH, payload)
+    compact = compact_feature_bank(WNN_FEATURE_BANK_PATH)
+    return {
+        "remapped_discriminators": remapped,
+        "removed_discriminators": removed,
+        "compacted_before": compact.get("before", 0),
+        "compacted_after": compact.get("after", 0),
+        "compacted_removed": compact.get("removed", 0),
+    }
+
+
 def _fallback_decisions(active_themes: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> ThemeTreeRefinementResponse:
     return _taxonomy_policy_decisions(active_themes, candidates)
 
@@ -441,6 +499,7 @@ def refine_theme_tree(config: RunConfig) -> ThemeTreeRefinementResponse:
             "notes": [
                 "Insumo completo do Agente Organizador da Arvore.",
                 "Cada candidato inclui contagem, evidencias, regex aprendidas quando houver e sugestoes por similaridade do cosseno.",
+                "Candidatos composto_* podem nascer de multiplos discriminadores acionados; trate-os como evidencia para ajustar pais, folhas ou relacoes operacionais, nao como promocao automatica.",
             ],
         },
     )
@@ -454,6 +513,9 @@ def refine_theme_tree(config: RunConfig) -> ThemeTreeRefinementResponse:
         "e TODOS os candidatos surgidos no residual. Sua funcao e evitar bagunca taxonomica: nao promova candidato "
         "que pode ser absorvido por um tema existente; funda candidatos equivalentes; promova apenas subtemas claros, "
         "recorrentes e nao cobertos pelos pais atuais. Use zero intervencao humana.\n\n"
+        "Candidatos com prefixo composto_ indicam coacionamento de mais de um discriminador. Eles podem revelar "
+        "um subtema, uma relacao operacional recorrente ou apenas coocorrencia sem fusao; nao promova automaticamente "
+        "sem recorrencia e evidencias substantivas.\n\n"
         "Decisoes permitidas por candidata:\n"
         "- merge_into_existing: candidata e folha/subtema de tema canonico existente;\n"
         "- promote_to_canonical: candidata recorrente e substantiva que merece novo no canonico;\n"
@@ -476,9 +538,11 @@ def refine_theme_tree(config: RunConfig) -> ThemeTreeRefinementResponse:
         response = _fallback_decisions(active_themes, candidates)
 
     response = _taxonomy_policy_decisions(active_themes, candidates)
-    bank_result = _apply_refined_tree_to_regex_bank(response)
+    regex_bank_result = _apply_refined_tree_to_regex_bank(response)
+    wnn_bank_result = _apply_refined_tree_to_wnn_bank(response)
     append_event({"stage": "agente_organizador_arvore", "status": "taxonomy_policy_applied"})
-    append_event({"stage": "agente_organizador_arvore", "status": "regex_bank_remapped", **bank_result})
+    append_event({"stage": "agente_organizador_arvore", "status": "regex_bank_remapped", **regex_bank_result})
+    append_event({"stage": "agente_organizador_arvore", "status": "wnn_bank_remapped", **wnn_bank_result})
 
     write_json(REFINED_THEME_TREE_JSON, response.model_dump())
     return response

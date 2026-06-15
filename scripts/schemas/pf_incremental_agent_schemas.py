@@ -97,6 +97,9 @@ class ResidualReviewAgentResponse(BaseModel):
     evidence_text: str = Field(default="", description="Trecho curto do texto que sustenta a label escolhida.")
     rationale: str = Field(default="", description="Justificativa curta da classificacao.")
     resumo_curto: str = Field(default="", description="Resumo factual curto do residual.")
+    tema_principal: str = Field(default="", description="Tema dominante quando houver multiplos marcadores.")
+    marcadores_secundarios: list[str] = Field(default_factory=list, description="Marcadores presentes, mas secundarios.")
+    relacao_operacional: str = Field(default="", description="cadeia_operacional, crime_organizado_multidominio, coocorrencia_sem_fusao ou tema_unico.")
 
     @model_validator(mode="before")
     @classmethod
@@ -123,6 +126,37 @@ class ResidualReviewAgentResponse(BaseModel):
         if text in {"quarentena", "quarentenar", "rejeitar", "incerto", "sem_label", "sem label"}:
             return "quarentena"
         return text
+
+    @field_validator("tema_principal", "relacao_operacional", mode="before")
+    @classmethod
+    def normalize_optional_slug(cls, value: object) -> str:
+        if value is None:
+            return ""
+        from scripts.pf_llm_models import normalize_slug
+
+        return normalize_slug(str(value))
+
+    @field_validator("marcadores_secundarios", mode="before")
+    @classmethod
+    def ensure_secondary_list(cls, value: object) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        text = str(value).strip()
+        return [text] if text else []
+
+    @field_validator("marcadores_secundarios")
+    @classmethod
+    def normalize_secondary_values(cls, value: list[str]) -> list[str]:
+        from scripts.pf_llm_models import normalize_slug
+
+        output: list[str] = []
+        for item in value:
+            cleaned = normalize_slug(item)
+            if cleaned and cleaned not in output:
+                output.append(cleaned)
+        return output[:10]
 
 
 # Aliases de compatibilidade com o scaffold inicial.

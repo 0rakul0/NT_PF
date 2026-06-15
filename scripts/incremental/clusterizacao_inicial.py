@@ -156,6 +156,7 @@ def build_semantic_clusters(sample: list[dict[str, Any]], seed: int) -> tuple[pd
             "cluster_id": int(label),
             "cluster_text": cluster_text,
             "cluster_domain_terms": " | ".join(domain_terms),
+            "body_text": item.get("body_text", ""),
             "context": item["context"],
         }
         for item, label, (cluster_text, domain_terms) in zip(sample, labels, prepared, strict=False)

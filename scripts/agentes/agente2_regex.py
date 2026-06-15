@@ -179,12 +179,15 @@ LOCATION_ENTITY_TERMS = {
     "paulo", "santa", "catarina", "tocantins", "estados", "unidos", "caixa", "economica",
     "receita", "anatel", "correios", "ficco", "horus", "advenus", "ponto", "final",
     "onipresente", "recorrencia", "relapsus", "panela", "ferro", "recobro", "ousadia",
+    "uruguaiana", "pantanal", "greening", "egypto", "fractais", "metropolitana", "regiao",
 }
 
 OPERATIONAL_TERMS = {
     "operacao", "acao", "conjunta", "integrada", "apoio", "deflagra", "deflagrou", "combate",
     "cumpre", "mandado", "mandados", "busca", "apreensao", "prisao", "flagrante", "investiga",
-    "investigados", "suspeito", "suspeitos", "policia", "federal",
+    "investigados", "suspeito", "suspeitos", "policia", "federal", "objetivo", "destaque",
+    "terca", "quarta", "quinta", "sexta", "segunda", "manha", "tarde", "noite", "reprime",
+    "prevenir", "combater",
 }
 
 
@@ -212,6 +215,13 @@ def regex_pattern_tokens(value: str) -> list[str]:
     return meaningful_tokens(value)
 
 
+def raw_regex_pattern_tokens(value: str) -> list[str]:
+    pattern_terms = re.findall(r"\\b([a-z0-9]{3,})", value.lower())
+    if pattern_terms:
+        return pattern_terms
+    return re.findall(r"\b[a-z0-9]{4,}\b", fold_text(value))
+
+
 def label_domain_tokens(label: str) -> set[str]:
     tokens: set[str] = set()
     for term in PREFERRED_TERMS.get(label, []):
@@ -234,19 +244,27 @@ def term_is_domain_candidate(label: str, term: str) -> bool:
 
 
 def pattern_has_crime_modus_anchor(label: str, pattern: str) -> bool:
+    raw_tokens = raw_regex_pattern_tokens(pattern)
+    raw_noisy_hits = set(raw_tokens).intersection(LOCATION_ENTITY_TERMS | OPERATIONAL_TERMS | GENERIC_TERMS)
+    if raw_noisy_hits:
+        return False
     tokens = regex_pattern_tokens(pattern)
     if len(tokens) < 2 or is_location_or_entity_only(tokens):
         return False
     token_set = set(tokens)
     required = REQUIRED_LABEL_TOKENS.get(label, label_domain_tokens(label))
+    allowed = required | GLOBAL_DOMAIN_TERMS
+    if token_set - allowed:
+        return False
     required_hits = token_set.intersection(required)
     domain_hits = token_set.intersection(required | GLOBAL_DOMAIN_TERMS)
     noisy_hits = token_set.intersection(LOCATION_ENTITY_TERMS | OPERATIONAL_TERMS | GENERIC_TERMS)
-    if not required_hits:
+    if len(required_hits) < 2:
         return False
     if len(required_hits) >= 2:
-        return True
-    if len(domain_hits) >= 2 and len(noisy_hits) < len(domain_hits):
+        non_noisy_hits = domain_hits - noisy_hits
+        return len(non_noisy_hits) >= 2
+    if len(domain_hits) >= 3 and len(noisy_hits) < len(domain_hits):
         return True
     return False
 

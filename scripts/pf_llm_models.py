@@ -91,6 +91,18 @@ class NoticiaLLMInference(BaseModel):
         default_factory=list,
         description="Lista de crimes canonicos em lowercase com underscores."
     )
+    tema_principal: str = Field(
+        default="",
+        description="Tema dominante quando houver classificacao multi-rotulo."
+    )
+    marcadores_secundarios: list[str] = Field(
+        default_factory=list,
+        description="Marcadores canonicos presentes, mas secundarios ao tema principal."
+    )
+    relacao_operacional: str = Field(
+        default="",
+        description="Tipo de relacao entre marcadores: cadeia_operacional, crime_organizado_multidominio ou coocorrencia_sem_fusao."
+    )
     modus_operandi: list[str] = Field(
         default_factory=list,
         description="Lista de modos de atuacao canonicos em lowercase com underscores."
@@ -127,7 +139,7 @@ class NoticiaLLMInference(BaseModel):
             return ""
         return normalize_slug(str(value))
 
-    @field_validator("crimes_mais_presentes", "modus_operandi", mode="before")
+    @field_validator("crimes_mais_presentes", "marcadores_secundarios", "modus_operandi", mode="before")
     @classmethod
     def ensure_list(cls, value: object) -> list[str]:
         if value is None:
@@ -137,7 +149,7 @@ class NoticiaLLMInference(BaseModel):
         text = str(value).strip()
         return [text] if text else []
 
-    @field_validator("crimes_mais_presentes", "modus_operandi")
+    @field_validator("crimes_mais_presentes", "marcadores_secundarios", "modus_operandi")
     @classmethod
     def normalize_list_values(cls, value: list[str]) -> list[str]:
         normalized: list[str] = []
@@ -174,6 +186,13 @@ class NoticiaLLMInference(BaseModel):
             return ""
         return normalize_slug(str(value))
 
+    @field_validator("tema_principal", "relacao_operacional", mode="before")
+    @classmethod
+    def normalize_optional_slug(cls, value: object) -> str:
+        if value is None:
+            return ""
+        return normalize_slug(str(value))
+
     @field_validator("resumo_estruturado", mode="before")
     @classmethod
     def ensure_structured_summary(cls, value: object) -> dict[str, str]:
@@ -190,6 +209,8 @@ class NoticiaLLMInference(BaseModel):
     def align_identity(self) -> "NoticiaLLMInference":
         if self.classificacao == "Por crime" and self.crimes_mais_presentes:
             first_crime = self.crimes_mais_presentes[0]
+            if not self.tema_principal:
+                self.tema_principal = first_crime
             if not self.identidade_canonica.startswith(("crime_", "crimes_")):
                 self.identidade_canonica = f"crime_{first_crime}"
 

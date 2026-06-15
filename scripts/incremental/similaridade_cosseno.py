@@ -45,8 +45,14 @@ def doc_matches_label(row: pd.Series, label: str) -> bool:
     terms = PREFERRED_TERMS_BY_LABEL.get(label, [])
     if not terms:
         return True
-    text = fold_text(" ".join([str(row.get("titulo", "")), str(row.get("tags", "")), str(row.get("cluster_text", "")), str(row.get("context", ""))]))
+    text = fold_text(" ".join([str(row.get("cluster_text", "")), str(row.get("body_text", ""))]))
     return any(re.search(pattern, text) for pattern in (term_pattern(term) for term in terms) if pattern)
+
+
+def dense_vector(row: Any) -> np.ndarray:
+    if hasattr(row, "toarray"):
+        return np.asarray(row.toarray(), dtype=float)
+    return np.asarray(row, dtype=float)
 
 
 def fit_theme_profiles() -> dict[str, Any]:
@@ -95,7 +101,7 @@ def fit_theme_profiles() -> dict[str, Any]:
             centroid = (docs_matrix[indices].mean(axis=0) + seed_vector) / 2
         else:
             centroid = seed_vector
-        centroid = normalize(np.asarray(centroid), norm="l2")
+        centroid = normalize(dense_vector(centroid), norm="l2")
         dense = np.asarray(centroid).ravel()
         top_indices = dense.argsort()[::-1][:12]
         top_terms = [str(terms[index]) for index in top_indices if dense[index] > 0]
