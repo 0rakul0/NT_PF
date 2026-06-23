@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from scripts.incremental import agente1_temas, agente2_discriminadores, amostragem, clusterizacao_inicial, processar_lotes, relatorios, similaridade_cosseno
+from scripts.incremental.common import LINGUISTIC_PREPROCESSING_JSON, read_json
 from scripts.incremental.common import RUN_MANIFEST_JSON, WNN_FEATURE_BANK_PATH, RunConfig, append_event, reset_outputs, snapshot_existing_run, write_json
 
 
@@ -41,6 +42,7 @@ def run(config: RunConfig | None = None) -> dict[str, object]:
         "clusters": clusters,
         "themes": themes,
         "cosine": cosine,
+        "linguistic_preprocessing": read_json(LINGUISTIC_PREPROCESSING_JSON) if LINGUISTIC_PREPROCESSING_JSON.exists() else {},
         "agent2": agent2,
         "batches": batches,
         "reports": reports,

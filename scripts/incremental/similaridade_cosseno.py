@@ -147,11 +147,11 @@ def load_profiles() -> dict[str, Any] | None:
         return pickle.load(handle)
 
 
-def top_k_similar_themes(text: str, top_k: int = 5) -> list[dict[str, Any]]:
+def top_k_similar_themes(text: str, top_k: int = 5, preprocessed: bool = False) -> list[dict[str, Any]]:
     profile = load_profiles()
     if not profile or len(profile.get("labels", [])) == 0:
         return []
-    domain_text, _terms = build_domain_cluster_text(text)
+    domain_text = text if preprocessed else build_domain_cluster_text(text)[0]
     vector = profile["vectorizer"].transform([domain_text])
     scores = cosine_similarity(vector, profile["centroids"])[0]
     order = scores.argsort()[::-1][:top_k]

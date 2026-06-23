@@ -17,11 +17,23 @@ if str(PROJECT_ROOT_FALLBACK) not in sys.path:
 
 try:
     from scripts.incremental.common import CLUSTER_ASSIGNMENTS_CSV, CLUSTER_SUMMARY_CSV, LOTS_DIR, THEMES_JSON, WNN_FEATURE_BANK_PATH
-    from scripts.pf_wnn_classifier import append_discriminators_from_learned_rules, compact_feature_bank, parent_theme
+    from scripts.pf_wnn_classifier import (
+        append_discriminators_from_learned_rules,
+        binary_memory_for_text,
+        compact_feature_bank,
+        parent_theme,
+        sync_feature_memory,
+    )
     from scripts.project_config import PROJECT_ROOT
 except ModuleNotFoundError:
     from incremental.common import CLUSTER_ASSIGNMENTS_CSV, CLUSTER_SUMMARY_CSV, LOTS_DIR, THEMES_JSON, WNN_FEATURE_BANK_PATH
-    from pf_wnn_classifier import append_discriminators_from_learned_rules, compact_feature_bank, parent_theme
+    from pf_wnn_classifier import (
+        append_discriminators_from_learned_rules,
+        binary_memory_for_text,
+        compact_feature_bank,
+        parent_theme,
+        sync_feature_memory,
+    )
     from project_config import PROJECT_ROOT
 
 
@@ -289,9 +301,61 @@ def carregar_banco_discriminadores(_: str = "") -> str:
         {
             "feature_bank": str(WNN_FEATURE_BANK_PATH),
             "discriminator_count": len(discriminators) if isinstance(discriminators, list) else 0,
+            "memory_vocab": payload.get("memory_vocab", {}),
             "labels": labels,
             "subthemes": subthemes,
             "sample": discriminators[:30] if isinstance(discriminators, list) else [],
+        },
+        ensure_ascii=False,
+    )
+
+
+@tool
+def carregar_memoria_wnn(_: str = "") -> str:
+    """Carrega a matriz/vocabulario binario da memoria WNN com posicoes estaveis."""
+    payload = read_json(WNN_FEATURE_BANK_PATH)
+    if not isinstance(payload, dict):
+        payload = {}
+    sync_feature_memory(payload)
+    memory = payload.get("memory_vocab", {})
+    tokens = memory.get("tokens", []) if isinstance(memory, dict) else []
+    return json.dumps(
+        {
+            "feature_bank": str(WNN_FEATURE_BANK_PATH),
+            "version": memory.get("version", 0) if isinstance(memory, dict) else 0,
+            "size": len(tokens) if isinstance(tokens, list) else 0,
+            "padding_policy": memory.get("padding_policy", "") if isinstance(memory, dict) else "",
+            "positions_sample": [
+                {"position": index, "token": token}
+                for index, token in enumerate(tokens[:120] if isinstance(tokens, list) else [])
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+
+class ProjetarTextoMemoriaArgs(BaseModel):
+    texto: str = Field(description="Corpo da noticia ou trecho ja pre-processado para projetar na memoria binaria.")
+
+
+@tool(args_schema=ProjetarTextoMemoriaArgs)
+def projetar_texto_na_memoria_wnn(texto: str) -> str:
+    """Transforma um texto em vetor binario 1/0 usando a memoria WNN atual."""
+    payload = read_json(WNN_FEATURE_BANK_PATH)
+    if not isinstance(payload, dict):
+        payload = {}
+    sync_feature_memory(payload)
+    state = binary_memory_for_text(texto, payload)
+    return json.dumps(
+        {
+            "feature_bank": str(WNN_FEATURE_BANK_PATH),
+            "memory_version": state["version"],
+            "vocab_size": state["vocab_size"],
+            "active_count": state["active_count"],
+            "active_positions": state["active_positions"][:120],
+            "active_tokens": state["active_tokens"][:120],
+            "binary_preview": str(state["binary"])[:240],
+            "truncated": len(str(state["binary"])) > 240,
         },
         ensure_ascii=False,
     )
@@ -412,6 +476,8 @@ tools = [
     validar_discriminador_wnn,
     incorporar_discriminador_wnn,
     carregar_banco_discriminadores,
+    carregar_memoria_wnn,
+    projetar_texto_na_memoria_wnn,
     diagnosticar_banco_discriminadores,
     sanitizar_banco_discriminadores,
     gerar_amostra_auditoria_wnn,

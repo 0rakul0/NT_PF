@@ -26,9 +26,11 @@ data/analise_qualitativa/*.log
 data/analise_qualitativa/dashboard_comparacao.html
 data/analise_qualitativa/wnn_feature_bank.json
 data/analise_qualitativa/backups/
+data/analise_qualitativa/preprocessing_cache/
 data/analise_qualitativa/backup_execucao_*/
 data/analise_qualitativa/run_snapshots/
 data/analise_qualitativa/incremental/
 data/analise_qualitativa/lotes/
 scripts/data/
+tmp/
 artigo/~$_clusterizacao_noticias_pf_revisado.docx

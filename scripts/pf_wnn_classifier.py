@@ -263,6 +263,10 @@ class WNNClassification:
     scores: list[dict[str, object]]
     feature_bank: str
     theme_candidate: dict[str, object] | None = None
+    memory_binary: str = ""
+    memory_active_positions: list[int] | None = None
+    memory_version: int = 0
+    memory_vocab_size: int = 0
 
     @property
     def accepted(self) -> bool:
@@ -279,6 +283,11 @@ class WNNClassification:
             "active_discriminators": self.active_discriminators[:20],
             "scores": self.scores[:5],
             "theme_candidate": self.theme_candidate,
+            "memory_binary": self.memory_binary,
+            "memory_active_positions": (self.memory_active_positions or [])[:120],
+            "memory_active_count": len(self.memory_active_positions or []),
+            "memory_version": self.memory_version,
+            "memory_vocab_size": self.memory_vocab_size,
             "inference": self.inference.model_dump() if self.inference else None,
         }
 
@@ -520,6 +529,114 @@ def _tokens_match_text(tokens: Iterable[object], words: set[str]) -> bool:
         if not any(word.startswith(token) or token.startswith(word) for word in words if len(word) >= 4):
             return False
     return True
+
+
+def _token_present_in_words(token: str, words: set[str]) -> bool:
+    normalized = canonical_label(token)
+    if not normalized or len(normalized) < 4:
+        return False
+    if normalized in words:
+        return True
+    return any(word.startswith(normalized) or normalized.startswith(word) for word in words if len(word) >= 4)
+
+
+def _memory_tokens_from_discriminator(item: dict[str, object]) -> list[str]:
+    raw_tokens = item.get("tokens", [])
+    if not isinstance(raw_tokens, list):
+        raw_tokens = _tokens_from_regex_pattern(str(item.get("pattern", "")))
+    output: list[str] = []
+    for token in raw_tokens:
+        normalized = canonical_label(str(token))
+        if len(normalized) < 4 or normalized in BLOCKED_SENSOR_TERMS:
+            continue
+        if normalized not in output:
+            output.append(normalized)
+    return output
+
+
+def sync_feature_memory(payload: dict[str, object]) -> dict[str, object]:
+    """Keep a versioned WNN vocabulary where each token has a stable binary position."""
+    memory = payload.get("memory_vocab", {})
+    if not isinstance(memory, dict):
+        memory = {}
+    previous_tokens = memory.get("tokens", [])
+    vocab: list[str] = []
+    if isinstance(previous_tokens, list):
+        for token in previous_tokens:
+            normalized = canonical_label(str(token))
+            if len(normalized) >= 4 and normalized not in BLOCKED_SENSOR_TERMS and normalized not in vocab:
+                vocab.append(normalized)
+
+    changed = False
+    discriminators = payload.get("discriminators", [])
+    if not isinstance(discriminators, list):
+        discriminators = []
+    for item in discriminators:
+        if not isinstance(item, dict):
+            continue
+        for token in _memory_tokens_from_discriminator(item):
+            if token not in vocab:
+                vocab.append(token)
+                changed = True
+
+    token_to_position = {token: index for index, token in enumerate(vocab)}
+    for item in discriminators:
+        if not isinstance(item, dict):
+            continue
+        positions = [
+            token_to_position[token]
+            for token in _memory_tokens_from_discriminator(item)
+            if token in token_to_position
+        ]
+        item["memory_positions"] = positions
+        item["memory_width"] = len(vocab)
+
+    old_version = int(memory.get("version", 0) or 0) if isinstance(memory, dict) else 0
+    version = old_version if old_version and not changed and len(vocab) == len(previous_tokens or []) else old_version + 1
+    if version <= 0:
+        version = 1
+    payload["memory_vocab"] = {
+        "version": version,
+        "size": len(vocab),
+        "tokens": vocab,
+        "token_to_position": token_to_position,
+        "padding_policy": "right_zero_fill_for_previous_documents",
+    }
+    payload["memory_model"] = {
+        "kind": "binary_keyword_matrix",
+        "unit": "sanitized_discriminator_token",
+        "description": "Cada posicao representa uma palavra-chave discriminativa; a noticia vira um vetor binario 1/0.",
+    }
+    return payload
+
+
+def binary_memory_for_text(text: str, feature_bank: dict[str, object]) -> dict[str, object]:
+    memory = feature_bank.get("memory_vocab", {})
+    if not isinstance(memory, dict):
+        memory = {}
+    tokens = memory.get("tokens", [])
+    if not isinstance(tokens, list):
+        tokens = []
+    normalized_tokens = [
+        canonical_label(str(token))
+        for token in tokens
+        if len(canonical_label(str(token))) >= 4 and canonical_label(str(token)) not in BLOCKED_SENSOR_TERMS
+    ]
+    words = _token_set_from_text(text)
+    active_positions = [
+        index
+        for index, token in enumerate(normalized_tokens)
+        if _token_present_in_words(token, words)
+    ]
+    active_set = set(active_positions)
+    return {
+        "version": int(memory.get("version", 0) or 0),
+        "vocab_size": len(normalized_tokens),
+        "active_count": len(active_positions),
+        "active_positions": active_positions,
+        "binary": "".join("1" if index in active_set else "0" for index in range(len(normalized_tokens))),
+        "active_tokens": [normalized_tokens[index] for index in active_positions[:120]],
+    }
 
 
 def _is_sensor_candidate(value: str) -> bool:
@@ -918,6 +1035,7 @@ def append_discriminators_from_learned_rules(
     payload["labels"] = labels
     payload["discriminator_count"] = len(discriminators)
     payload["themes"] = themes
+    sync_feature_memory(payload)
 
     resolved = Path(feature_bank_path)
     resolved.parent.mkdir(parents=True, exist_ok=True)
@@ -1007,6 +1125,7 @@ def compact_feature_bank(feature_bank_path: Path | str) -> dict[str, int]:
     payload["themes"] = themes
     payload["discriminator_count"] = len(compacted)
     payload["theme_parents"] = WNN_THEME_PARENTS
+    sync_feature_memory(payload)
 
     resolved = Path(feature_bank_path)
     resolved.parent.mkdir(parents=True, exist_ok=True)
@@ -1210,6 +1329,7 @@ def build_feature_bank(
         "memories": memories,
         "theme_parents": WNN_THEME_PARENTS,
     }
+    sync_feature_memory(payload)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return payload
@@ -1295,9 +1415,24 @@ def classify_with_wnn(
     cosine_candidates: list[dict[str, object]] | None = None,
 ) -> WNNClassification:
     feature_bank = load_feature_bank(feature_bank_path)
+    sync_feature_memory(feature_bank)
+    memory_state = binary_memory_for_text(text, feature_bank)
     active = active_discriminators(text, feature_bank)
-    if len(active) < min_active_discriminators:
-        return WNNClassification(None, "abstain_insufficient_features", 0.0, 0.0, "", active, [], str(feature_bank_path))
+    if not active:
+        return WNNClassification(
+            None,
+            "abstain_insufficient_features",
+            0.0,
+            0.0,
+            "",
+            active,
+            [],
+            str(feature_bank_path),
+            memory_binary=str(memory_state.get("binary", "")),
+            memory_active_positions=list(memory_state.get("active_positions", [])),
+            memory_version=int(memory_state.get("version", 0) or 0),
+            memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+        )
 
     active_ids = {str(item["id"]) for item in active}
     scores_by_label: dict[str, float] = {}
@@ -1341,7 +1476,20 @@ def classify_with_wnn(
         if score > 0
     ]
     if not scores:
-        return WNNClassification(None, "abstain_no_score", 0.0, 0.0, "", active, [], str(feature_bank_path))
+        return WNNClassification(
+            None,
+            "abstain_no_score",
+            0.0,
+            0.0,
+            "",
+            active,
+            [],
+            str(feature_bank_path),
+            memory_binary=str(memory_state.get("binary", "")),
+            memory_active_positions=list(memory_state.get("active_positions", [])),
+            memory_version=int(memory_state.get("version", 0) or 0),
+            memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+        )
 
     top = scores[0]
     second_score = float(scores[1]["score"]) if len(scores) > 1 else 0.0
@@ -1391,6 +1539,10 @@ def classify_with_wnn(
             scores,
             str(feature_bank_path),
             theme_candidate,
+            memory_binary=str(memory_state.get("binary", "")),
+            memory_active_positions=list(memory_state.get("active_positions", [])),
+            memory_version=int(memory_state.get("version", 0) or 0),
+            memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
         )
 
     if not _has_enough_marker_evidence(top_label, secondary, active, cosine_supported, memory_supported):
@@ -1404,6 +1556,10 @@ def classify_with_wnn(
             scores,
             str(feature_bank_path),
             theme_candidate,
+            memory_binary=str(memory_state.get("binary", "")),
+            memory_active_positions=list(memory_state.get("active_positions", [])),
+            memory_version=int(memory_state.get("version", 0) or 0),
+            memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
         )
 
     if confidence < confidence_threshold or margin < effective_margin_threshold:
@@ -1417,6 +1573,10 @@ def classify_with_wnn(
             scores,
             str(feature_bank_path),
             theme_candidate,
+            memory_binary=str(memory_state.get("binary", "")),
+            memory_active_positions=list(memory_state.get("active_positions", [])),
+            memory_version=int(memory_state.get("version", 0) or 0),
+            memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
         )
 
     identity = top_label if top_label.startswith(("crime_", "crimes_")) else f"crime_{top_label}"
@@ -1441,4 +1601,8 @@ def classify_with_wnn(
         scores,
         str(feature_bank_path),
         theme_candidate,
+        memory_binary=str(memory_state.get("binary", "")),
+        memory_active_positions=list(memory_state.get("active_positions", [])),
+        memory_version=int(memory_state.get("version", 0) or 0),
+        memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
     )

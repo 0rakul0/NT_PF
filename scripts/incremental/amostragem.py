@@ -4,6 +4,7 @@ import pandas as pd
 
 from scripts.incremental.common import (
     DOCS_JSONL,
+    LINGUISTIC_PREPROCESSING_JSON,
     RESERVE_CSV,
     RUN_DIR,
     SAMPLE_CSV,
@@ -48,6 +49,7 @@ def run(config: RunConfig) -> dict[str, object]:
         "temporal_strata": config.temporal_strata,
         "sample_strata_counts": strata_counts,
         "docs_jsonl": str(DOCS_JSONL),
+        "linguistic_preprocessing_json": str(LINGUISTIC_PREPROCESSING_JSON),
         "sample_csv": str(SAMPLE_CSV),
         "reserve_csv": str(RESERVE_CSV),
     }

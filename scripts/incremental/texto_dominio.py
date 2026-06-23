@@ -5,6 +5,8 @@ import unicodedata
 from collections.abc import Iterable
 from typing import Any
 
+from scripts.incremental.preprocessamento_linguistico import preprocess_body_text
+
 
 DOMAIN_PHRASES: tuple[str, ...] = (
     "abuso sexual",
@@ -383,7 +385,7 @@ def informative_domain_tags(tags: object) -> list[str]:
 def build_domain_cluster_text(doc: dict[str, Any] | str) -> tuple[str, list[str]]:
     if isinstance(doc, str):
         text = doc
-        tags: object = []
+        semantic_features = preprocess_body_text(text).semantic_features
     else:
         parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
         parts = [
@@ -391,12 +393,13 @@ def build_domain_cluster_text(doc: dict[str, Any] | str) -> tuple[str, list[str]
             str(parsed.get("corpo", "")),
         ]
         text = "\n".join(part for part in parts if part)
-        tags = []
+        semantic_features = str(doc.get("semantic_features", "")).strip()
+        if not semantic_features:
+            semantic_features = preprocess_body_text(text).semantic_features
 
     terms = domain_terms_from_text(text)
-    sentences = domain_sentences(text)
     weighted_terms = [token_slug(term) for term in terms] * 8
-    cluster_text = " ".join([*weighted_terms, *sentences[:4]]).strip()
+    cluster_text = " ".join([*weighted_terms, semantic_features]).strip()
     if not cluster_text:
         cluster_text = "tema_criminal_indefinido " + clean_domain_tokens(text)[:1200]
     return cluster_text, terms

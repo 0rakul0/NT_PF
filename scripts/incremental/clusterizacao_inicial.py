@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.cluster import HDBSCAN, MiniBatchKMeans
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import Normalizer
 
@@ -148,6 +149,19 @@ def build_semantic_clusters(sample: list[dict[str, Any]], seed: int) -> tuple[pd
         k = max(12, min(40, int(np.sqrt(len(sample)))))
         labels = MiniBatchKMeans(n_clusters=k, random_state=seed, n_init=10).fit_predict(embeddings)
         algorithm = "minibatch_kmeans_fallback"
+    valid_mask = np.asarray(labels) != -1
+    valid_labels = np.asarray(labels)[valid_mask]
+    silhouette = 0.0
+    if valid_mask.sum() >= 3 and len(set(int(label) for label in valid_labels)) >= 2:
+        silhouette = float(
+            silhouette_score(
+                embeddings[valid_mask],
+                valid_labels,
+                metric="cosine",
+                sample_size=min(2000, int(valid_mask.sum())),
+                random_state=seed,
+            )
+        )
     rows = [
         {
             "arquivo": item["arquivo"],
@@ -157,6 +171,7 @@ def build_semantic_clusters(sample: list[dict[str, Any]], seed: int) -> tuple[pd
             "cluster_text": cluster_text,
             "cluster_domain_terms": " | ".join(domain_terms),
             "body_text": item.get("body_text", ""),
+            "semantic_features": item.get("semantic_features", ""),
             "context": item["context"],
         }
         for item, label, (cluster_text, domain_terms) in zip(sample, labels, prepared, strict=False)
@@ -165,6 +180,10 @@ def build_semantic_clusters(sample: list[dict[str, Any]], seed: int) -> tuple[pd
     cluster_rows, cosine_merges = consolidate_by_cosine(cluster_rows, tfidf)
     cluster_rows.attrs["algorithm"] = algorithm
     cluster_rows.attrs["cosine_merges"] = cosine_merges
+    cluster_rows.attrs["silhouette_score"] = silhouette
+    cluster_rows.attrs["vocabulary_size"] = len(vectorizer.get_feature_names_out())
+    cluster_rows.attrs["tfidf_nonzero"] = int(tfidf.nnz)
+    cluster_rows.attrs["tfidf_density"] = float(tfidf.nnz / (tfidf.shape[0] * tfidf.shape[1])) if tfidf.shape[0] and tfidf.shape[1] else 0.0
     return cluster_rows, vectorizer, tfidf, cosine_merges
 
 
@@ -232,6 +251,10 @@ def run(config: RunConfig) -> dict[str, object]:
         "clusters_total": int(cluster_summary.loc[cluster_summary["cluster_id"] != -1, "cluster_id"].nunique()),
         "raw_clusters_total": int(cluster_rows["raw_cluster_id"].nunique()) if "raw_cluster_id" in cluster_rows.columns else int(cluster_summary.loc[cluster_summary["cluster_id"] != -1, "cluster_id"].nunique()),
         "noise_clusters": int((cluster_summary["cluster_id"] == -1).sum()),
+        "silhouette_score": round(float(cluster_rows.attrs.get("silhouette_score", 0.0)), 6),
+        "vocabulary_size": int(cluster_rows.attrs.get("vocabulary_size", 0)),
+        "tfidf_nonzero": int(cluster_rows.attrs.get("tfidf_nonzero", 0)),
+        "tfidf_density": round(float(cluster_rows.attrs.get("tfidf_density", 0.0)), 8),
         "cosine_merge_groups": len(cosine_merges),
         "cosine_merges": cosine_merges,
         "cluster_assignments_csv": str(CLUSTER_ASSIGNMENTS_CSV),

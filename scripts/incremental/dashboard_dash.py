@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 from dash import Dash, Input, Output, dash_table, dcc, html
 from plotly.subplots import make_subplots
 
-from scripts.incremental.common import ANALYSIS_DIR, EVENTS_JSONL, WNN_FEATURE_BANK_PATH
+from scripts.incremental.common import ANALYSIS_DIR, EVENTS_JSONL, LINGUISTIC_PREPROCESSING_JSON, WNN_FEATURE_BANK_PATH
 from scripts.incremental.dashboard_comparacao import (
     _classification_label,
     _compare_classifications,
@@ -64,9 +64,15 @@ def _summary_cards(current: dict[str, Any], previous: dict[str, Any], comparison
     llm = _safe_int(current.get("llm_processed"))
     learned = _safe_int(current.get("learned_rules"))
     composite = _safe_int(current.get("wnn_multi_discriminator_candidates"))
+    memory_size = _safe_int(current.get("wnn_memory_vocab_size"))
     reclassified = _safe_int(comparison.get("changed_docs")) if comparison.get("available") else 0
     stable = _safe_int(comparison.get("stable_docs")) if comparison.get("available") else 0
     previous_label = previous.get("execucao", "sem baseline")
+    semantic_reduction = current.get("semantic_reduction_ratio", "")
+    try:
+        semantic_value = f"{float(semantic_reduction):.2%}"
+    except (TypeError, ValueError):
+        semantic_value = "aguardando"
 
     return [
         _card("Documentos Processados", docs, "execucao atual"),
@@ -75,6 +81,8 @@ def _summary_cards(current: dict[str, Any], previous: dict[str, Any], comparison
         _card("Aprendizado", learned, "regras incorporadas apos LLM residual"),
         _card("Candidatos Compostos", composite, "coacionamentos para revisar na arvore"),
         _card("Cobertura WNN", current.get("taxa_wnn", "sem taxa"), "resolvido por discriminadores"),
+        _card("Memoria WNN", memory_size or "aguardando", "posicoes na matriz binaria"),
+        _card("Reducao Semantica", semantic_value, "tokens mantidos: substantivos, verbos e adjetivos"),
         _card("Reclassificados", reclassified, f"estaveis: {stable} | baseline: {previous_label}"),
     ]
 
@@ -228,6 +236,11 @@ def _summary_table(current: dict[str, Any], previous: dict[str, Any]) -> list[di
         "learned_rules",
         "wnn_multi_discriminator_candidates",
         "rare_promoted_candidates",
+        "semantic_original_tokens",
+        "semantic_kept_tokens",
+        "semantic_reduction_ratio",
+        "wnn_memory_vocab_size",
+        "wnn_memory_active_avg",
         "taxa_wnn",
     ]
     return [
@@ -285,6 +298,77 @@ def _load_discriminator_bank() -> list[dict[str, Any]]:
     payload = _read_json(WNN_FEATURE_BANK_PATH)
     discriminators = payload.get("discriminators", []) if isinstance(payload, dict) else []
     return [item for item in discriminators if isinstance(item, dict)]
+
+
+def _latest_memory_from_events() -> dict[str, Any]:
+    if not EVENTS_JSONL.exists():
+        return {}
+    try:
+        lines = EVENTS_JSONL.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return {}
+    for line in reversed(lines[-1200:]):
+        if '"stage": "wnn_classification"' not in line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        binary = str(event.get("memory_binary", "") or "")
+        if not binary and not event.get("memory_vocab_size"):
+            continue
+        return {
+            "arquivo": str(event.get("arquivo", "")),
+            "version": int(event.get("memory_version", 0) or 0),
+            "vocab_size": int(event.get("memory_vocab_size", 0) or 0),
+            "active_count": int(event.get("memory_active_count", 0) or 0),
+            "active_positions": event.get("memory_active_positions", []),
+            "binary": binary,
+        }
+    return {}
+
+
+def _binary_memory_panel() -> html.Div:
+    memory = _latest_memory_from_events()
+    if not memory:
+        return html.Div("Aguardando a primeira noticia passar pela memoria binaria.", className="muted")
+    binary = str(memory.get("binary", ""))
+    max_visible_bits = 768
+    preview = binary[:max_visible_bits]
+    truncated = len(binary) > len(preview)
+    active_positions = memory.get("active_positions", [])
+    if not isinstance(active_positions, list):
+        active_positions = []
+    position_preview = ", ".join(str(item) for item in active_positions[:24])
+    if len(active_positions) > 24:
+        position_preview += ", ..."
+    bits = [
+        html.Span(
+            "",
+            className=f"memory-cell {'on' if bit == '1' else 'off'}",
+            title=f"posicao {index}: {'acesa' if bit == '1' else 'apagada'}",
+        )
+        for index, bit in enumerate(preview)
+        if bit in {"0", "1"}
+    ]
+    if truncated:
+        bits.append(html.Span("...", className="memory-ellipsis"))
+    return html.Div(
+        [
+            html.Div(
+                f"versao={memory.get('version', 0)} | largura={memory.get('vocab_size', 0)} | bits acesos={memory.get('active_count', 0)}",
+                className="disc-meta",
+            ),
+            html.Div(bits, className="memory-matrix"),
+            html.Div(
+                "Quadrado verde = palavra-chave da matriz encontrada na noticia; quadrado apagado = posicao conhecida, mas nao acionada.",
+                className="disc-meta",
+            ),
+            html.Div(f"posicoes acesas: {position_preview or 'nenhuma'}", className="disc-markers"),
+            html.Div(str(memory.get("arquivo", "")), className="muted"),
+        ],
+        className="memory-panel",
+    )
 
 
 def _split_terms(value: Any, limit: int = 5) -> list[str]:
@@ -820,7 +904,7 @@ def _theme_tree_3d_figure() -> go.Figure:
             y=edge_y,
             z=edge_z,
             mode="lines",
-            line={"color": "rgba(100,116,139,0.35)", "width": 3},
+            line={"color": "rgba(15,23,42,0.88)", "width": 5},
             hoverinfo="skip",
             showlegend=False,
         )
@@ -978,6 +1062,8 @@ def create_app() -> Dash:
                     html.H2("Discriminadores Canonicos WNN"),
                     html.Div(id="discriminator-status", className="muted cloud-help"),
                     html.Div(id="discriminator-lights", className="disc-grid"),
+                    html.H2("Imagem Binaria da Ultima Noticia"),
+                    html.Div(id="binary-memory-panel", className="memory-wrap"),
                     html.H2("Contagem de Acionamentos"),
                     dash_table.DataTable(
                         id="discriminator-table",
@@ -1089,6 +1175,34 @@ def create_app() -> Dash:
             .disc-desc { font-weight: 700; font-size: 13px; color: #111827; }
             .disc-meta { font-size: 11px; color: #667085; margin-top: 2px; }
             .disc-markers { color: #475467; font-size: 11px; line-height: 1.3; margin-top: 4px; }
+            .memory-wrap { margin: 0 0 16px 0; }
+            .memory-panel { border: 1px solid #d9e0ea; border-radius: 8px; padding: 12px; background: #f8fafc; }
+            .memory-matrix {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(12px, 12px));
+                gap: 5px;
+                align-items: center;
+                max-height: 260px;
+                overflow: auto;
+                margin: 10px 0 8px 0;
+                padding: 12px;
+                border-radius: 8px;
+                background: #0b1218;
+                border: 1px solid #14202a;
+            }
+            .memory-cell {
+                width: 12px;
+                height: 12px;
+                border-radius: 3px;
+                background: #16232c;
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .025);
+            }
+            .memory-cell.on {
+                background: #16c784;
+                box-shadow: 0 0 10px rgba(22, 199, 132, .75), inset 0 0 0 1px rgba(255, 255, 255, .18);
+            }
+            .memory-cell.off { background: #16232c; }
+            .memory-ellipsis { color: #cbd5e1; font-family: Consolas, monospace; padding-left: 4px; align-self: center; }
             @media (max-width: 980px) {
                 .graph-grid, .table-grid, .tree-map-layout { grid-template-columns: 1fr; }
                 .header { display: block; }
@@ -1118,6 +1232,7 @@ def create_app() -> Dash:
         Output("changes-table", "columns"),
         Output("discriminator-status", "children"),
         Output("discriminator-lights", "children"),
+        Output("binary-memory-panel", "children"),
         Output("discriminator-table", "data"),
         Output("discriminator-table", "columns"),
         Output("theme-tree-graph", "figure"),
@@ -1141,6 +1256,19 @@ def create_app() -> Dash:
             if not metrics.empty
             else 0
         )
+        if not metrics.empty and "wnn_memory_vocab_size" in metrics.columns:
+            current_summary["wnn_memory_vocab_size"] = int(
+                pd.to_numeric(metrics["wnn_memory_vocab_size"], errors="coerce").fillna(0).max()
+            )
+        if not metrics.empty and "wnn_memory_active_avg" in metrics.columns:
+            current_summary["wnn_memory_active_avg"] = round(
+                float(pd.to_numeric(metrics["wnn_memory_active_avg"], errors="coerce").fillna(0).mean()),
+                4,
+            )
+        linguistic = _read_json(LINGUISTIC_PREPROCESSING_JSON)
+        current_summary["semantic_original_tokens"] = linguistic.get("original_tokens", "")
+        current_summary["semantic_kept_tokens"] = linguistic.get("kept_tokens", "")
+        current_summary["semantic_reduction_ratio"] = linguistic.get("reduction_ratio", "")
 
         summary_rows = _summary_table(current_summary, previous_summary)
         summary_columns = [{"name": key, "id": key} for key in ("metrica", "atual", "baseline")]
@@ -1191,6 +1319,7 @@ def create_app() -> Dash:
             change_columns,
             discriminator_status,
             _discriminator_lights(discriminator_rows),
+            _binary_memory_panel(),
             discriminator_table_rows,
             discriminator_columns,
             _theme_tree_3d_figure(),

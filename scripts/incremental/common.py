@@ -4,6 +4,7 @@ import json
 import random
 import re
 import shutil
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Any
 
 import pandas as pd
 from langchain_ollama import ChatOllama
+from scripts.incremental.preprocessamento_linguistico import preprocess_body_text
 
 try:
     from scripts.pf_llm_metadata import build_llm_context, parse_news_markdown
@@ -47,6 +49,7 @@ THEME_REFINEMENT_INPUT_JSON = RUN_DIR / "insumo_agente_organizador_arvore.json"
 METRICS_CSV = RUN_DIR / "metrics_batches.csv"
 RUN_MANIFEST_JSON = RUN_DIR / "run_manifest.json"
 RUN_RESULT_JSON = RUN_DIR / "run_result.json"
+LINGUISTIC_PREPROCESSING_JSON = RUN_DIR / "preprocessamento_linguistico.json"
 
 RARE_NEWS_LABEL = "noticias_raras"
 RARE_NEWS_DESCRIPTION = "Noticias residuais raras, sem encaixe defensavel nos temas canonicos ou macrotemas existentes."
@@ -194,8 +197,22 @@ def load_docs(max_docs: int | None = None) -> list[dict[str, Any]]:
     if max_docs is not None:
         files = files[:max_docs]
     docs: list[dict[str, Any]] = []
+    preprocessing_started = time.perf_counter()
+    preprocessing_totals = {
+        "original_tokens": 0,
+        "kept_tokens": 0,
+        "elapsed_seconds": 0.0,
+        "backends": {},
+    }
     for path in files:
         parsed = parse_news_markdown(path.read_text(encoding="utf-8"))
+        body_text = news_body_text(parsed)
+        linguistic = preprocess_body_text(body_text)
+        preprocessing_totals["original_tokens"] += linguistic.original_tokens
+        preprocessing_totals["kept_tokens"] += linguistic.kept_tokens
+        preprocessing_totals["elapsed_seconds"] += linguistic.elapsed_seconds
+        backends = preprocessing_totals["backends"]
+        backends[linguistic.backend] = int(backends.get(linguistic.backend, 0)) + 1
         docs.append(
             {
                 "arquivo": path.name,
@@ -203,12 +220,33 @@ def load_docs(max_docs: int | None = None) -> list[dict[str, Any]]:
                 "titulo": str(parsed.get("titulo", "")),
                 "tags": parsed.get("tags", []),
                 "parsed": parsed,
-                "body_text": news_body_text(parsed),
+                "body_text": body_text,
+                "semantic_features": linguistic.semantic_features,
+                "semantic_tokens": linguistic.tokens,
+                "semantic_phrases": linguistic.phrases,
+                "linguistic_metrics": linguistic.metrics(),
                 "context": build_llm_context(parsed),
             }
         )
     if not docs:
         raise FileNotFoundError(f"Nenhum markdown encontrado em {NEWS_MARKDOWN_DIR}")
+    original_tokens = int(preprocessing_totals["original_tokens"])
+    kept_tokens = int(preprocessing_totals["kept_tokens"])
+    write_json(
+        LINGUISTIC_PREPROCESSING_JSON,
+        {
+            "stage": "preprocessamento_linguistico",
+            "documents": len(docs),
+            "original_tokens": original_tokens,
+            "kept_tokens": kept_tokens,
+            "removed_tokens": max(0, original_tokens - kept_tokens),
+            "reduction_ratio": round(1.0 - (kept_tokens / original_tokens), 6) if original_tokens else 0.0,
+            "linguistic_elapsed_seconds": round(float(preprocessing_totals["elapsed_seconds"]), 4),
+            "total_elapsed_seconds": round(time.perf_counter() - preprocessing_started, 4),
+            "backends": preprocessing_totals["backends"],
+            "representation": "substantivos_verbos_adjetivos_e_expressoes_de_dominio",
+        },
+    )
     return docs
 
 

@@ -23,6 +23,7 @@ from scripts.incremental.common import (
     write_json,
 )
 from scripts.incremental.noticias_raras import append_rare_news_observation
+from scripts.incremental.preprocessamento_linguistico import preprocess_body_text
 from scripts.incremental.similaridade_cosseno import top_k_similar_themes
 from scripts.schemas.pf_incremental_agent_schemas import ResidualReviewAgentResponse
 from scripts.incremental.dashboard_comparacao import run as update_dashboard
@@ -45,7 +46,11 @@ except ModuleNotFoundError:
 
 def classification_text(doc: dict[str, Any]) -> str:
     parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
-    return str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "")).strip()
+    semantic = str(doc.get("semantic_features", "") or "").strip()
+    if semantic:
+        return semantic
+    body = str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "")).strip()
+    return preprocess_body_text(body).semantic_features
 
 
 def review_to_inference(review: ResidualReviewAgentResponse) -> NoticiaLLMInference:
@@ -100,6 +105,11 @@ def classify_with_regex(doc: dict[str, Any], threshold: float, regex_enabled: bo
         "wnn_active_discriminators_count": 0,
         "wnn_active_discriminators": [],
         "wnn_scores": [],
+        "wnn_memory_version": 0,
+        "wnn_memory_vocab_size": 0,
+        "wnn_memory_active_count": 0,
+        "wnn_memory_active_positions": [],
+        "wnn_memory_binary": "",
         "agent3_reviewed": False,
         "agent3_decision": "",
         "agent3_canonical_label": "",
@@ -116,6 +126,11 @@ def classify_with_regex(doc: dict[str, Any], threshold: float, regex_enabled: bo
         "cosine_top_label": "",
         "cosine_top_score": 0.0,
         "cosine_top_k": [],
+        "semantic_features": str(doc.get("semantic_features", "")),
+        "semantic_original_tokens": int(doc.get("linguistic_metrics", {}).get("original_tokens", 0) or 0),
+        "semantic_kept_tokens": int(doc.get("linguistic_metrics", {}).get("kept_tokens", 0) or 0),
+        "semantic_reduction_ratio": float(doc.get("linguistic_metrics", {}).get("reduction_ratio", 0.0) or 0.0),
+        "semantic_backend": str(doc.get("linguistic_metrics", {}).get("backend", "")),
     }
 
 
@@ -219,7 +234,7 @@ def run(config: RunConfig) -> dict[str, object]:
 
             regex_residual += 1
             text_for_classification = classification_text(doc)
-            cosine_candidates = top_k_similar_themes(text_for_classification, top_k=5)
+            cosine_candidates = top_k_similar_themes(text_for_classification, top_k=5, preprocessed=True)
             row.update(
                 {
                     "cosine_top_label": cosine_candidates[0]["label"] if cosine_candidates else "",
@@ -256,6 +271,11 @@ def run(config: RunConfig) -> dict[str, object]:
                         "wnn_active_discriminators_count": len(wnn_result.active_discriminators),
                         "wnn_active_discriminators": wnn_dict["active_discriminators"],
                         "wnn_scores": wnn_dict["scores"],
+                        "wnn_memory_version": wnn_dict.get("memory_version", 0),
+                        "wnn_memory_vocab_size": wnn_dict.get("memory_vocab_size", 0),
+                        "wnn_memory_active_count": wnn_dict.get("memory_active_count", 0),
+                        "wnn_memory_active_positions": wnn_dict.get("memory_active_positions", []),
+                        "wnn_memory_binary": wnn_dict.get("memory_binary", ""),
                     }
                 )
                 append_event(
@@ -274,6 +294,11 @@ def run(config: RunConfig) -> dict[str, object]:
                         "active_discriminators_count": len(wnn_result.active_discriminators),
                         "active_discriminators": wnn_dict["active_discriminators"][:30],
                         "scores": wnn_dict["scores"][:5],
+                        "memory_version": wnn_dict.get("memory_version", 0),
+                        "memory_vocab_size": wnn_dict.get("memory_vocab_size", 0),
+                        "memory_active_count": wnn_dict.get("memory_active_count", 0),
+                        "memory_active_positions": wnn_dict.get("memory_active_positions", [])[:120],
+                        "memory_binary": wnn_dict.get("memory_binary", ""),
                     }
                 )
                 if wnn_result.theme_candidate:
@@ -474,6 +499,26 @@ def run(config: RunConfig) -> dict[str, object]:
         batch_output.parent.mkdir(parents=True, exist_ok=True)
         batch_df.to_csv(batch_output, index=False, encoding="utf-8-sig")
         docs = len(batch)
+        memory_sizes = pd.to_numeric(batch_df.get("wnn_memory_vocab_size", pd.Series(dtype=float)), errors="coerce").fillna(0)
+        wnn_memory_vocab_size = int(memory_sizes.max()) if not batch_df.empty else 0
+        wnn_memory_active_avg = (
+            float(pd.to_numeric(batch_df.get("wnn_memory_active_count", pd.Series(dtype=float)), errors="coerce").fillna(0).mean())
+            if not batch_df.empty
+            else 0.0
+        )
+        semantic_original_tokens = sum(
+            int(doc.get("linguistic_metrics", {}).get("original_tokens", 0) or 0)
+            for doc in batch
+        )
+        semantic_kept_tokens = sum(
+            int(doc.get("linguistic_metrics", {}).get("kept_tokens", 0) or 0)
+            for doc in batch
+        )
+        semantic_reduction_ratio = (
+            1.0 - (semantic_kept_tokens / semantic_original_tokens)
+            if semantic_original_tokens
+            else 0.0
+        )
         cumulative_docs += docs
         cumulative_regex += regex_accepted
         cumulative_llm += llm_processed
@@ -503,6 +548,11 @@ def run(config: RunConfig) -> dict[str, object]:
                 "prompt_tokens_total": prompt_tokens_total,
                 "completion_tokens_total": completion_tokens_total,
                 "avg_tokens_per_llm": round(token_total / llm_processed, 4) if llm_processed else 0,
+                "semantic_original_tokens": semantic_original_tokens,
+                "semantic_kept_tokens": semantic_kept_tokens,
+                "semantic_reduction_ratio": round(semantic_reduction_ratio, 6),
+                "wnn_memory_vocab_size": wnn_memory_vocab_size,
+                "wnn_memory_active_avg": round(wnn_memory_active_avg, 4),
                 "wnn_rate": round(wnn_accepted / docs, 6) if docs else 0,
                 "regex_rate": round(regex_accepted / docs, 6) if docs else 0,
                 "regex_wnn_rate": round((regex_accepted + wnn_accepted) / docs, 6) if docs else 0,

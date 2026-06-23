@@ -2,7 +2,7 @@
 
 ## Resumo
 
-Grandes bases textuais institucionais crescem continuamente e tornam custosa a organização temática, a classificação e a revisão manual de documentos. Este trabalho propõe uma metodologia incremental, autônoma e auditável para clusterizar, classificar e aprender continuamente a partir dessas bases. A abordagem combina amostragem temporal estratificada, clusterização exploratória, consolidação semântica por similaridade do cosseno, agentes de linguagem com respostas estruturadas, geração e validação de expressões regulares, classificação residual por LLM e reorganização periódica de uma árvore temática. A LLM não atua como classificador principal da base inteira: revisa apenas resíduos que escapam das regras determinísticas, e parte desse aprendizado pode ser convertida em regras reutilizáveis para lotes futuros. Como aplicação empírica, a metodologia é aplicada a 8.232 notícias públicas da Polícia Federal, base real e heterogênea marcada por linguagem institucional, termos especializados, localidades, nomes de operação e atualização temporal.
+Grandes bases textuais institucionais crescem continuamente e tornam custosa a organização temática, a classificação e a revisão manual de documentos. Este trabalho propõe uma metodologia incremental, autônoma e auditável para clusterizar, classificar e aprender continuamente a partir dessas bases. A abordagem combina amostragem temporal estratificada, pré-processamento linguístico, clusterização exploratória, consolidação semântica por similaridade do cosseno, agentes de linguagem com respostas estruturadas, discriminadores canônicos inspirados em WNN/WiSARD, memória binária auditável, revisão residual por LLM e reorganização periódica de uma árvore temática. A LLM não atua como classificador principal da base inteira: revisa apenas resíduos ou ambiguidades que escapam da memória determinística, e parte desse aprendizado pode ser convertida em novos marcadores reutilizáveis para lotes futuros. Como aplicação empírica, a metodologia é aplicada a notícias públicas da Polícia Federal, base real e heterogênea marcada por linguagem institucional, termos especializados, localidades, nomes de operação e atualização temporal.
 
 ## 1. Introdução
 
@@ -10,7 +10,7 @@ Instituições públicas que produzem ou analisam informação em larga escala, 
 
 Esse processo é difícil porque grandes bases textuais são heterogêneas, crescem ao longo do tempo e frequentemente combinam temas recorrentes com temas emergentes. Além disso, apresentam variação lexical, repetição de formatos, mudanças temporais de enfoque e elementos acidentais, como localidades, nomes próprios, códigos internos, operações, eventos e entidades. A rotulagem humana tende a ser cara e pouco escalável; por outro lado, uma classificação automática sem controle pode reproduzir ruído, transformar metadados em categorias e gerar taxonomias instáveis. Em ambientes institucionais, esse problema é também operacional: cada nova rodada de dados exige custo, tempo, documentação e capacidade de revisão.
 
-Modelos de linguagem ampliam a capacidade de interpretar textos e podem apoiar tarefas de classificação, extração de evidências e nomeação de temas. No entanto, usar LLM em toda a base pode ser caro, pouco previsível e menos reprodutível quando não há uma camada determinística de verificação. A proposta deste trabalho parte dessa tensão: usar LLM onde ela agrega mais valor, isto é, nos resíduos e exceções, e converter parte desse aprendizado em regras auditáveis para reduzir chamadas futuras. Com isso, busca-se um ciclo de aprendizado contínuo que contribua para diminuir custos operacionais ao longo do tempo.
+Modelos de linguagem ampliam a capacidade de interpretar textos e podem apoiar tarefas de classificação, extração de evidências e nomeação de temas. No entanto, usar LLM em toda a base pode ser caro, pouco previsível e menos reprodutível quando não há uma camada determinística de verificação. A proposta deste trabalho parte dessa tensão: usar LLM onde ela agrega mais valor, isto é, nos resíduos, ambiguidades e exceções, e converter parte desse aprendizado em marcadores auditáveis que passam a compor uma memória WNN. Com isso, busca-se um ciclo de aprendizado contínuo que contribua para diminuir custos operacionais ao longo do tempo.
 
 Este Texto para Discussão tem como objetivo propor uma metodologia incremental, autônoma e transparente para clusterizar, classificar e aprender continuamente a partir de grandes bases textuais. A proposta busca responder a um problema operacional comum a instituições que lidam com dados textuais em larga escala: como organizar temas recorrentes, reconhecer exceções, reduzir custo de inferência e preservar rastreabilidade ao longo de sucessivas rodadas de dados. A metodologia é aplicada empiricamente a notícias públicas da Polícia Federal, por constituírem uma base real, volumosa, heterogênea e marcada por termos especializados; nessa aplicação, o alvo de classificação é crime ou modus operandi. Na amostra de fundação, a clusterização gerou 35 clusters brutos, posteriormente consolidados em 27 folhas temáticas e organizados em 17 temas canônicos, indicando que os agrupamentos exploratórios precisavam ser interpretados e refinados antes de se tornarem categorias operacionais. O texto está organizado da seguinte forma: a seção 2 apresenta o referencial teórico; a seção 3 discute trabalhos relacionados; a seção 4 detalha a metodologia; a seção 5 apresenta a avaliação experimental; a seção 6 apresenta a conclusão, os critérios de qualidade e as limitações observadas; e o Apêndice registra métricas por lote.
 
@@ -18,7 +18,7 @@ Assim, o resultado esperado não se limita à classificação pontual da base us
 
 ## 2. Referencial teórico
 
-O referencial teórico deste trabalho articula cinco bases conceituais: descoberta temática em coleções textuais, representações semânticas por embeddings, classificação programática por regras, uso controlado de modelos de linguagem e aprendizado incremental. Essas bases sustentam a metodologia proposta porque permitem separar tarefas exploratórias, decisões determinísticas e tratamento residual de exceções. A clusterização organiza a diversidade inicial da base; os embeddings oferecem evidência de proximidade semântica; as regras tornam a classificação auditável; e a LLM atua apenas nos casos em que a camada determinística ainda não acumulou evidência suficiente.
+O referencial teórico deste trabalho articula cinco bases conceituais: descoberta temática em coleções textuais, representações semânticas por embeddings, classificação programática interpretável, uso controlado de modelos de linguagem e aprendizado incremental. Essas bases sustentam a metodologia proposta porque permitem separar tarefas exploratórias, decisões determinísticas e tratamento residual de exceções. A clusterização organiza a diversidade inicial da base; os embeddings oferecem evidência de proximidade semântica; os discriminadores WNN tornam a classificação auditável por marcadores e posições binárias; e a LLM atua apenas nos casos em que a camada determinística ainda não acumulou evidência suficiente.
 
 ### 2.1 Clusterização e descoberta temática
 
@@ -36,49 +36,49 @@ Neste trabalho, a similaridade do cosseno funciona como evidência auxiliar, nã
 
 A classificação por regras interpretáveis aproxima a metodologia da literatura de supervisão fraca e *data programming*. Em Snorkel, funções de rotulagem produzem sinais programáticos que podem ser combinados para criar dados de treinamento em contextos nos quais rótulos manuais são caros ou escassos (Ratner et al., 2020). Trabalhos de supervisão fraca orientada por ontologias também mostram que conhecimento de domínio, regras e recursos externos podem apoiar tarefas de classificação em bases especializadas (Fries et al., 2021).
 
-As expressões regulares usadas neste trabalho cumprem papel operacional semelhante ao de funções de rotulagem, pois transformam conhecimento textual observável em padrões aplicáveis à base. A diferença é que elas não são apenas sinais intermediários para treinar outro modelo: permanecem como camada determinística de classificação. Essa escolha aumenta a auditabilidade, já que cada classificação pode ser rastreada até um padrão textual explícito, mas também exige validação, versionamento e atualização contínua das regras.
+Na primeira formulação experimental deste trabalho, expressões regulares cumpriam papel operacional semelhante ao de funções de rotulagem, pois transformavam conhecimento textual observável em padrões aplicáveis à base. A evolução proposta substitui essa camada por discriminadores canônicos: conjuntos de marcadores não ordenados que acionam uma memória WNN. Essa escolha preserva auditabilidade, pois cada classificação pode ser rastreada até palavras-chave e posições binárias, mas reduz a dependência da ordem das palavras e permite aprendizado incremental mais granular.
 
 ### 2.4 Modelos de linguagem como componente residual
 
 Modelos de linguagem podem ser incorporados a fluxos de supervisão fraca por meio de *prompts* e funções de rotulagem, reduzindo parte do esforço humano de anotação (Smith et al., 2022). Estudos recentes também investigam se LLMs podem projetar funções de rotulagem precisas, o que aproxima esses modelos de tarefas de geração de regras e classificação programática (Guan, Chen e Koudas, 2023). Essas referências sustentam o uso de LLMs como componente interpretativo, mas também reforçam a necessidade de controlar seu papel no processo.
 
-Na metodologia proposta, a LLM não classifica toda a base nem substitui a camada determinística. Ela é acionada nos resíduos, isto é, nos documentos que escapam do banco de expressões regulares. Nesses casos, interpreta exceções, registra justificativas, sugere temas candidatos ou documentos raros e produz insumos para novas regras. O objetivo é usar a capacidade semântica da LLM onde ela agrega mais valor, preservando rastreabilidade e reduzindo chamadas futuras.
+Na metodologia proposta, a LLM não classifica toda a base nem substitui a camada determinística. Ela é acionada nos resíduos, isto é, nos documentos que escapam da memória WNN ou que apresentam ambiguidade entre discriminadores. Nesses casos, interpreta exceções, registra justificativas, sugere temas candidatos ou documentos raros e produz insumos para novos marcadores. O objetivo é usar a capacidade semântica da LLM onde ela agrega mais valor, preservando rastreabilidade e reduzindo chamadas futuras.
 
 ### 2.5 Aprendizado incremental e auditabilidade
 
-A perspectiva incremental decorre do fato de que bases textuais institucionais crescem continuamente e podem incorporar temas emergentes, mudanças lexicais e novos padrões de redação. Técnicas clássicas de *bootstrapping* de padrões, como Snowball, mostram que evidências extraídas de textos podem alimentar novos padrões de extração em ciclos sucessivos (Agichtein e Gravano, 2000). Este trabalho adapta esse princípio à classificação temática: resíduos revisados podem gerar novas regex, reorganização da árvore temática ou memória auditável de casos raros.
+A perspectiva incremental decorre do fato de que bases textuais institucionais crescem continuamente e podem incorporar temas emergentes, mudanças lexicais e novos padrões de redação. Técnicas clássicas de *bootstrapping* de padrões, como Snowball, mostram que evidências extraídas de textos podem alimentar novos padrões de extração em ciclos sucessivos (Agichtein e Gravano, 2000). Este trabalho adapta esse princípio à classificação temática: resíduos revisados podem gerar novos marcadores WNN, reorganização da árvore temática ou memória auditável de casos raros.
 
-Em conjunto, esses referenciais delimitam o papel de cada técnica na proposta: clusters e embeddings apoiam a descoberta temática, regras oferecem classificação auditável, LLMs tratam casos residuais e o aprendizado incremental preserva a atualização do sistema sem dissolver a estabilidade da taxonomia.
+Em conjunto, esses referenciais delimitam o papel de cada técnica na proposta: clusters e embeddings apoiam a descoberta temática, discriminadores oferecem classificação auditável, LLMs tratam casos residuais e o aprendizado incremental preserva a atualização do sistema sem dissolver a estabilidade da taxonomia.
 
 ## 3. Trabalhos relacionados
 
 A metodologia proposta se relaciona com cinco grupos de trabalhos: supervisão fraca, modelagem de tópicos, clusterização textual, uso de LLMs em rotulagem e construção automática de taxonomias. A comparação é feita a partir de quatro critérios: o papel atribuído às regras, a função dos clusters, o momento em que a LLM é acionada e a existência de aprendizado incremental auditável. Esses critérios permitem distinguir a proposta de abordagens que usam técnicas semelhantes de forma isolada.
 
-Na literatura de supervisão fraca, sistemas como Snorkel usam funções de rotulagem para gerar sinais programáticos em bases com poucos rótulos manuais, normalmente com o objetivo de produzir dados de treinamento para modelos supervisionados (Ratner et al., 2017; Ratner et al., 2018; Ratner et al., 2020). Trabalhos orientados por ontologias, como Fries et al. (2021), mostram que conhecimento de domínio, regras e recursos estruturados também podem apoiar classificação em contextos especializados. A metodologia aqui proposta se aproxima desses trabalhos ao usar regras interpretáveis como fonte de rotulagem, mas se diferencia porque as regex permanecem como classificador operacional principal, versionado e auditável, em vez de funcionarem apenas como etapa intermediária para treinar outro modelo.
+Na literatura de supervisão fraca, sistemas como Snorkel usam funções de rotulagem para gerar sinais programáticos em bases com poucos rótulos manuais, normalmente com o objetivo de produzir dados de treinamento para modelos supervisionados (Ratner et al., 2017; Ratner et al., 2018; Ratner et al., 2020). Trabalhos orientados por ontologias, como Fries et al. (2021), mostram que conhecimento de domínio, regras e recursos estruturados também podem apoiar classificação em contextos especializados. A metodologia aqui proposta se aproxima desses trabalhos ao usar sinais interpretáveis como fonte de rotulagem, mas se diferencia porque os discriminadores permanecem como classificador operacional principal, versionado e auditável, em vez de funcionarem apenas como etapa intermediária para treinar outro modelo.
 
-Trabalhos de modelagem de tópicos e clusterização textual buscam organizar coleções documentais em grupos temáticos ou semanticamente próximos. LDA é uma referência clássica para modelagem probabilística de tópicos (Blei, Ng e Jordan, 2003), enquanto BERTopic combina embeddings, clusterização e representação lexical dos tópicos (Grootendorst, 2022). HDBSCAN e Sentence-BERT também aparecem em pipelines que exploram agrupamentos e proximidade semântica em textos (McInnes, Healy e Astels, 2017; Reimers e Gurevych, 2019). A diferença deste trabalho está no tratamento dado aos agrupamentos: os clusters não são assumidos como categorias finais, mas como evidências exploratórias que precisam ser consolidadas, nomeadas e convertidas em regras auditáveis alinhadas ao alvo substantivo da aplicação.
+Trabalhos de modelagem de tópicos e clusterização textual buscam organizar coleções documentais em grupos temáticos ou semanticamente próximos. LDA é uma referência clássica para modelagem probabilística de tópicos (Blei, Ng e Jordan, 2003), enquanto BERTopic combina embeddings, clusterização e representação lexical dos tópicos (Grootendorst, 2022). HDBSCAN e Sentence-BERT também aparecem em pipelines que exploram agrupamentos e proximidade semântica em textos (McInnes, Healy e Astels, 2017; Reimers e Gurevych, 2019). A diferença deste trabalho está no tratamento dado aos agrupamentos: os clusters não são assumidos como categorias finais, mas como evidências exploratórias que precisam ser consolidadas, nomeadas e convertidas em discriminadores auditáveis alinhados ao alvo substantivo da aplicação.
 
-Pesquisas recentes investigam o uso de LLMs como fonte de rotulagem, apoio à supervisão fraca ou mecanismo de classificação textual. Smith et al. (2022) incorporam modelos de linguagem ao ciclo de supervisão fraca por meio de *prompts*, enquanto Guan, Chen e Koudas (2023) analisam a capacidade de LLMs projetarem funções de rotulagem. Huang e He (2024) aproximam clusterização textual e classificação com LLMs, deslocando parte da decisão temática para o modelo de linguagem. Este trabalho compartilha a motivação de reduzir esforço humano, mas restringe a LLM aos resíduos que escapam das regras determinísticas. Assim, o modelo atua como componente interpretativo e gerador de evidências, não como classificador permanente de toda a base.
+Pesquisas recentes investigam o uso de LLMs como fonte de rotulagem, apoio à supervisão fraca ou mecanismo de classificação textual. Smith et al. (2022) incorporam modelos de linguagem ao ciclo de supervisão fraca por meio de *prompts*, enquanto Guan, Chen e Koudas (2023) analisam a capacidade de LLMs projetarem funções de rotulagem. Huang e He (2024) aproximam clusterização textual e classificação com LLMs, deslocando parte da decisão temática para o modelo de linguagem. Este trabalho compartilha a motivação de reduzir esforço humano, mas restringe a LLM aos resíduos que escapam dos discriminadores WNN. Assim, o modelo atua como componente interpretativo e gerador de evidências, não como classificador permanente de toda a base.
 
-Outro eixo relacionado é a construção automática de taxonomias com apoio de LLMs, embeddings e estratégias de *prompting* ou ajuste fino. Balakrishnan (2025) discute a geração automatizada de taxonomias e compara estratégias baseadas em engenharia de *prompt* e *fine-tuning*. Na proposta deste trabalho, a árvore temática também é ajustada com apoio de agentes, mas sua função é operacional: orientar o banco de regex, organizar resíduos, registrar documentos raros e apoiar métricas de cobertura, custo e rastreabilidade. Portanto, a taxonomia não é apenas um artefato descritivo, mas parte do mecanismo de classificação incremental.
+Outro eixo relacionado é a construção automática de taxonomias com apoio de LLMs, embeddings e estratégias de *prompting* ou ajuste fino. Balakrishnan (2025) discute a geração automatizada de taxonomias e compara estratégias baseadas em engenharia de *prompt* e *fine-tuning*. Na proposta deste trabalho, a árvore temática também é ajustada com apoio de agentes, mas sua função é operacional: orientar o banco de discriminadores, organizar resíduos, registrar documentos raros e apoiar métricas de cobertura, custo e rastreabilidade. Portanto, a taxonomia não é apenas um artefato descritivo, mas parte do mecanismo de classificação incremental.
 
-Técnicas clássicas de *bootstrapping* de padrões, como Snowball, partem de evidências observadas para extrair novos padrões em grandes coleções textuais (Agichtein e Gravano, 2000). A metodologia proposta adota princípio semelhante ao transformar resíduos revisados em novas regras, mas desloca o foco da extração de relações para a classificação temática incremental. A contribuição central, portanto, não está em propor isoladamente clusterização, regex, LLM ou supervisão fraca, mas em integrar esses componentes em um ciclo operacional que descobre temas, gera regras, classifica lotes, revisa exceções, reorganiza a árvore temática e documenta cobertura, custo, evidências e limitações.
+Técnicas clássicas de *bootstrapping* de padrões, como Snowball, partem de evidências observadas para extrair novos padrões em grandes coleções textuais (Agichtein e Gravano, 2000). A metodologia proposta adota princípio semelhante ao transformar resíduos revisados em novos marcadores, mas desloca o foco da extração de relações para a classificação temática incremental. A contribuição central, portanto, não está em propor isoladamente clusterização, regex, WNN, LLM ou supervisão fraca, mas em integrar esses componentes em um ciclo operacional que descobre temas, gera discriminadores, classifica lotes, revisa exceções, reorganiza a árvore temática e documenta cobertura, custo, evidências e limitações.
 
 ## 4. Metodologia
 
-Esta seção descreve a metodologia proposta, seus artefatos, seus componentes e o modo como o ciclo incremental de classificação é executado e auditado. A descrição parte da visão geral do fluxo, define a unidade documental e o alvo de classificação, apresenta os contratos entre componentes e detalha a fundação temática, a geração de regex, a execução incremental e a revisão residual por LLM.
+Esta seção descreve a metodologia proposta, seus artefatos, seus componentes e o modo como o ciclo incremental de classificação é executado e auditado. A descrição parte da visão geral do fluxo, define a unidade documental e o alvo de classificação, apresenta os contratos entre componentes e detalha a fundação temática, a geração de discriminadores WNN, a execução incremental e a revisão residual por LLM.
 
 ### 4.1 Visão geral do ciclo metodológico
 
-A metodologia organiza grandes coleções textuais em um ciclo incremental, autônomo e auditável. Primeiro, uma amostra inicial é extraída da base e transformada em texto de domínio, isto é, uma representação textual orientada ao alvo substantivo da classificação. Em seguida, essa amostra é vetorizada, dividida em clusters por HDBSCAN e refinada por similaridade do cosseno, de modo que folhas semanticamente próximas possam ser aproximadas antes da nomeação temática. O Agente 1 recebe os clusters consolidados e gera temas canônicos; o Agente 2 recebe esses temas e produz regex iniciais; o classificador regex aplica essas regras aos lotes incrementais; e apenas os documentos não classificados seguem para revisão residual por LLM. As decisões residuais podem gerar novas regex, temas candidatos, registros de documentos raros ou ajustes na árvore temática, fechando o ciclo e reduzindo a dependência de inferência nos lotes seguintes.
+A metodologia organiza grandes coleções textuais em um ciclo incremental, autônomo e auditável. Primeiro, uma amostra inicial é extraída da base e transformada em texto de domínio, isto é, uma representação textual orientada ao alvo substantivo da classificação. Em seguida, essa amostra é vetorizada, dividida em clusters por HDBSCAN e refinada por similaridade do cosseno, de modo que folhas semanticamente próximas possam ser aproximadas antes da nomeação temática. O Agente 1 recebe os clusters consolidados e gera temas canônicos; o Agente 2 recebe esses temas e produz discriminadores iniciais; a memória WNN aplica esses discriminadores aos lotes incrementais; e apenas os documentos não classificados ou ambíguos seguem para revisão residual por LLM. As decisões residuais podem gerar novos marcadores, temas candidatos, registros de documentos raros ou ajustes na árvore temática, fechando o ciclo e reduzindo a dependência de inferência nos lotes seguintes.
 
-A Figura 1 sintetiza esse ciclo completo. Ela mostra a fundação temática, a execução incremental e o fechamento por aprendizado residual, deixando explícito que o banco de regex e a árvore refinada retroalimentam os lotes seguintes.
+A Figura 1 sintetiza esse ciclo completo. Ela mostra a fundação temática, a execução incremental e o fechamento por aprendizado residual, deixando explícito que a memória WNN e a árvore refinada retroalimentam os lotes seguintes.
 
 ![Ciclo completo da metodologia incremental](media/figura-1-ciclo-completo-metodologia.png)
 
 *Figura 1 - Ciclo completo da metodologia incremental.*
 
-O ciclo é executado por transferência explícita de artefatos entre componentes. A base textual é ingerida e estruturada; a amostra de fundação produz embeddings, clusters, folhas consolidadas, temas canônicos e regex iniciais; a reserva incremental é processada em lotes; documentos classificados por regex são registrados diretamente; documentos residuais seguem para revisão por LLM; e as decisões residuais podem atualizar o banco de regras, a árvore temática, a lista de candidatos, o registro de notícias raras e as métricas do lote. Assim, cada etapa recebe uma entrada definida, produz uma saída verificável e alimenta a etapa seguinte.
+O ciclo é executado por transferência explícita de artefatos entre componentes. A base textual é ingerida e estruturada; a amostra de fundação produz embeddings, clusters, folhas consolidadas, temas canônicos e discriminadores iniciais; a reserva incremental é processada em lotes; documentos classificados pela WNN são registrados diretamente; documentos residuais seguem para revisão por LLM; e as decisões residuais podem atualizar a memória de marcadores, a árvore temática, a lista de candidatos, o registro de notícias raras e as métricas do lote. Assim, cada etapa recebe uma entrada definida, produz uma saída verificável e alimenta a etapa seguinte.
 
 ### 4.2 Unidade documental, alvo de classificação e controles de domínio
 
@@ -111,24 +111,23 @@ Para tornar a metodologia reprodutível, cada componente é definido por contrat
 | Ingestão | Arquivos ou registros textuais brutos | Normaliza campos, remove duplicidades e preserva metadados | `documentos_base.jsonl` | Divisão da base |
 | Divisão da base | Base estruturada | Separa amostra de fundação e reserva incremental | `amostra_inicial.csv` e `reserva_incremental.csv` | Fundação temática e lotes |
 | Parser | Documento bruto ou estruturado | Extrai título, subtítulo, tags, corpo, data, fonte e link | Documento estruturado | Texto de domínio |
-| Texto de domínio | Documento estruturado e alvo substantivo | Seleciona sinais temáticos e reduz sinais acidentais | Texto normalizado para classificação | Embeddings, regex e LLM residual |
+| Texto de domínio | Documento estruturado e alvo substantivo | Seleciona sinais temáticos e reduz sinais acidentais | Texto normalizado para classificação | Embeddings, discriminadores e LLM residual |
 | Vetorização | Textos de domínio da amostra | Gera embeddings semânticos | Matriz vetorial | HDBSCAN e cosseno |
 | HDBSCAN | Embeddings da amostra | Identifica agrupamentos densos e ruídos | Clusters exploratórios | Consolidação por cosseno |
 | Similaridade do cosseno | Clusters, documentos e vetores | Mede proximidade entre folhas e perfis temáticos | Clusters consolidados e sugestões de aproximação | Agente 1 e Agente 3 |
 | Agente 1 | Clusters consolidados e evidências | Nomeia temas canônicos e controla metadados incidentais | `temas_canonicos_agent1.json` | Agente 2 e classificador residual |
-| Agente 2 | Temas canônicos e evidências por tema | Gera regex iniciais ancoradas no alvo substantivo | `regex_iniciais_agent2.json` | Validação de regex |
-| Validador de regex | Regex candidatas e exemplos | Rejeita padrões frágeis, acidentais ou amplos demais | `regex_classifier_rules.json` | Classificador regex |
-| Classificador regex | Documento, texto de domínio e banco de regex | Aplica regras versionadas | Label determinística ou residual | Saída final ou Agente 3 |
-| Agente 3 | Residual, labels, sugestões por cosseno e evidências | Decide label, tema candidato ou documento raro | Decisão residual estruturada | Aprendiz de regex e árvore |
-| Aprendiz de regex | Decisão residual e evidências | Gera regra candidata reutilizável | Regex incremental candidata | Validador de regex |
-| Organizador da árvore | Temas, candidatos, raros, regex e métricas | Absorve, promove, funde ou mantém casos raros | Árvore temática refinada | Próximo lote |
+| Agente 2 | Temas canônicos e evidências por tema | Gera discriminadores e marcadores não ordenados | `wnn_feature_bank.json` | Memória WNN |
+| Memória WNN | Documento, texto semântico e banco de discriminadores | Projeta texto em vetor binário e pontua temas | Label determinística ou residual | Saída final ou Agente 3 |
+| Agente 3 | Residual, labels, sugestões por cosseno e evidências | Decide label, tema candidato ou documento raro | Decisão residual estruturada | Agente 2 e árvore |
+| Aprendiz de discriminadores | Decisão residual e evidências | Gera marcadores candidatos reutilizáveis | Discriminador incremental candidato | Memória WNN |
+| Organizador da árvore | Temas, candidatos, raros, discriminadores e métricas | Absorve, promove, funde ou mantém casos raros | Árvore temática refinada | Próximo lote |
 | Métricas e auditoria | Eventos de todas as etapas | Agrega cobertura, resíduos, custo e alterações | Relatórios e trilha de eventos | Avaliação experimental e reprodutibilidade |
 
-Esse contrato mostra que a saída de uma etapa é sempre a entrada explícita da etapa seguinte. O fechamento do ciclo ocorre quando decisões residuais aprovadas retornam ao banco ativo de regex ou à árvore temática, alterando a classificação dos lotes futuros.
+Esse contrato mostra que a saída de uma etapa é sempre a entrada explícita da etapa seguinte. O fechamento do ciclo ocorre quando decisões residuais aprovadas retornam à memória WNN ou à árvore temática, alterando a classificação dos lotes futuros.
 
 ### 4.4 Fundação temática
 
-A fundação temática constrói a primeira versão da taxonomia e do banco de regras. A base estruturada é dividida em duas massas: uma amostra inicial, preferencialmente estratificada no tempo, e uma reserva incremental. A amostra é usada para descobrir temas e criar regras iniciais; a reserva é usada para medir cobertura, resíduos e aprendizado ao longo dos lotes.
+A fundação temática constrói a primeira versão da taxonomia e do banco de discriminadores. A base estruturada é dividida em duas massas: uma amostra inicial, preferencialmente estratificada no tempo, e uma reserva incremental. A amostra é usada para descobrir temas e criar discriminadores iniciais; a reserva é usada para medir cobertura, resíduos e aprendizado ao longo dos lotes.
 
 Cada documento da amostra é convertido em texto de domínio. Essa etapa prioriza título, subtítulo, tags, condutas, crimes, objetos ilícitos, modus operandi e trechos relevantes do corpo. Ao mesmo tempo, reduz o peso de localidades, nomes de operação, órgãos parceiros e termos administrativos genéricos. O objetivo é representar o atributo substantivo que será classificado, não todos os metadados presentes no documento.
 
@@ -146,46 +145,50 @@ A Figura 2 apresenta um recorte ilustrativo dessa mediação entre clusters e te
 
 *Figura 2 - Exemplo de construção da árvore operacional de temas canônicos e folhas de clusters.*
 
-### 4.5 Geração e validação do banco inicial de regex
+### 4.5 Pré-processamento linguístico e memória WNN
 
-O Agente 2 recebe os temas canônicos produzidos pelo Agente 1 e as evidências associadas a cada folha. Sua tarefa é gerar regex iniciais capazes de reconhecer, nos documentos futuros, sinais textuais ligados ao alvo substantivo. Na aplicação PF, as regras devem capturar crime, conduta, objeto ilícito ou modus operandi. Regex baseadas apenas em localidade, nome de operação, órgão ou entidade acidental são rejeitadas ou deslocadas para camadas auxiliares.
+Na versão atual da metodologia, a camada determinística deixa de ser baseada prioritariamente em regex e passa a operar por uma memória WNN construída a partir de discriminadores canônicos. Antes da classificação, o corpo da notícia passa por pré-processamento linguístico: remoção de stopwords, normalização lexical e seleção preferencial de substantivos, verbos e adjetivos. Título, tags, nomes de operação e metadados externos podem ser preservados para auditoria, mas não devem definir sozinhos a classe.
 
-Cada regex candidata é avaliada antes de entrar no banco ativo. A validação verifica se o padrão captura exemplos positivos, evita exemplos negativos, não depende de metadados acidentais e pode ser interpretado por um avaliador humano. Regras aprovadas são versionadas com label, padrão, origem, evidências, exemplos e data de inclusão. O resultado dessa etapa é o banco `regex_classifier_rules.json`, usado como classificador determinístico principal na execução incremental.
+O Agente 2 recebe os temas canônicos produzidos pelo Agente 1, as folhas de clusters, os termos de domínio e exemplos por tema. Sua tarefa é construir discriminadores: conjuntos pequenos de palavras-chave não ordenadas que caracterizam um micromundo temático. Por exemplo, o tema `crimes_contra_criancas` pode conter marcadores como `abuso_sexual`, `pornografia_infantil`, `exploracao_sexual`, `estupro_vulneravel` e `abuso_sexual_infantojuvenil`. Diferentemente de uma regex, o discriminador não exige que as palavras apareçam em uma ordem fixa.
 
-A Figura 3 resume esse contrato operacional. Ela explicita quais informações alimentam o Agente 2, quais produtos são esperados e quais critérios impedem que uma regex entre no banco ativo quando depende de sinais acidentais ou amplia excessivamente a classe.
+A memória WNN é representada por uma matriz de vocabulário discriminativo. Cada palavra-chave sanitizada ocupa uma posição fixa. Quando uma notícia é processada, o texto aciona as posições correspondentes e produz uma imagem binária: `1` para posições encontradas na notícia e `0` para posições ausentes. Quando o Agente 3 identifica um padrão novo, o conjunto de palavras retorna ao Agente 2, que sanitiza, generaliza e injeta os novos marcadores na memória. Se uma palavra já existe, sua posição é reaproveitada; se não existe, ela entra no final da matriz. Assim, vetores antigos permanecem comparáveis por preenchimento de zeros à direita.
 
-![Contrato operacional do Agente 2 para geração de regex](media/figura-3-agente2-regex.png)
+![Memória binária WNN e discriminadores canônicos](media/dashboard_wnn_memoria_binaria_linkedin.png)
 
-*Figura 3 - Contrato operacional do Agente 2 para geração e validação de regex.*
+*Figura 3 - Visualização da memória WNN: discriminadores canônicos e imagem binária da notícia.*
 
 ### 4.6 Execução incremental em lotes
 
-Na execução incremental, a reserva é processada em lotes. Cada documento passa primeiro pelo parser, que estrutura os campos relevantes. Em seguida, o texto de domínio é construído e enviado ao classificador regex. Se uma regra válida atribui label, a decisão é registrada como classificação determinística, com identificação da regra, label, lote e evidência textual. Se nenhuma regra classifica o documento, ele é marcado como residual.
+Na execução incremental, a reserva é processada em lotes. Cada documento passa primeiro pelo parser e pelo pré-processamento linguístico. Em seguida, o texto semântico é projetado na memória WNN, produzindo um vetor binário e uma lista de posições acionadas. Se os discriminadores ativos sustentam uma label com confiança e margem suficientes, a decisão é registrada como classificação determinística por WNN, com identificação dos marcadores, pontuação por tema, versão da memória e evidência textual.
 
-O banco de regex aparece antes da LLM porque a metodologia adota lógica `regex-first`: tudo que já foi aprendido deve ser resolvido de forma determinística; somente o que escapa das regras deve consumir inferência. Essa escolha permite medir, lote a lote, quanto da base foi absorvido por regras e quanto ainda depende de interpretação por modelo.
+A similaridade do cosseno atua como evidência auxiliar, não como classificador autônomo. Ela pode reforçar uma decisão quando a notícia está próxima do perfil semântico do tema acionado, ou pode bloquear uma aceitação quando há ambiguidade. Por exemplo, se marcadores de `crime_organizado` aparecem em uma notícia semanticamente muito próxima de `crimes_contra_criancas`, o documento pode ser enviado ao Agente 3 como suspeita, em vez de ser aceito automaticamente pela WNN.
 
-O documento residual é transformado em um pacote de revisão. Esse pacote contém o documento estruturado, o texto de domínio, labels canônicas disponíveis, sugestões por similaridade do cosseno, trechos candidatos a evidência e histórico de falha das regex. Esse é o artefato passado para o Agente 3.
+O documento residual é transformado em um pacote de revisão. Esse pacote contém o corpo da notícia, o texto semântico, labels canônicas disponíveis, sugestões por similaridade do cosseno, discriminadores acionados, posições da memória e, quando houver, a razão da abstenção da WNN. Esse é o artefato passado para o Agente 3.
 
 ```json
 {
   "documento_id": "id_do_documento",
-  "titulo": "titulo estruturado",
-  "tags": ["tag_1", "tag_2"],
-  "texto_dominio": "texto normalizado com sinais substantivos",
+  "texto_semantico": "texto normalizado com substantivos verbos adjetivos",
+  "memoria_wnn": {
+    "versao": 48,
+    "largura": 344,
+    "posicoes_acesas": [69, 77, 93, 131],
+    "vetor_binario": "10001010111000..."
+  },
   "labels_disponiveis": ["armas_municoes", "crimes_ambientais"],
   "sugestoes_cosseno": [
     {"label": "crimes_ambientais", "similaridade": 0.82}
   ],
-  "regex_falhas": ["padrao_1", "padrao_2"],
-  "trechos_relevantes": ["trecho textual que sustenta decisao"]
+  "discriminadores_acionados": ["crimes_ambientais"],
+  "status_wnn": "aceito_wnn"
 }
 ```
 
-### 4.7 Revisão residual por LLM e aprendizado de regras
+### 4.7 Revisão residual por LLM e aprendizado de discriminadores
 
-O Agente 3 atua apenas nos documentos residuais. Ele recebe o pacote de revisão e produz uma decisão estruturada. Essa decisão pode classificar o documento em tema canônico existente, propor novo tema candidato ou registrar o caso como documento raro. A LLM deve indicar as evidências textuais usadas, justificar a decisão e informar se há aprendizado reutilizável.
+O Agente 3 atua apenas nos documentos residuais, ambíguos ou suspeitos. Ele recebe o pacote de revisão e produz uma decisão estruturada. Essa decisão pode classificar o documento em tema canônico existente, propor novo tema candidato ou registrar o caso como notícia rara. A LLM deve indicar as evidências textuais usadas, justificar a decisão e informar se há marcadores reutilizáveis para a memória WNN.
 
-Para ilustrar, considere a notícia [PF deflagra operação contra crimes de mineração ilegal](https://www.gov.br/pf/pt-br/assuntos/noticias/2024/01/pf-deflagra-operacao-contra-crimes-de-mineracao-ilegal), publicada em 17/01/2024. Se ela não for capturada pelo banco inicial de regex, segue ao Agente 3 como residual. O pacote enviado preserva título, tags e trechos associados a mineração ilegal, usurpação de bens da União, garimpo, ausência de autorização da ANM e ausência de licença ambiental. Uma decisão possível é:
+Para ilustrar, considere a notícia [PF deflagra operação contra crimes de mineração ilegal](https://www.gov.br/pf/pt-br/assuntos/noticias/2024/01/pf-deflagra-operacao-contra-crimes-de-mineracao-ilegal), publicada em 17/01/2024. Se a memória ainda não tiver marcadores suficientes para aceitar `crimes_ambientais`, o documento segue ao Agente 3 como residual. Uma decisão possível é:
 
 ```json
 {
@@ -197,33 +200,38 @@ Para ilustrar, considere a notícia [PF deflagra operação contra crimes de min
     "extracao de quartzo verde sem autorizacao da ANM ou licenca ambiental"
   ],
   "justificativa": "A noticia descreve exploracao mineral irregular sem autorizacao do orgao competente e sem licenca ambiental.",
-  "acao_aprendizado": "gerar_regex",
+  "acao_aprendizado": "gerar_discriminador",
+  "marcadores_sugeridos": ["mineracao_ilegal", "extracao_mineral", "sem_licenca_ambiental"],
   "tema_candidato": null,
   "documento_raro": false
 }
 ```
 
-O Agente Aprendiz de Regex recebe essa decisão residual e não reclassifica o documento. Sua função é converter evidências substantivas em regra candidata. No exemplo, localidades, datas, nomes de operação e órgãos são descartados como sinais acidentais, enquanto mineração ilegal, garimpo, extração mineral, ausência de autorização e licença ambiental são mantidos como sinais classificatórios. Uma regex candidata poderia ser:
+O Agente 2 recebe essa decisão residual e não reclassifica o documento. Sua função é converter evidências substantivas em discriminadores generalizáveis. No exemplo, localidades, datas, nomes de operação e órgãos são descartados como sinais acidentais, enquanto mineração ilegal, garimpo, extração mineral, ausência de autorização e licença ambiental são mantidos como sinais classificatórios. O aprendizado resultante poderia ser:
 
 ```text
-(mineracao|garimpo|extracao).{0,80}(ilegal|irregular|clandestina|sem autorizacao|sem licenca).{0,80}(minerio|ouro|quartzo|recurso mineral|bem da uniao)
+label: crimes_ambientais
+marcador 1: mineracao_ilegal
+marcador 2: extracao_mineral
+marcador 3: garimpo_ilegal
+marcador 4: sem_licenca_ambiental
 ```
 
-Esse padrão só entra no banco ativo depois de validado contra o caso positivo e contra exemplos negativos. Se aprovado, passa a classificar documentos semelhantes em lotes futuros sem nova chamada de LLM. Se rejeitado, a decisão residual permanece registrada, mas não altera o classificador.
+Esses marcadores só entram na memória depois de sanitizados contra o micromundo do tema. Se aprovados, passam a acionar a WNN em lotes futuros sem nova chamada de LLM. Se rejeitados, a decisão residual permanece registrada, mas não altera a memória operacional.
 
 ### 4.8 Fechamento do ciclo e reorganização da árvore
 
-O aprendizado residual fecha o ciclo incremental. Um residual pode gerar três tipos de saída: regex incremental, tema candidato ou documento raro. A regex incremental retorna ao banco ativo depois de validação; o tema candidato vai para a fila de revisão da árvore; o documento raro entra em memória específica para que recorrências futuras sejam detectadas.
+O aprendizado residual fecha o ciclo incremental. Um residual pode gerar três tipos de saída: novos marcadores para um discriminador existente, tema candidato ou documento raro. Marcadores aprovados retornam à memória WNN; o tema candidato vai para a fila de revisão da árvore; o documento raro entra em memória específica para que recorrências futuras sejam detectadas.
 
-O Agente Organizador da Árvore recebe, ao fim de cada lote ou rodada definida, a árvore temática atual, temas candidatos, documentos raros, regex aprendidas, métricas de cobertura e sugestões por similaridade. Sua função é evitar crescimento desordenado da taxonomia. Ele decide se candidatos devem ser absorvidos por temas existentes, promovidos a novos temas, fundidos em macrotemas, mantidos como raros ou descartados como ruído.
+O Agente Organizador da Árvore recebe, ao fim de cada lote ou rodada definida, a árvore temática atual, temas candidatos, documentos raros, discriminadores aprendidos, métricas de cobertura e sugestões por similaridade. Sua função é evitar crescimento desordenado da taxonomia e contaminação entre micromundos temáticos. Ele decide se candidatos devem ser absorvidos por temas existentes, promovidos a novos temas, fundidos em macrotemas, mantidos como raros ou descartados como ruído.
 
-O fechamento do ciclo ocorre quando a decisão do Organizador altera os artefatos usados no próximo lote. A árvore refinada atualiza a lista de labels disponíveis ao Agente 3; regex aprovadas ampliam a cobertura do classificador determinístico; documentos raros recorrentes podem retornar como candidatos; e métricas acumuladas informam se o sistema está reduzindo dependência de LLM ou apenas deslocando resíduos para ciclos futuros.
+O fechamento do ciclo ocorre quando a decisão do Organizador altera os artefatos usados no próximo lote. A árvore refinada atualiza a lista de labels disponíveis ao Agente 3; marcadores aprovados ampliam a cobertura dos discriminadores; documentos raros recorrentes podem retornar como candidatos; e métricas acumuladas informam se o sistema está reduzindo dependência de LLM ou apenas deslocando resíduos para ciclos futuros.
 
 ### 4.9 Métricas, artefatos e auditabilidade
 
-O banco de regex é o classificador determinístico principal da metodologia. Ele registra label, padrão, fonte, exemplos, usos e origem da regra. Ao longo dos lotes, esse banco recebe regex incrementais aprovadas pelo ciclo residual. Com isso, a metodologia preserva interpretabilidade e cria uma trilha clara entre evidência textual, regra e classificação.
+O banco de discriminadores WNN é o classificador determinístico principal da versão atual da metodologia. Ele registra label, tokens, posições da memória, fonte, confirmações, usos e origem do marcador. Ao longo dos lotes, esse banco recebe discriminadores incrementais aprovados pelo ciclo residual. Com isso, a metodologia preserva interpretabilidade e cria uma trilha clara entre evidência textual, posição binária, marcador e classificação.
 
-O custo operacional é medido pela proporção de documentos resolvidos por regex e pela quantidade de tokens consumidos nos resíduos enviados à LLM. Para cada lote, o sistema registra cobertura por regex, taxa residual, quantidade de decisões LLM, novas regex aceitas, temas candidatos, documentos raros, `prompt_tokens_total`, `completion_tokens_total`, `tokens_total` e `avg_tokens_per_llm`. Para cada documento residual, o evento individual em `events.jsonl` registra a chamada, o modelo, o prompt, o schema de resposta, os tokens e a decisão. A tabela a seguir lista os principais artefatos preservados para auditoria e reprodutibilidade.
+O custo operacional é medido pela proporção de documentos resolvidos pela WNN e pela quantidade de tokens consumidos nos resíduos enviados à LLM. Para cada lote, o sistema registra cobertura WNN, taxa residual, quantidade de decisões LLM, novos marcadores aceitos, candidatos compostos, temas candidatos, documentos raros, `prompt_tokens_total`, `completion_tokens_total`, `tokens_total` e `avg_tokens_per_llm`. Para cada documento, o evento em `events.jsonl` pode registrar discriminadores acionados, vetor binário, posições ativas, pontuações e decisão. A tabela a seguir lista os principais artefatos preservados para auditoria e reprodutibilidade.
 
 **Tabela 3 - Artefatos preservados para auditoria e reprodutibilidade.**
 
@@ -234,8 +242,8 @@ O custo operacional é medido pela proporção de documentos resolvidos por rege
 | `reserva_incremental.csv` | Massa processada em lotes |
 | `resumo_clusters_amostra.csv` | Resumo dos clusters da amostra |
 | `temas_canonicos_agent1.json` | Temas iniciais do Agente 1 |
-| `regex_iniciais_agent2.json` | Regex iniciais propostas |
-| `regex_classifier_rules.json` | Banco ativo de regex |
+| `wnn_feature_bank.json` | Banco ativo de discriminadores, memória vocabular e posições binárias |
+| `preprocessamento_linguistico.json` | Métricas de redução lexical e backend linguístico usado |
 | `metrics_batches.csv` | Métricas por lote |
 | `resumo_custo_tokens.json` | Resumo do consumo de tokens nas chamadas LLM residuais |
 | `events.jsonl` | Trilha completa de eventos |
@@ -244,11 +252,11 @@ O custo operacional é medido pela proporção de documentos resolvidos por rege
 | `noticias_raras_observacoes.jsonl` | Memória incremental de notícias raras |
 | `classificacoes_incrementais_pos_quarentena.csv` | Saída final consolidada |
 
-Esses artefatos permitem reconstruir a origem da amostra, os clusters, as decisões dos agentes, as regras incorporadas, as métricas por lote e os casos raros. Cada classificação pode ser rastreada até uma regra, um agente, um lote ou uma decisão residual.
+Esses artefatos permitem reconstruir a origem da amostra, os clusters, as decisões dos agentes, os discriminadores incorporados, a memória binária, as métricas por lote e os casos raros. Cada classificação pode ser rastreada até uma posição da matriz, um marcador, um agente, um lote ou uma decisão residual.
 
 ### 4.10 Reprodutibilidade e aplicação em outra base de dados
 
-A metodologia pode ser reproduzida em outra base textual desde que a nova aplicação explicite o alvo substantivo da classificação, disponha de documentos com texto suficiente para gerar evidências e preserve os artefatos de execução. O que se transfere não é a taxonomia criminal da Polícia Federal nem o banco de regex obtido neste estudo, mas a arquitetura: fundação temática em amostra, classificação determinística primeiro, revisão residual por LLM, aprendizado validado de regras e registro de auditoria.
+A metodologia pode ser reproduzida em outra base textual desde que a nova aplicação explicite o alvo substantivo da classificação, disponha de documentos com texto suficiente para gerar evidências e preserve os artefatos de execução. O que se transfere não é a taxonomia criminal da Polícia Federal nem o banco de discriminadores obtido neste estudo, mas a arquitetura: fundação temática em amostra, classificação determinística por memória auditável, revisão residual por LLM, aprendizado validado de marcadores e registro de auditoria.
 
 Ao migrar para outro domínio, como saúde pública, decisões judiciais, atendimento ao cidadão ou atos administrativos, o pesquisador deve redefinir as categorias de interesse e os controles que impedem metadados incidentais de virarem classes. Por exemplo, em saúde o alvo pode ser agravo ou procedimento, enquanto hospital, município e profissional devem ser dimensões auxiliares; em decisões judiciais, o alvo pode ser matéria ou resultado, enquanto tribunal e relator permanecem metadados. A tabela a seguir separa o que permanece estável na arquitetura e o que precisa ser adaptado ao novo domínio.
 
@@ -259,7 +267,7 @@ Ao migrar para outro domínio, como saúde pública, decisões judiciais, atendi
 | Unidade documental | Um registro textual por observação | Campos disponíveis, como título, ementa, descrição ou corpo |
 | Alvo substantivo | Uma label principal auditável | Taxonomia e exemplos próprios do domínio |
 | Fundação temática | Amostra estratificada, embeddings e clusterização | Fração amostral, estrato temporal ou institucional e parâmetros |
-| Camada determinística | Banco versionado de regex com evidência | Vocabulário, padrões aceitos e critérios de validação |
+| Camada determinística | Banco versionado de discriminadores WNN com evidência | Vocabulário, marcadores aceitos e critérios de validação |
 | Revisão residual | LLM apenas para itens não cobertos | Prompt, modelo, limiar e política para casos raros |
 | Auditoria | Artefatos, eventos, métricas e versão da execução | Nomes de arquivos, custos e critérios de avaliação |
 
@@ -271,14 +279,14 @@ O procedimento de reprodução pode ser executado nos seguintes passos:
 4. Construir o texto de domínio, selecionando campos e termos que expressem o alvo de classificação e reduzindo sinais incidentais.
 5. Gerar embeddings da amostra, executar a clusterização exploratória e registrar modelo, versão, semente aleatória, métrica e hiperparâmetros usados.
 6. Consolidar clusters próximos e nomear temas canônicos, validando que as categorias representam o alvo substantivo definido no primeiro passo.
-7. Gerar e validar as regex iniciais com exemplos positivos e negativos, versionando o banco ativo de regras.
-8. Processar a reserva em lotes: aplicar primeiro as regex, encaminhar apenas resíduos à LLM e salvar classificação, evidências, tokens, modelo e versão do prompt.
-9. Avaliar regex candidatas produzidas pelos resíduos e reorganizar periodicamente temas candidatos e casos raros, sem promover exceções isoladas de forma automática.
-10. Relatar cobertura por regex, taxa residual, custo de inferência, alterações taxonômicas, casos raros e limitações, preservando os artefatos necessários para reexecução.
+7. Gerar e validar discriminadores iniciais com exemplos positivos e negativos, versionando o banco ativo e a memória vocabular.
+8. Processar a reserva em lotes: aplicar primeiro a WNN, encaminhar apenas resíduos ou ambiguidades à LLM e salvar classificação, evidências, vetor binário, tokens, modelo e versão do prompt.
+9. Avaliar marcadores candidatos produzidos pelos resíduos e reorganizar periodicamente temas candidatos e casos raros, sem promover exceções isoladas de forma automática.
+10. Relatar cobertura WNN, taxa residual, custo de inferência, alterações taxonômicas, casos raros e limitações, preservando os artefatos necessários para reexecução.
 
-Para que a comparação entre execuções seja tecnicamente defensável, devem ser congelados ou registrados: versão da base de entrada; regras de limpeza e normalização; critério de amostragem; sementes aleatórias; modelo de embeddings; algoritmo e hiperparâmetros de clusterização; limiar de similaridade; banco de regex por versão; modelo de linguagem, prompt e schema de resposta; tamanho dos lotes; e métricas de custo e cobertura. Se um desses componentes mudar, a alteração deve ser documentada como uma nova execução, permitindo distinguir aprendizado incremental de mudança de configuração.
+Para que a comparação entre execuções seja tecnicamente defensável, devem ser congelados ou registrados: versão da base de entrada; regras de limpeza e normalização; critério de amostragem; sementes aleatórias; modelo de embeddings; algoritmo e hiperparâmetros de clusterização; limiar de similaridade; banco de discriminadores por versão; vocabulário da memória WNN; modelo de linguagem, prompt e schema de resposta; tamanho dos lotes; e métricas de custo e cobertura. Se um desses componentes mudar, a alteração deve ser documentada como uma nova execução, permitindo distinguir aprendizado incremental de mudança de configuração.
 
-Essa estratégia torna o método replicável sem supor que os resultados da PF se generalizam automaticamente. Em cada nova base, a arquitetura é reproduzível; as categorias, regras e resultados precisam ser reconstruídos e avaliados segundo o domínio e a qualidade dos documentos disponíveis.
+Essa estratégia torna o método replicável sem supor que os resultados da PF se generalizam automaticamente. Em cada nova base, a arquitetura é reproduzível; as categorias, marcadores e resultados precisam ser reconstruídos e avaliados segundo o domínio e a qualidade dos documentos disponíveis.
 
 ## 5. Avaliação Experimental
 
@@ -288,19 +296,21 @@ Esta seção avalia empiricamente a metodologia em uma base real de notícias p�
 
 A unidade experimental é a notícia individual. A base foi sincronizada a partir do portal público da Polícia Federal e convertida em documentos locais estruturados. A execução documentada utilizou 8.232 notícias, das quais 1.235 compuseram a amostra inicial de fundação e 6.997 formaram a reserva incremental. A amostra foi estratificada por ano para preservar variação temporal, enquanto a reserva foi processada em 14 lotes. A tabela a seguir sintetiza o desenho experimental.
 
+Esta versão do artigo distingue duas camadas de avaliação. A primeira é a baseline histórica `regex-first`, já executada e preservada para comparação. A segunda é a evolução WNN, na qual a classificação determinística passa a ser feita por discriminadores canônicos e memória binária, mantendo a LLM apenas para resíduos, ambiguidades e aprendizado de novos marcadores. Essa separação é necessária porque a mudança de regex para WNN altera o mecanismo determinístico, os artefatos auditáveis e as métricas de cobertura.
+
 **Tabela 5 - Desenho experimental da aplicação.**
 
 | Elemento experimental | Definição na aplicação |
 |---|---|
 | Unidade experimental | Notícia pública da Polícia Federal |
 | Tarefa avaliada | Atribuição de uma label principal de crime ou modus operandi |
-| Fator principal | Arquitetura incremental com classificação `regex-first` e LLM apenas residual |
-| Parâmetros fixados | Amostra de 15%, estratificação anual e lotes de aproximadamente 500 notícias |
-| Variáveis de resposta | Cobertura regex, taxa residual, chamadas LLM, regras aprendidas, notícias raras e custo em tokens |
-| Baseline operacional | Comparação interna entre documentos resolvidos por regex e documentos que exigiram LLM residual |
-| Artefatos de verificação | `metrics_batches.csv`, `events.jsonl`, bancos de regex, árvore temática e saídas pós-reorganização |
+| Fator principal | Arquitetura incremental com memória WNN e LLM apenas residual |
+| Parâmetros fixados | Amostra estratificada, lotes de aproximadamente 500 notícias e revisão da árvore ao fim dos lotes |
+| Variáveis de resposta | Cobertura WNN, taxa residual, chamadas LLM, marcadores aprendidos, candidatos compostos, notícias raras e custo em tokens |
+| Baseline operacional | Comparação com a execução `regex-first` preservada como rodada anterior |
+| Artefatos de verificação | `metrics_batches.csv`, `events.jsonl`, `wnn_feature_bank.json`, árvore temática e saídas pós-reorganização |
 
-Não foi executada uma baseline externa com classificadores concorrentes. A comparação central desta avaliação é operacional: mede-se quanto da reserva incremental foi resolvido por regras determinísticas antes de acionar LLM. Essa escolha é coerente com a hipótese prática do trabalho: se o método for adequado, a maior parte dos documentos recorrentes deve ser absorvida pelo banco de regex, deixando a LLM concentrada nos casos residuais.
+Não foi executada uma baseline externa com classificadores concorrentes. A comparação central desta avaliação é operacional: mede-se quanto da reserva incremental foi resolvido pela camada determinística antes de acionar LLM. Na baseline, essa camada era o banco de regex; na evolução proposta, é a memória WNN. Essa escolha é coerente com a hipótese prática do trabalho: se o método for adequado, a maior parte dos documentos recorrentes deve ser absorvida por uma memória auditável, deixando a LLM concentrada nos casos residuais.
 
 ### 5.2 Dados, amostragem e parâmetros da execução
 
@@ -344,24 +354,24 @@ A redução de 35 clusters brutos para 27 clusters consolidados indica que parte
 
 *Figura 4 - Principais grupos consolidados da amostra inicial.*
 
-### 5.4 Banco inicial de regex
+### 5.4 Baseline regex e banco inicial de discriminadores
 
-O Agente 2 gerou 6.629 regex iniciais aceitas a partir dos temas canônicos e das evidências textuais da fundação. Essas regras formaram a camada determinística usada na reserva incremental. O resultado deve ser interpretado como capacidade inicial de cobertura do vocabulário recorrente observado na amostra, não como garantia de classificação completa da base. A tabela a seguir sintetiza a composição inicial do banco de regras.
+Na execução histórica usada como baseline, o Agente 2 gerou 6.629 regex iniciais aceitas a partir dos temas canônicos e das evidências textuais da fundação. Essas regras formaram a camada determinística usada na reserva incremental e atingiram alta cobertura operacional. Entretanto, a análise posterior mostrou uma limitação importante: regex podem depender da ordem das palavras, podem incorporar sinais acidentais e podem crescer em quantidade sem necessariamente melhorar a precisão semântica. Por isso, a evolução WNN substitui o banco principal por discriminadores canônicos não ordenados.
 
-**Tabela 8 - Composição inicial do banco de regex.**
+**Tabela 8 - Baseline regex e evolução WNN.**
 
 | Item | Valor |
 |---|---:|
 | Temas canônicos de entrada | 17 |
-| Regex iniciais aceitas | 6.629 |
-| Banco ativo registrado | `regex_classifier_rules.json` |
+| Regex iniciais aceitas na baseline | 6.629 |
+| Banco determinístico atual | `wnn_feature_bank.json` |
 | Perfis de cosseno registrados | 17 temas |
 
-A composição do banco é relevante para a interpretação experimental porque define a capacidade inicial do classificador `regex-first`. Quanto mais bem ancoradas estiverem as regras no alvo substantivo, menor tende a ser a dependência de LLM nos lotes seguintes. Por outro lado, regras amplas demais podem produzir falsos positivos, razão pela qual a metodologia exige validação, versionamento e rastreamento da origem de cada padrão.
+A composição do banco é relevante para a interpretação experimental porque define a capacidade inicial da camada determinística. Quanto mais bem ancorados estiverem os discriminadores no alvo substantivo, menor tende a ser a dependência de LLM nos lotes seguintes. Por outro lado, marcadores amplos demais podem produzir falsos positivos, razão pela qual a metodologia exige sanitização, versionamento e rastreamento da origem de cada marcador.
 
 ### 5.5 Cobertura incremental e custo operacional
 
-Na reserva incremental, 6.997 notícias foram processadas em 14 lotes. No acumulado, 6.656 notícias foram classificadas por regex e 341 seguiram para LLM residual. Isso representa taxa regex acumulada de 95,13% e taxa residual de 4,87%. A avaliação confirma a tendência esperada: a maior parte dos documentos recorrentes foi resolvida pela camada determinística, concentrando o custo de LLM nos documentos não cobertos por regras. A tabela a seguir resume os indicadores acumulados da execução incremental.
+Na reserva incremental da baseline, 6.997 notícias foram processadas em 14 lotes. No acumulado, 6.656 notícias foram classificadas por regex e 341 seguiram para LLM residual. Isso representa taxa regex acumulada de 95,13% e taxa residual de 4,87%. Esses números funcionam como referência operacional para a nova rodada WNN: a expectativa não é apenas reproduzir cobertura, mas verificar se a memória binária mantém ou melhora a rastreabilidade com menor dependência de regras frágeis.
 
 **Tabela 9 - Indicadores acumulados da execução incremental.**
 
@@ -369,14 +379,14 @@ Na reserva incremental, 6.997 notícias foram processadas em 14 lotes. No acumul
 |---|---:|
 | Notícias na reserva incremental | 6.997 |
 | Lotes processados | 14 |
-| Capturadas por regex | 6.656 |
+| Capturadas por regex na baseline | 6.656 |
 | Residuais enviados à LLM | 341 |
 | Taxa regex acumulada | 95,13% |
 | Taxa residual LLM | 4,87% |
-| Regras aprendidas no residual | 11 |
+| Regras aprendidas no residual da baseline | 11 |
 | Aprendizados por lote, em média | 0,79 |
 
-A figura a seguir compara, por iteração, quantos documentos foram resolvidos por regex e quantos precisaram de LLM residual. O contraste evidencia que o classificador regex domina o fluxo operacional durante toda a execução.
+A figura a seguir compara, por iteração, quantos documentos foram resolvidos por regex e quantos precisaram de LLM residual na baseline. O contraste evidencia que o classificador regex dominou o fluxo operacional dessa execução, tornando-se uma referência exigente para a evolução WNN.
 
 ![Regex versus residual por iteração](media/figura-3-regex-vs-residual.png)
 
@@ -402,13 +412,13 @@ O custo operacional foi medido pelo consumo de tokens nas chamadas residuais. A 
 
 ### 5.6 Aprendizado residual, reorganização temática e casos raros
 
-A revisão residual não apenas classifica exceções: ela também registra evidências para aprendizado. Na execução documentada, o Agente Aprendiz de Regex incorporou 11 novas regras. O Agente Organizador da Árvore registrou 8 decisões sobre candidatos e reorganização temática, incluindo 4 promoções, 3 incorporações a temas existentes e 1 caso mantido como folha. Ao final, 43 documentos permaneceram como notícias raras. A tabela a seguir resume os efeitos do aprendizado residual.
+A revisão residual não apenas classifica exceções: ela também registra evidências para aprendizado. Na execução baseline, o Agente Aprendiz de Regex incorporou 11 novas regras. Na evolução WNN, esse papel passa a ser desempenhado pelo Agente 2 como aprendiz de discriminadores: a decisão residual do Agente 3 é convertida em marcadores não duplicados, sanitizados contra o micromundo do tema e inseridos na memória. O Agente Organizador da Árvore continua responsável por evitar proliferação de temas e por controlar candidatos compostos.
 
 **Tabela 11 - Aprendizado residual e reorganização temática.**
 
 | Item | Valor |
 |---|---:|
-| Regras aprendidas pelo residual | 11 |
+| Regras aprendidas pelo residual na baseline | 11 |
 | Novos temas candidatos registrados | 11 |
 | Decisões do Organizador da Árvore | 8 |
 | Promoções registradas | 4 |
@@ -426,21 +436,21 @@ Esses resultados indicam que o residual funcionou como mecanismo de aprendizado 
 
 ### 5.7 Interpretação e ameaças à validade
 
-A avaliação experimental apoia a hipótese operacional do trabalho: uma fundação temática inicial combinada a regras auditáveis consegue classificar a maior parte da reserva incremental, deixando a LLM concentrada em uma fração pequena dos documentos. A taxa regex acumulada de 95,13% e a taxa residual de 4,87% indicam redução substancial da dependência de inferência por modelo ao longo da aplicação.
+A avaliação experimental apoia a hipótese operacional do trabalho: uma fundação temática inicial combinada a uma camada determinística auditável consegue classificar grande parte da reserva incremental, deixando a LLM concentrada em uma fração menor dos documentos. A baseline regex atingiu taxa acumulada de 95,13% e taxa residual de 4,87%, mas essa cobertura precisa ser interpretada com cautela, pois regras muito amplas podem cobrir documentos sem necessariamente classificar com precisão. A evolução WNN busca preservar a auditabilidade, reduzir dependência de ordem lexical e tornar o aprendizado residual mais granular.
 
-Entretanto, a interpretação deve considerar limites. Primeiro, a comparação é interna e operacional; não houve avaliação contra uma baseline externa de classificação supervisionada ou contra uma LLM aplicada a toda a base. Segundo, a qualidade da fundação depende da amostra inicial e da composição temporal da base. Terceiro, a execução registrou um algoritmo de clusterização de fallback, o que precisa ser considerado em reexecuções ou comparações futuras. Quarto, regex são auditáveis, mas podem gerar falsos positivos se forem amplas demais. Por fim, notícias raras não devem ser tratadas como erro automático: elas funcionam como memória de exceções e só devem ser promovidas quando houver recorrência ou evidência substantiva suficiente.
+Entretanto, a interpretação deve considerar limites. Primeiro, a comparação é interna e operacional; não houve avaliação contra uma baseline externa de classificação supervisionada ou contra uma LLM aplicada a toda a base. Segundo, a qualidade da fundação depende da amostra inicial e da composição temporal da base. Terceiro, a execução registrou um algoritmo de clusterização de fallback, o que precisa ser considerado em reexecuções ou comparações futuras. Quarto, tanto regex quanto discriminadores WNN podem gerar falsos positivos se seus sinais forem amplos demais ou contaminados por outros temas. Por fim, notícias raras não devem ser tratadas como erro automático: elas funcionam como memória de exceções e só devem ser promovidas quando houver recorrência ou evidência substantiva suficiente.
 
 ## 6. Conclusão
 
-Este trabalho partiu do problema de organizar grandes bases textuais institucionais que crescem continuamente, combinam temas recorrentes e emergentes e exigem classificação rastreável. Para enfrentar esse problema, foi proposta uma metodologia incremental que separa a classificação recorrente, realizada por regras determinísticas, da interpretação residual, reservada à LLM. O objetivo foi construir um ciclo em que a base inicial produz uma fundação temática, os lotes seguintes são classificados prioritariamente por regex e os casos não cobertos retornam ao sistema como aprendizado auditável.
+Este trabalho partiu do problema de organizar grandes bases textuais institucionais que crescem continuamente, combinam temas recorrentes e emergentes e exigem classificação rastreável. Para enfrentar esse problema, foi proposta uma metodologia incremental que separa a classificação recorrente, realizada por uma camada determinística auditável, da interpretação residual, reservada à LLM. A evolução mais recente substitui a lógica `regex-first` por uma memória WNN de discriminadores canônicos, na qual cada notícia pode ser representada como uma imagem binária de marcadores acionados.
 
-A aplicação às notícias públicas da Polícia Federal mostrou que a proposta é operacionalmente viável no domínio analisado. Na reserva incremental, 95,13% dos documentos foram classificados por regex e 4,87% exigiram revisão residual por LLM. Esse resultado indica que o uso de LLM pode ser concentrado nos casos de maior incerteza, enquanto a maior parte da base permanece coberta por uma camada interpretável, versionada e de menor custo operacional. Além disso, os resíduos não foram tratados apenas como falhas de classificação: eles alimentaram novas regras, temas candidatos, reorganização da árvore temática e registros de `noticias_raras`.
+A aplicação às notícias públicas da Polícia Federal mostrou que a proposta é operacionalmente viável no domínio analisado. A baseline regex atingiu alta cobertura, classificando 95,13% da reserva incremental e encaminhando 4,87% para revisão residual por LLM. Esse resultado é relevante como referência, mas também motivou a evolução metodológica: substituir regras sensíveis à ordem das palavras por discriminadores não ordenados, versionados e representados em uma memória binária. Assim, os resíduos não são tratados apenas como falhas de classificação: eles alimentam novos marcadores, temas candidatos, reorganização da árvore temática e registros de `noticias_raras`.
 
-A principal contribuição do trabalho é integrar clusterização exploratória, consolidação semântica, agentes de linguagem, regex auditáveis e aprendizado incremental em um mesmo procedimento reprodutível. A metodologia não depende de assumir clusters como categorias finais nem de acionar LLM sobre toda a base. Em vez disso, transforma agrupamentos iniciais em evidências, converte parte dessas evidências em regras e preserva uma trilha de decisão para cada etapa relevante. Com isso, oferece uma alternativa para contextos institucionais que precisam combinar escala, transparência e atualização contínua.
+A principal contribuição do trabalho é integrar clusterização exploratória, consolidação semântica, agentes de linguagem, discriminadores WNN, memória binária auditável e aprendizado incremental em um mesmo procedimento reprodutível. A metodologia não depende de assumir clusters como categorias finais nem de acionar LLM sobre toda a base. Em vez disso, transforma agrupamentos iniciais em evidências, converte parte dessas evidências em marcadores e preserva uma trilha de decisão para cada etapa relevante. Com isso, oferece uma alternativa para contextos institucionais que precisam combinar escala, transparência e atualização contínua.
 
-Os resultados, entretanto, devem ser interpretados dentro de seus limites. A qualidade da fundação temática depende da amostra inicial e da representatividade temporal da base. A clusterização pode refletir forma textual, localidade ou vocabulário institucional, e não apenas o tema substantivo de interesse. As regex aumentam a rastreabilidade, mas podem gerar falsos positivos quando são amplas demais. A avaliação também utilizou uma comparação operacional interna, sem baseline externa de classificadores concorrentes. Por fim, os casos raros exigem cautela: promovê-los cedo demais pode produzir microtemas instáveis, enquanto ignorá-los pode reduzir a capacidade de aprendizado futuro.
+Os resultados, entretanto, devem ser interpretados dentro de seus limites. A qualidade da fundação temática depende da amostra inicial e da representatividade temporal da base. A clusterização pode refletir forma textual, localidade ou vocabulário institucional, e não apenas o tema substantivo de interesse. Discriminadores WNN aumentam a flexibilidade em relação a regex, mas ainda podem gerar falsos positivos quando os marcadores são amplos demais ou contaminados por outros temas. A avaliação também utilizou uma comparação operacional interna, sem baseline externa de classificadores concorrentes. Por fim, os casos raros exigem cautela: promovê-los cedo demais pode produzir microtemas instáveis, enquanto ignorá-los pode reduzir a capacidade de aprendizado futuro.
 
-Como trabalhos futuros, recomenda-se comparar a metodologia com classificadores supervisionados, LLM aplicada diretamente à base inteira e abordagens clássicas de modelagem de tópicos. Também é relevante testar a transferência para outros domínios textuais, avaliar precisão por amostragem humana, estabelecer critérios quantitativos para promoção de temas candidatos e aprimorar mecanismos de detecção de falsos positivos em regex. Essas extensões podem fortalecer a validade externa da proposta e tornar o ciclo incremental mais robusto para uso em bases institucionais volumosas e em crescimento.
+Como trabalhos futuros, recomenda-se comparar a metodologia com classificadores supervisionados, LLM aplicada diretamente à base inteira, regex puras e abordagens clássicas de modelagem de tópicos. Também é relevante testar a transferência para outros domínios textuais, avaliar precisão por amostragem humana, estabelecer critérios quantitativos para promoção de temas candidatos e aprimorar mecanismos de detecção de falsos positivos em discriminadores. Essas extensões podem fortalecer a validade externa da proposta e tornar o ciclo incremental mais robusto para uso em bases institucionais volumosas e em crescimento.
 
 ## 7. Referências
 
@@ -474,7 +484,7 @@ SMITH, R. et al. Language models in the loop: incorporating prompting into weak 
 
 ### 8.1 Métricas por lote
 
-A Tabela 12 apresenta o detalhamento por lote usado na avaliação experimental. Além da cobertura por regex e do volume residual enviado à LLM, ela registra aprendizados incorporados, notícias raras identificadas pelo Agente 3, consumo total de tokens e taxa regex por lote.
+A Tabela 12 apresenta o detalhamento por lote usado na avaliação experimental da baseline. Além da cobertura por regex e do volume residual enviado à LLM, ela registra aprendizados incorporados, notícias raras identificadas pelo Agente 3, consumo total de tokens e taxa regex por lote. Esses valores foram preservados para comparação com a rodada WNN.
 
 **Tabela 12 - Métricas por lote.**
 
