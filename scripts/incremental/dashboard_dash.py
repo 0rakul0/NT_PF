@@ -300,6 +300,54 @@ def _load_discriminator_bank() -> list[dict[str, Any]]:
     return [item for item in discriminators if isinstance(item, dict)]
 
 
+def _memory_position_context() -> dict[int, dict[str, Any]]:
+    payload = _read_json(WNN_FEATURE_BANK_PATH)
+    if not isinstance(payload, dict):
+        return {}
+    memory = payload.get("memory_vocab", {})
+    if not isinstance(memory, dict):
+        return {}
+    tokens = memory.get("tokens", [])
+    if not isinstance(tokens, list):
+        tokens = []
+    context: dict[int, dict[str, Any]] = {
+        index: {"token": str(token), "labels": set(), "discriminators": []}
+        for index, token in enumerate(tokens)
+    }
+    token_to_position = {str(token): index for index, token in enumerate(tokens)}
+    discriminators = payload.get("discriminators", [])
+    if not isinstance(discriminators, list):
+        discriminators = []
+    for item in discriminators:
+        if not isinstance(item, dict):
+            continue
+        label = _theme_parent(str(item.get("label", "")))
+        name = _discriminator_label(item)
+        positions = item.get("memory_positions", [])
+        if not isinstance(positions, list):
+            positions = []
+        if not positions:
+            raw_tokens = item.get("tokens", [])
+            if isinstance(raw_tokens, list):
+                positions = [
+                    token_to_position[str(token)]
+                    for token in raw_tokens
+                    if str(token) in token_to_position
+                ]
+        for raw_position in positions:
+            try:
+                position = int(raw_position)
+            except (TypeError, ValueError):
+                continue
+            bucket = context.setdefault(position, {"token": "", "labels": set(), "discriminators": []})
+            if label:
+                bucket["labels"].add(label)
+            disc_list = bucket.setdefault("discriminators", [])
+            if isinstance(disc_list, list) and name and name not in disc_list:
+                disc_list.append(name)
+    return context
+
+
 def _latest_memory_from_events() -> dict[str, Any]:
     if not EVENTS_JSONL.exists():
         return {}
@@ -342,11 +390,30 @@ def _binary_memory_panel() -> html.Div:
     position_preview = ", ".join(str(item) for item in active_positions[:24])
     if len(active_positions) > 24:
         position_preview += ", ..."
+    position_context = _memory_position_context()
+
+    def cell_title(index: int, bit: str) -> str:
+        info = position_context.get(index, {})
+        token = str(info.get("token", "") or "(sem token)")
+        labels = sorted(str(item) for item in info.get("labels", set()) if str(item))
+        discriminators = info.get("discriminators", [])
+        if not isinstance(discriminators, list):
+            discriminators = []
+        lines = [
+            f"posicao {index}: {'acesa' if bit == '1' else 'apagada'}",
+            f"token: {token}",
+        ]
+        if labels:
+            lines.append("temas: " + ", ".join(labels[:6]))
+        if discriminators:
+            lines.append("discriminadores: " + " | ".join(str(item) for item in discriminators[:5]))
+        return "\n".join(lines)
+
     bits = [
         html.Span(
             "",
             className=f"memory-cell {'on' if bit == '1' else 'off'}",
-            title=f"posicao {index}: {'acesa' if bit == '1' else 'apagada'}",
+            title=cell_title(index, bit),
         )
         for index, bit in enumerate(preview)
         if bit in {"0", "1"}

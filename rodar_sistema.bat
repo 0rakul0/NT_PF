@@ -3,7 +3,7 @@ setlocal
 
 cd /d "%~dp0"
 
-if "%PF_SKIP_SYNC%"=="" set PF_SKIP_SYNC=true
+if "%PF_SKIP_SYNC%"=="" set PF_SKIP_SYNC=false
 if "%PF_PRESERVE_PREVIOUS_RUN%"=="" set PF_PRESERVE_PREVIOUS_RUN=false
 
 echo ============================================================

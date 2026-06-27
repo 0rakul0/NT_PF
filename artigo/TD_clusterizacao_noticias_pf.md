@@ -371,68 +371,72 @@ A composição do banco é relevante para a interpretação experimental porque 
 
 ### 5.5 Cobertura incremental e custo operacional
 
-Na reserva incremental da baseline, 6.997 notícias foram processadas em 14 lotes. No acumulado, 6.656 notícias foram classificadas por regex e 341 seguiram para LLM residual. Isso representa taxa regex acumulada de 95,13% e taxa residual de 4,87%. Esses números funcionam como referência operacional para a nova rodada WNN: a expectativa não é apenas reproduzir cobertura, mas verificar se a memória binária mantém ou melhora a rastreabilidade com menor dependência de regras frágeis.
+Na rodada WNN atual, a reserva incremental processou 7.479 notícias em 15 lotes. No acumulado, 6.200 notícias foram classificadas pela memória de discriminadores e 1.279 permaneceram como residual pós-WNN. Dessas, 1.261 exigiram revisão pelo Agente 3/LLM. A taxa WNN acumulada foi de 82,90%, enquanto a pressão de chamada LLM ficou em 16,86%. Esses números devem ser lidos contra a baseline regex preservada: a cobertura regex era maior, mas a evolução WNN prioriza auditabilidade por marcadores, redução de dependência de ordem lexical e aprendizado versionado.
 
-**Tabela 9 - Indicadores acumulados da execução incremental.**
+**Tabela 9 - Indicadores acumulados da execução WNN.**
 
 | Indicador | Valor |
 |---|---:|
-| Notícias na reserva incremental | 6.997 |
-| Lotes processados | 14 |
-| Capturadas por regex na baseline | 6.656 |
-| Residuais enviados à LLM | 341 |
-| Taxa regex acumulada | 95,13% |
-| Taxa residual LLM | 4,87% |
-| Regras aprendidas no residual da baseline | 11 |
-| Aprendizados por lote, em média | 0,79 |
+| Notícias na reserva incremental | 7.479 |
+| Lotes processados | 15 |
+| Classificadas pela WNN | 6.200 |
+| Residuais pós-WNN | 1.279 |
+| Chamadas LLM residuais | 1.261 |
+| Taxa WNN acumulada | 82,90% |
+| Taxa residual pós-WNN | 17,10% |
+| Taxa de chamada LLM | 16,86% |
+| Marcadores aprendidos no residual | 916 |
+| Aprendizados por lote, em média | 61,07 |
+| Vocabulário da memória WNN ao final | 872 posições |
+| Redução média ponderada do texto semântico | 40,13% |
 
-A figura a seguir compara, por iteração, quantos documentos foram resolvidos por regex e quantos precisaram de LLM residual na baseline. O contraste evidencia que o classificador regex dominou o fluxo operacional dessa execução, tornando-se uma referência exigente para a evolução WNN.
+A figura a seguir apresenta a rodada WNN atual, indicando por lote quantos documentos foram resolvidos pela memória de discriminadores e quantos permaneceram como residual pós-WNN para revisão pelo Agente 3/LLM. A leitura deve ser comparada à baseline regex preservada, mas representa a nova arquitetura de classificação.
 
-![Regex versus residual por iteração](media/figura-3-regex-vs-residual.png)
+![WNN versus residual por iteração](media/figura-3-regex-vs-residual.png)
 
-*Figura 5 - Documentos classificados por regex e enviados à revisão residual por lote.*
+*Figura 5 - Documentos classificados pela WNN e enviados à revisão residual por lote.*
 
-A figura seguinte mostra a taxa de classificação por regex ao longo dos lotes. A variação entre lotes indica que a cobertura depende da composição temática de cada rodada, mas a taxa acumulada permanece elevada.
+A figura seguinte mostra a taxa de aceitação WNN ao longo dos lotes. A variação entre lotes indica que a cobertura depende da composição temática de cada rodada e da qualidade dos discriminadores já aprendidos.
 
-![Taxa regex por iteração](media/figura-4-taxa-regex.png)
+![Taxa WNN por iteração](media/figura-4-taxa-regex.png)
 
-*Figura 6 - Taxa de classificação por regex ao longo dos lotes.*
+*Figura 6 - Taxa de classificação WNN ao longo dos lotes.*
 
-O custo operacional foi medido pelo consumo de tokens nas chamadas residuais. A execução registrou 341 chamadas LLM, 338.112 tokens de prompt, 65.389 tokens de conclusão e 403.501 tokens totais, com média de 1.183,29 tokens por chamada residual. Esses valores mostram o custo associado apenas aos documentos que escaparam das regras; em uma estratégia que acionasse LLM para toda a reserva, o número de chamadas seria 6.997. A tabela a seguir detalha as medidas de custo.
+O custo operacional foi medido pelo consumo de tokens nas chamadas residuais. A execução WNN registrou 1.261 chamadas LLM, 1.976.676 tokens de prompt, 269.458 tokens de conclusão e 2.246.134 tokens totais, com média de 1.781,23 tokens por chamada residual. Esses valores mostram o custo associado apenas aos documentos que escaparam da memória WNN ou foram tratados como ambíguos; em uma estratégia que acionasse LLM para toda a reserva, o número de chamadas seria 7.479. A tabela a seguir detalha as medidas de custo.
 
-**Tabela 10 - Custo de inferência nas chamadas residuais.**
+**Tabela 10 - Custo de inferência nas chamadas residuais WNN.**
 
 | Medida de custo | Valor |
 |---|---:|
-| Chamadas LLM residuais | 341 |
-| `prompt_tokens_total` | 338.112 |
-| `completion_tokens_total` | 65.389 |
-| `tokens_total` | 403.501 |
-| Média de tokens por chamada LLM | 1.183,29 |
+| Chamadas LLM residuais | 1.261 |
+| `prompt_tokens_total` | 1.976.676 |
+| `completion_tokens_total` | 269.458 |
+| `tokens_total` | 2.246.134 |
+| Média de tokens por chamada LLM | 1.781,23 |
 
 ### 5.6 Aprendizado residual, reorganização temática e casos raros
 
-A revisão residual não apenas classifica exceções: ela também registra evidências para aprendizado. Na execução baseline, o Agente Aprendiz de Regex incorporou 11 novas regras. Na evolução WNN, esse papel passa a ser desempenhado pelo Agente 2 como aprendiz de discriminadores: a decisão residual do Agente 3 é convertida em marcadores não duplicados, sanitizados contra o micromundo do tema e inseridos na memória. O Agente Organizador da Árvore continua responsável por evitar proliferação de temas e por controlar candidatos compostos.
+A revisão residual não apenas classifica exceções: ela também registra evidências para aprendizado. Na execução baseline, o Agente Aprendiz de Regex incorporou 11 novas regras. Na evolução WNN, esse papel passa a ser desempenhado pelo Agente 2 como aprendiz de discriminadores: a decisão residual do Agente 3 é convertida em marcadores não duplicados, sanitizados contra o micromundo do tema e inseridos na memória. O Agente Organizador da árvore continua responsável por evitar proliferação de temas e por controlar candidatos compostos.
 
-**Tabela 11 - Aprendizado residual e reorganização temática.**
+**Tabela 11 - Aprendizado residual e reorganização temática WNN.**
 
 | Item | Valor |
 |---|---:|
-| Regras aprendidas pelo residual na baseline | 11 |
-| Novos temas candidatos registrados | 11 |
-| Decisões do Organizador da Árvore | 8 |
-| Promoções registradas | 4 |
-| Temas canônicos únicos promovidos | 2 |
-| Incorporações a temas existentes | 3 |
+| Marcadores aprendidos pelo residual WNN | 916 |
+| Novos temas candidatos registrados | 22 |
+| Candidatos multi-discriminador | 54 |
+| Notícias raras sinalizadas pelo Agente 3 | 162 |
+| Temas/folhas incorporados a temas existentes | 17 |
+| Temas promovidos a canônicos | 4 |
 | Casos mantidos como folha | 1 |
-| Notícias raras finais | 43 |
-| Erros do Agente 3 | 0 |
+| Notícias raras finais | 179 |
+| Erros do Agente 3 | 18 |
 
-Esses resultados indicam que o residual funcionou como mecanismo de aprendizado controlado, não como caminho para proliferação automática de categorias. As notícias raras permaneceram separadas porque não havia recorrência ou evidência suficiente para promovê-las com segurança. A figura a seguir apresenta o Top 10 de temas consolidados na aplicação PF após a reorganização e o tratamento dos casos raros. Para fins de visualização, labels operacionais equivalentes foram agrupadas; por exemplo, `crime_trafico_drogas` e `trafico_drogas` são apresentadas como `trafico_drogas`. A classe `noticias_raras`, embora contabilizada na tabela anterior com 43 documentos, não aparece no gráfico por estar fora dos dez maiores grupos e por funcionar como categoria residual de auditoria, não como tema substantivo consolidado.
+Esses resultados indicam que o residual funcionou como mecanismo de aprendizado controlado, não como caminho para proliferação automática de categorias. As notícias raras permaneceram separadas porque não havia recorrência ou evidência suficiente para promovê-las com segurança. A figura a seguir apresenta o Top 10 de temas consolidados na aplicação PF após a classificação WNN e a revisão residual. Para fins de visualização, labels operacionais equivalentes foram agrupadas; a classe `noticias_raras` fica fora do gráfico por funcionar como categoria residual de auditoria, não como tema substantivo consolidado.
 
 ![Top 10 temas consolidados após classificação das notícias raras](media/figura-5-temas-finais.png)
 
-*Figura 7 - Top 10 temas consolidados após classificação das notícias raras.*
+*Figura 7 - Top 10 temas consolidados após classificação WNN e revisão residual.*
 
 ### 5.7 Interpretação e ameaças à validade
 
@@ -484,26 +488,27 @@ SMITH, R. et al. Language models in the loop: incorporating prompting into weak 
 
 ### 8.1 Métricas por lote
 
-A Tabela 12 apresenta o detalhamento por lote usado na avaliação experimental da baseline. Além da cobertura por regex e do volume residual enviado à LLM, ela registra aprendizados incorporados, notícias raras identificadas pelo Agente 3, consumo total de tokens e taxa regex por lote. Esses valores foram preservados para comparação com a rodada WNN.
+A Tabela 12 apresenta o detalhamento por lote usado na avaliação experimental WNN. Além da cobertura por discriminadores e do volume residual enviado à LLM, ela registra aprendizados incorporados, notícias raras identificadas pelo Agente 3, consumo total de tokens e taxa WNN por lote.
 
-**Tabela 12 - Métricas por lote.**
+**Tabela 12 - Métricas por lote da rodada WNN.**
 
-| Lote | Notícias | Regex | Residual/LLM | Aprendizados | Raras | Tokens | Taxa regex |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| lote_0001 | 500 | 493 | 7 | 0 | 1 | 8.340 | 98,60% |
-| lote_0002 | 500 | 473 | 27 | 1 | 6 | 31.481 | 94,60% |
-| lote_0003 | 500 | 480 | 20 | 0 | 3 | 22.446 | 96,00% |
-| lote_0004 | 500 | 489 | 11 | 1 | 0 | 12.671 | 97,80% |
-| lote_0005 | 500 | 463 | 37 | 1 | 4 | 43.798 | 92,60% |
-| lote_0006 | 500 | 476 | 24 | 0 | 0 | 28.096 | 95,20% |
-| lote_0007 | 500 | 482 | 18 | 0 | 1 | 21.776 | 96,40% |
-| lote_0008 | 500 | 469 | 31 | 0 | 3 | 36.888 | 93,80% |
-| lote_0009 | 500 | 489 | 11 | 0 | 0 | 13.518 | 97,80% |
-| lote_0010 | 500 | 460 | 40 | 4 | 4 | 48.026 | 92,00% |
-| lote_0011 | 500 | 475 | 25 | 1 | 4 | 29.362 | 95,00% |
-| lote_0012 | 500 | 468 | 32 | 1 | 5 | 38.698 | 93,60% |
-| lote_0013 | 500 | 471 | 29 | 1 | 7 | 33.336 | 94,20% |
-| lote_0014 | 497 | 468 | 29 | 1 | 3 | 35.065 | 94,17% |
+| Lote | Notícias | WNN | Residual pós-WNN | LLM | Aprendizados | Raras | Tokens | Taxa WNN |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| lote_0001 | 500 | 475 | 25 | 25 | 17 | 7 | 42.293 | 95,00% |
+| lote_0002 | 500 | 394 | 106 | 106 | 79 | 20 | 179.472 | 78,80% |
+| lote_0003 | 500 | 418 | 82 | 82 | 64 | 14 | 136.903 | 83,60% |
+| lote_0004 | 500 | 396 | 104 | 104 | 80 | 23 | 167.236 | 79,20% |
+| lote_0005 | 500 | 417 | 83 | 83 | 60 | 11 | 137.057 | 83,40% |
+| lote_0006 | 500 | 426 | 74 | 62 | 40 | 13 | 104.463 | 85,20% |
+| lote_0007 | 500 | 427 | 73 | 73 | 58 | 2 | 136.072 | 85,40% |
+| lote_0008 | 500 | 418 | 82 | 82 | 67 | 3 | 154.403 | 83,60% |
+| lote_0009 | 500 | 417 | 83 | 82 | 50 | 9 | 150.054 | 83,40% |
+| lote_0010 | 500 | 423 | 77 | 77 | 63 | 3 | 145.378 | 84,60% |
+| lote_0011 | 500 | 397 | 103 | 102 | 72 | 9 | 190.018 | 79,40% |
+| lote_0012 | 500 | 377 | 123 | 122 | 87 | 17 | 223.627 | 75,40% |
+| lote_0013 | 500 | 423 | 77 | 76 | 48 | 7 | 141.284 | 84,60% |
+| lote_0014 | 500 | 416 | 84 | 83 | 57 | 10 | 149.283 | 83,20% |
+| lote_0015 | 479 | 376 | 103 | 102 | 74 | 14 | 188.591 | 78,50% |
 
 ### 8.2 Distribuição final por tema consolidado
 
@@ -511,29 +516,28 @@ A Tabela 13 apresenta a distribuição final por tema após a reorganização da
 
 **Tabela 13 - Distribuição final por tema consolidado.**
 
-| Tema final consolidado | Regex | Agente 3 | Incorporado | Promovido | Mantido como folha | Notícia rara | Total |
+| Tema final consolidado | WNN | Agente 3 | Incorporado | Promovido | Mantido como folha | Notícia rara | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| trafico_drogas | 1.389 | 4 | 0 | 0 | 0 | 0 | 1.393 |
-| crimes_contra_criancas | 1.130 | 3 | 0 | 0 | 0 | 0 | 1.133 |
-| corrupcao_desvio_recursos_publicos | 976 | 52 | 0 | 0 | 0 | 0 | 1.028 |
-| crime_organizado | 956 | 63 | 0 | 0 | 0 | 0 | 1.019 |
-| contrabando_descaminho | 478 | 34 | 0 | 0 | 0 | 0 | 512 |
-| crimes_ambientais | 424 | 54 | 1 | 0 | 0 | 0 | 479 |
-| crimes_previdenciarios | 234 | 3 | 0 | 0 | 0 | 0 | 237 |
-| armas_municoes | 226 | 7 | 0 | 0 | 0 | 0 | 233 |
-| crimes_sistema_financeiro | 207 | 2 | 0 | 0 | 0 | 0 | 209 |
-| crimes_eleitorais | 181 | 3 | 0 | 0 | 0 | 0 | 184 |
-| moeda_falsa | 123 | 5 | 0 | 0 | 0 | 0 | 128 |
-| fraudes_auxilios_beneficios | 111 | 16 | 0 | 0 | 0 | 0 | 127 |
-| lavagem_dinheiro | 63 | 4 | 0 | 0 | 0 | 0 | 67 |
-| radiodifusao_clandestina | 54 | 8 | 0 | 0 | 0 | 0 | 62 |
-| trabalho_escravo | 62 | 0 | 0 | 0 | 0 | 0 | 62 |
-| crimes_migratorios | 42 | 6 | 0 | 0 | 0 | 0 | 48 |
-| noticias_raras | 0 | 0 | 2 | 0 | 0 | 41 | 43 |
-| crimes_ciberneticos | 0 | 25 | 0 | 0 | 0 | 0 | 25 |
-| ameacas_e_terrorismo | 0 | 0 | 0 | 4 | 0 | 0 | 4 |
-| seguranca_privada_clandestina | 0 | 0 | 0 | 3 | 0 | 0 | 3 |
-| falsificacao_documental | 0 | 0 | 0 | 0 | 1 | 0 | 1 |
+| crime_organizado | 2.167 | 187 | 0 | 0 | 0 | 0 | 2.354 |
+| crimes_ambientais | 1.733 | 115 | 0 | 0 | 0 | 0 | 1.848 |
+| crimes_contra_criancas | 1.158 | 62 | 0 | 0 | 0 | 0 | 1.220 |
+| corrupcao_desvio_recursos_publicos | 172 | 246 | 2 | 0 | 0 | 0 | 420 |
+| trafico_drogas | 267 | 29 | 5 | 0 | 0 | 0 | 301 |
+| contrabando_descaminho | 36 | 194 | 3 | 0 | 0 | 0 | 233 |
+| noticias_raras | 0 | 0 | 7 | 0 | 0 | 179 | 186 |
+| crimes_eleitorais | 97 | 49 | 0 | 0 | 0 | 0 | 146 |
+| armas_municoes | 109 | 11 | 0 | 0 | 0 | 0 | 120 |
+| crimes_previdenciarios | 97 | 21 | 0 | 0 | 0 | 0 | 118 |
+| lavagem_dinheiro | 96 | 13 | 0 | 0 | 0 | 0 | 109 |
+| moeda_falsa | 85 | 16 | 0 | 0 | 0 | 0 | 101 |
+| crimes_sistema_financeiro | 50 | 43 | 0 | 0 | 0 | 0 | 93 |
+| fraudes_auxilios_beneficios | 38 | 45 | 0 | 0 | 0 | 0 | 83 |
+| trabalho_escravo | 44 | 2 | 0 | 0 | 0 | 0 | 46 |
+| crimes_ciberneticos | 13 | 31 | 0 | 0 | 0 | 0 | 44 |
+| radiodifusao_clandestina | 33 | 7 | 0 | 0 | 0 | 0 | 40 |
+| crimes_migratorios | 5 | 6 | 0 | 0 | 0 | 0 | 11 |
+| rara_combate_disseminacao_pornografia | 0 | 0 | 0 | 4 | 0 | 0 | 4 |
+| ameacas_e_terrorismo | 0 | 0 | 0 | 0 | 1 | 0 | 2 |
 
 ### 8.3 Registro da notícia usada no exemplo residual
 
