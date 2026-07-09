@@ -8,7 +8,6 @@ import pandas as pd
 from scripts.agentes.agente3_residual import append_new_theme_candidate, review_residual
 from scripts.agentes.agente1_temas import KNOWN_CANONICAL_LABELS
 from scripts.incremental.common import (
-    ACTIVE_REGEX_BANK_PATH,
     LOTS_DIR,
     METRICS_CSV,
     RARE_NEWS_LABEL,
@@ -33,10 +32,11 @@ try:
     from scripts.pf_wnn_classifier import (
         append_discriminators_from_learned_rules,
         classify_with_wnn,
+        compact_feature_bank,
         suggest_discriminator_rules_from_review,
     )
 except ModuleNotFoundError:
-    from pf_wnn_classifier import append_discriminators_from_learned_rules, classify_with_wnn, suggest_discriminator_rules_from_review
+    from pf_wnn_classifier import append_discriminators_from_learned_rules, classify_with_wnn, compact_feature_bank, suggest_discriminator_rules_from_review
 
 try:
     from scripts.agentes.agente_organizador_arvore import run as run_theme_tree_organizer
@@ -61,7 +61,7 @@ def review_to_inference(review: ResidualReviewAgentResponse) -> NoticiaLLMInfere
         tema_principal=review.tema_principal or review.canonical_label,
         marcadores_secundarios=review.marcadores_secundarios,
         relacao_operacional=review.relacao_operacional or "tema_unico",
-        modus_operandi=[],
+        modus_operandi=review.modus_operandi,
         resumo_curto=review.resumo_curto,
         resumo_estruturado={},
         evidencia_textual=review.evidence_text,
@@ -82,15 +82,10 @@ def canonical_labels() -> list[str]:
     return labels
 
 
-def classify_with_regex(doc: dict[str, Any], threshold: float, regex_enabled: bool = True) -> dict[str, Any]:
+def initialize_classification_row(doc: dict[str, Any]) -> dict[str, Any]:
     return {
         "arquivo": doc["arquivo"],
         "titulo": doc["titulo"],
-        "regex_accepted": False,
-        "regex_confidence": 0.0,
-        "regex_source": "disabled_discriminator_only",
-        "regex_bank": str(ACTIVE_REGEX_BANK_PATH),
-        "matched_rules_count": 0,
         "inference": {},
         "classification_source": "residual_pending_wnn",
         "wnn_attempted": False,
@@ -99,6 +94,7 @@ def classify_with_regex(doc: dict[str, Any], threshold: float, regex_enabled: bo
         "wnn_confidence": 0.0,
         "wnn_margin": 0.0,
         "wnn_top_label": "",
+        "wnn_modus_operandi": [],
         "wnn_relacao_operacional": "",
         "wnn_marcadores_secundarios": [],
         "wnn_theme_candidate": {},
@@ -116,11 +112,10 @@ def classify_with_regex(doc: dict[str, Any], threshold: float, regex_enabled: bo
         "agent3_tema_principal": "",
         "agent3_marcadores_secundarios": [],
         "agent3_relacao_operacional": "",
+        "agent3_modus_operandi": [],
         "agent3_confidence": 0.0,
         "agent3_evidence_text": "",
         "agent3_rationale": "",
-        "agent2_incremental_regex_count": 0,
-        "agent2_incremental_regex": [],
         "agent2_incremental_wnn_count": 0,
         "agent2_incremental_wnn": [],
         "cosine_top_label": "",
@@ -139,8 +134,6 @@ def _progress_message(
     total_batches: int,
     doc_index: int,
     batch_size: int,
-    config: RunConfig,
-    regex_accepted: int,
     wnn_accepted: int,
     residual: int,
     llm_processed: int,
@@ -148,10 +141,7 @@ def _progress_message(
     model_name: str = "",
 ) -> str:
     base = f"[classificacao] lote {iteration}/{total_batches}: {doc_index}/{batch_size} noticias"
-    if config.regex_enabled:
-        body = f"regex={regex_accepted}, wnn={wnn_accepted}, residuos={residual}, llm={llm_processed}"
-    else:
-        body = f"wnn={wnn_accepted}, residuos={residual}, llm={llm_processed}"
+    body = f"wnn={wnn_accepted}, residuos={residual}, llm={llm_processed}"
     if provider or model_name:
         body += f", ultimo_provider={provider}/{model_name}"
     return f"{base}, {body}"
@@ -168,7 +158,6 @@ def run(config: RunConfig) -> dict[str, object]:
         metrics = existing_metrics.to_dict(orient="records")
         completed_iterations = {int(row["iteration"]) for row in metrics if pd.notna(row.get("iteration"))}
     cumulative_docs = int(sum(int(row.get("docs", 0) or 0) for row in metrics))
-    cumulative_regex = int(sum(int(row.get("regex_accepted", 0) or 0) for row in metrics))
     cumulative_llm = int(sum(int(row.get("llm_processed", 0) or 0) for row in metrics))
     batches = [reserve[index : index + config.batch_size] for index in range(0, len(reserve), config.batch_size)]
     if config.max_batches is not None:
@@ -199,9 +188,7 @@ def run(config: RunConfig) -> dict[str, object]:
         rare_promoted_candidates = 0
         agent3_errors = 0
         residual_limit = config.max_residual_llm_per_batch
-        negatives = [classification_text(doc) for doc in batch[:40]]
-        regex_accepted = 0
-        regex_residual = 0
+        residual_docs = 0
         wnn_attempted = 0
         wnn_accepted = 0
         wnn_abstained = 0
@@ -211,28 +198,9 @@ def run(config: RunConfig) -> dict[str, object]:
         )
 
         for doc_index, doc in enumerate(batch, start=1):
-            row = classify_with_regex(doc, config.regex_threshold, regex_enabled=config.regex_enabled)
+            row = initialize_classification_row(doc)
             rows.append(row)
-            if row["regex_accepted"]:
-                regex_accepted += 1
-                if doc_index % 50 == 0 or doc_index == len(batch):
-                    print(
-                        _progress_message(
-                            iteration,
-                            total_batches,
-                            doc_index,
-                            len(batch),
-                            config,
-                            regex_accepted,
-                            wnn_accepted,
-                            regex_residual - wnn_accepted,
-                            llm_processed,
-                        ),
-                        flush=True,
-                    )
-                continue
-
-            regex_residual += 1
+            residual_docs += 1
             text_for_classification = classification_text(doc)
             cosine_candidates = top_k_similar_themes(text_for_classification, top_k=5, preprocessed=True)
             row.update(
@@ -261,6 +229,7 @@ def run(config: RunConfig) -> dict[str, object]:
                         "wnn_confidence": round(wnn_result.confidence, 4),
                         "wnn_margin": round(wnn_result.margin, 4),
                         "wnn_top_label": wnn_result.top_label,
+                        "wnn_modus_operandi": wnn_result.modus_operandi,
                         "wnn_relacao_operacional": (
                             wnn_result.inference.relacao_operacional if wnn_result.inference else ""
                         ),
@@ -288,6 +257,7 @@ def run(config: RunConfig) -> dict[str, object]:
                         "confidence": round(wnn_result.confidence, 4),
                         "margin": round(wnn_result.margin, 4),
                         "top_label": wnn_result.top_label,
+                        "modus_operandi": wnn_result.modus_operandi,
                         "relacao_operacional": wnn_result.inference.relacao_operacional if wnn_result.inference else "",
                         "marcadores_secundarios": wnn_result.inference.marcadores_secundarios if wnn_result.inference else [],
                         "theme_candidate": wnn_result.theme_candidate,
@@ -315,6 +285,7 @@ def run(config: RunConfig) -> dict[str, object]:
                             resumo_curto="Composicao multi-discriminador registrada pela WNN para revisao da arvore.",
                             tema_principal=wnn_result.top_label,
                             marcadores_secundarios=[str(item) for item in candidate.get("labels", [])],
+                            modus_operandi=wnn_result.modus_operandi,
                             relacao_operacional=str(candidate.get("relation", "coocorrencia_sem_fusao")),
                         ),
                         iteration,
@@ -334,10 +305,8 @@ def run(config: RunConfig) -> dict[str, object]:
                                 total_batches,
                                 doc_index,
                                 len(batch),
-                                config,
-                                regex_accepted,
                                 wnn_accepted,
-                                regex_residual - wnn_accepted,
+                                residual_docs - wnn_accepted,
                                 llm_processed,
                             ),
                             flush=True,
@@ -353,10 +322,8 @@ def run(config: RunConfig) -> dict[str, object]:
                             total_batches,
                             doc_index,
                             len(batch),
-                            config,
-                            regex_accepted,
                             wnn_accepted,
-                            regex_residual - wnn_accepted,
+                            residual_docs - wnn_accepted,
                             llm_processed,
                         ),
                         flush=True,
@@ -409,6 +376,7 @@ def run(config: RunConfig) -> dict[str, object]:
                                 f"{rare_observation['promoted_label']}."
                             ),
                             resumo_curto=review.resumo_curto,
+                            modus_operandi=review.modus_operandi,
                         )
                         agent3_classified -= 1
                         agent3_rare_news -= 1
@@ -433,7 +401,15 @@ def run(config: RunConfig) -> dict[str, object]:
             incorporated = []
             if review.decision in {"classificar", "novo_tema_candidato"} and review.canonical_label != RARE_NEWS_LABEL:
                 incorporated = suggest_discriminator_rules_from_review(doc, review)
-            incorporated_wnn = append_discriminators_from_learned_rules(incorporated, WNN_FEATURE_BANK_PATH) if incorporated else []
+            incorporated_wnn = (
+                append_discriminators_from_learned_rules(
+                    incorporated,
+                    WNN_FEATURE_BANK_PATH,
+                    max_discriminators_per_label=config.wnn_max_discriminators_per_theme,
+                )
+                if incorporated
+                else []
+            )
             learned_rules += len(incorporated_wnn)
             row.update(
                 {
@@ -443,12 +419,11 @@ def run(config: RunConfig) -> dict[str, object]:
                     "agent3_canonical_label": review.canonical_label,
                     "agent3_tema_principal": review.tema_principal or review.canonical_label,
                     "agent3_marcadores_secundarios": review.marcadores_secundarios,
+                    "agent3_modus_operandi": review.modus_operandi,
                     "agent3_relacao_operacional": review.relacao_operacional,
                     "agent3_confidence": round(review.confidence, 4),
                     "agent3_evidence_text": review.evidence_text,
                     "agent3_rationale": review.rationale,
-                    "agent2_incremental_regex_count": 0,
-                    "agent2_incremental_regex": [],
                     "agent2_incremental_wnn_count": len(incorporated_wnn),
                     "agent2_incremental_wnn": incorporated_wnn,
                     "inference": review_to_inference(review).model_dump() if review.decision == "classificar" else {},
@@ -470,9 +445,9 @@ def run(config: RunConfig) -> dict[str, object]:
                     "cosine_candidates": cosine_candidates,
                     "tema_principal": review.tema_principal or review.canonical_label,
                     "marcadores_secundarios": review.marcadores_secundarios,
+                    "modus_operandi": review.modus_operandi,
                     "relacao_operacional": review.relacao_operacional,
                     "agent3_review": review.model_dump(),
-                    "agent2_incremental_regex": [],
                     "agent2_incremental_wnn": incorporated_wnn,
                 }
             )
@@ -483,10 +458,8 @@ def run(config: RunConfig) -> dict[str, object]:
                         total_batches,
                         doc_index,
                         len(batch),
-                        config,
-                        regex_accepted,
                         wnn_accepted,
-                        regex_residual - wnn_accepted,
+                        residual_docs - wnn_accepted,
                         llm_processed,
                         provider,
                         model_name,
@@ -520,19 +493,17 @@ def run(config: RunConfig) -> dict[str, object]:
             else 0.0
         )
         cumulative_docs += docs
-        cumulative_regex += regex_accepted
         cumulative_llm += llm_processed
+        cumulative_wnn = int(sum(int(row.get("wnn_accepted", 0) or 0) for row in metrics)) + wnn_accepted
         metrics.append(
             {
                 "iteration": iteration,
                 "batch_id": f"lote_{iteration:04d}",
                 "docs": docs,
-                "regex_accepted": regex_accepted,
-                "regex_residual": regex_residual,
                 "wnn_attempted": wnn_attempted,
                 "wnn_accepted": wnn_accepted,
                 "wnn_abstained": wnn_abstained,
-                "post_wnn_residual": regex_residual - wnn_accepted,
+                "post_wnn_residual": residual_docs - wnn_accepted,
                 "llm_processed": llm_processed,
                 "agent3_attempted": agent3_attempted,
                 "agent3_reviewed": llm_processed,
@@ -554,19 +525,39 @@ def run(config: RunConfig) -> dict[str, object]:
                 "wnn_memory_vocab_size": wnn_memory_vocab_size,
                 "wnn_memory_active_avg": round(wnn_memory_active_avg, 4),
                 "wnn_rate": round(wnn_accepted / docs, 6) if docs else 0,
-                "regex_rate": round(regex_accepted / docs, 6) if docs else 0,
-                "regex_wnn_rate": round((regex_accepted + wnn_accepted) / docs, 6) if docs else 0,
                 "cumulative_docs": cumulative_docs,
-                "cumulative_regex_accepted": cumulative_regex,
+                "cumulative_wnn_accepted": cumulative_wnn,
                 "cumulative_llm_processed": cumulative_llm,
-                "cumulative_regex_rate": round(cumulative_regex / cumulative_docs, 6) if cumulative_docs else 0,
+                "cumulative_wnn_rate": round(cumulative_wnn / cumulative_docs, 6) if cumulative_docs else 0,
                 "elapsed_seconds": round(time.perf_counter() - started, 4),
-                "regex_bank": str(ACTIVE_REGEX_BANK_PATH),
                 "wnn_feature_bank": str(WNN_FEATURE_BANK_PATH),
                 "output": str(batch_output),
             }
         )
         pd.DataFrame(metrics).to_csv(METRICS_CSV, index=False, encoding="utf-8-sig")
+        if (
+            config.wnn_compaction_interval_batches > 0
+            and iteration % config.wnn_compaction_interval_batches == 0
+        ):
+            try:
+                compact_result = compact_feature_bank(WNN_FEATURE_BANK_PATH)
+                append_event(
+                    {
+                        "stage": "wnn_compaction",
+                        "iteration": iteration,
+                        "status": "ok",
+                        "result": compact_result,
+                    }
+                )
+            except Exception as exc:
+                append_event(
+                    {
+                        "stage": "wnn_compaction",
+                        "iteration": iteration,
+                        "status": "error",
+                        "error": str(exc),
+                    }
+                )
         if config.theme_tree_review_interval_batches > 0 and iteration % config.theme_tree_review_interval_batches == 0:
             try:
                 tree_result = run_theme_tree_organizer(config)
@@ -587,24 +578,20 @@ def run(config: RunConfig) -> dict[str, object]:
                         "error": str(exc),
                     }
                 )
-        try:
-            update_dashboard()
-        except Exception as exc:
-            append_event({"stage": "dashboard_comparacao", "status": "error", "error": str(exc)})
-        if config.regex_enabled:
-            conclusion = (
-                f"[classificacao] lote {iteration}/{total_batches} concluido: docs={docs}, regex={regex_accepted}, "
-                f"wnn={wnn_accepted}, residuos_pos_wnn={regex_residual - wnn_accepted}, llm={llm_processed}, "
-                f"regras_aprendidas={learned_rules}, taxa_regex={regex_accepted / docs:.2%}, "
-                f"tempo={metrics[-1]['elapsed_seconds']}s"
-            )
-        else:
-            conclusion = (
-                f"[classificacao] lote {iteration}/{total_batches} concluido: docs={docs}, wnn={wnn_accepted}, "
-                f"residuos_pos_wnn={regex_residual - wnn_accepted}, llm={llm_processed}, "
-                f"regras_aprendidas={learned_rules}, candidatos_compostos={wnn_multi_discriminator_candidates}, "
-                f"taxa_wnn={wnn_accepted / docs:.2%}, tempo={metrics[-1]['elapsed_seconds']}s"
-            )
+        if (
+            config.dashboard_update_interval_batches > 0
+            and iteration % config.dashboard_update_interval_batches == 0
+        ):
+            try:
+                update_dashboard()
+            except Exception as exc:
+                append_event({"stage": "dashboard_comparacao", "status": "error", "error": str(exc)})
+        conclusion = (
+            f"[classificacao] lote {iteration}/{total_batches} concluido: docs={docs}, wnn={wnn_accepted}, "
+            f"residuos_pos_wnn={residual_docs - wnn_accepted}, llm={llm_processed}, "
+            f"regras_aprendidas={learned_rules}, candidatos_compostos={wnn_multi_discriminator_candidates}, "
+            f"taxa_wnn={wnn_accepted / docs:.2%}, tempo={metrics[-1]['elapsed_seconds']}s"
+        )
         print(conclusion, flush=True)
 
     metrics_df = pd.DataFrame(metrics)

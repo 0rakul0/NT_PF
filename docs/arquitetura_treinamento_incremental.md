@@ -1,540 +1,191 @@
-# Metodologia alvo: treinamento incremental autonomo por temas canonicos, discriminadores, WNN e LLM
+# Metodologia alvo: treinamento incremental autonomo por temas canonicos, discriminadores WNN e LLM residual
 
-Este documento descreve a metodologia alvo do projeto. A proposta e criar um ciclo fechado, sem interferencia humana, para transformar uma base textual incremental em uma taxonomia canonica, gerar discriminadores auditaveis, classificar novos dados por regras deterministicas e por memoria associativa WNN, e usar a LLM apenas nos residuos que escaparem dessas camadas.
+Este documento descreve a metodologia alvo do projeto. A proposta e criar um ciclo fechado, sem interferencia humana, para transformar uma base textual incremental em uma taxonomia canonica, gerar discriminadores auditaveis, classificar novos dados por memoria associativa WNN e usar a LLM apenas nos residuos que escaparem dessa camada.
 
 O ponto central e separar duas fases:
 
 1. **Fase de fundacao**: usa uma amostra minima viavel da base para descobrir temas canonicos e criar o banco inicial de discriminadores.
-2. **Fase incremental**: processa o restante da base, e depois os novos dados diarios, em lotes que passam pelas camadas regex forte, WNN, LLM residual e aprendizado.
+2. **Fase incremental**: processa o restante da base, e depois os novos dados, em lotes que passam por preprocessamento, WNN, LLM residual e aprendizado.
 
 ## Desenho resumido
 
 ```mermaid
 flowchart TD
-    A["Base completa<br/>ex.: 8 mil noticias"] --> B["Amostra inicial barata e representativa<br/>10% estratificada no tempo"]
-    A --> C["Reserva incremental<br/>90% restantes"]
+    A["Base completa"] --> B["Amostra inicial estratificada"]
+    A --> C["Reserva incremental"]
 
-    B --> D["Espaco semantico da amostra<br/>TF-IDF/SVD, HDBSCAN, cosseno"]
-    D --> E["Clusters exploratorios<br/>termos, titulos, trechos, tags"]
+    B --> D["Espaco semantico da amostra"]
+    D --> E["Clusters exploratorios"]
+    E --> F["Agente 1"]
+    F --> G["Temas canonicos"]
+    G --> H["Agente 2"]
+    H --> I["Banco de discriminadores WNN"]
 
-    E --> F["Agente 1<br/>bifurcador de temas"]
-    F --> G["Temas canonicos amplos<br/>ex.: crimes_contra_criancas"]
-    G --> H["Blocos tematicos<br/>um tema engloba varios clusters relacionados"]
-
-    H --> I["Agente 2<br/>gerador de discriminadores"]
-    I --> J["Regex fortes<br/>classificacao direta"]
-    I --> Y["Banco de flags WNN<br/>sensores binarios auditaveis"]
-
-    C --> K["Divisao em N lotes incrementais"]
-    K --> L["Lote N"]
-    J --> M["Classificador regex forte"]
-    Y --> Z["WNN<br/>memoria associativa abstensiva"]
-    L --> M
-
-    M --> N{"Regex resolveu?"}
-    N -- "sim" --> O["Classificacao deterministica"]
-    N -- "nao" --> Z
-    Z --> AA{"WNN resolveu<br/>com margem?"}
-    AA -- "sim" --> AB["Classificacao WNN"]
-    AA -- "nao" --> P["LLM residual<br/>OpenAI gpt-4.1-mini<br/>fallback local llama3.2"]
-
-    P --> Q["Classificacao estruturada<br/>+ evidencia textual<br/>+ aprendizado candidato"]
-    Q --> R["Agente 3<br/>curador automatico de aprendizado"]
-    R --> S{"Regra aprovada?"}
-    S -- "sim" --> J
-    S -- "nao" --> T["Rejeicao ou quarentena automatica"]
-
-    O --> U["Metricas do lote"]
-    AB --> U
-    P --> U
-    R --> U
-    T --> U
-    U --> V["Relatorio autonomo<br/>custo, cobertura, precisao estimada,<br/>regras, rejeicoes, quarentena"]
-    V --> W{"Ha proximo lote?"}
-    W -- "sim" --> L
-    W -- "nao" --> X["Relatorio final da metodologia"]
+    C --> J["Lotes incrementais"]
+    J --> K["Preprocessamento linguistico"]
+    K --> L["Classificacao WNN"]
+    L --> M{"WNN resolveu?"}
+    M -- "sim" --> N["Classificacao auditavel"]
+    M -- "nao" --> O["LLM residual"]
+    O --> P["Agente 3"]
+    P --> Q["Novos discriminadores ou tema candidato"]
+    Q --> I
+    Q --> R["Agente Organizador da Arvore"]
+    N --> S["Metricas e relatorios"]
+    P --> S
 ```
 
 ## Principio metodologico
 
 A clusterizacao nao e o classificador final. Ela e uma ferramenta de descoberta para revelar estrutura semantica. A taxonomia operacional nasce da leitura automatica dos clusters por um agente, que agrupa subtemas em temas canonicos amplos.
 
-Exemplo:
-
-- Clusters sobre `abuso sexual infantil`
-- Clusters sobre `pornografia infantil`
-- Clusters sobre `material de abuso infantojuvenil`
-- Clusters sobre `compartilhamento pela internet`
-
-Todos podem ser consolidados pelo Agente 1 no tema canonico:
-
-- `crimes_contra_criancas`
-
 Assim, o tema canonico nao precisa ser identico ao cluster. Ele funciona como um bloco interpretativo mais amplo, capaz de englobar vocabularios diferentes ligados ao mesmo fenomeno.
 
 ## Fase 1: amostra inicial representativa
 
-A base completa nao deve ser enviada integralmente para a etapa de descoberta inicial. A configuracao atual usa uma amostra inicial de 10% da base historica, estratificada temporalmente.
+A base completa nao deve ser enviada integralmente para a etapa de descoberta inicial. A configuracao atual usa uma amostra inicial estratificada temporalmente.
 
 Regras da amostra:
 
-- Sorteio reprodutivel com seed registrada.
-- Estratificacao opcional por ano para evitar concentracao temporal.
-- Registro do hash da amostra e da base completa.
-- A amostra serve apenas para descobrir temas canonicos e criar discriminadores iniciais.
-- Os 90% restantes ficam reservados para testar o ciclo incremental.
-- A amostra deve conter fragmentos de diferentes momentos da base, evitando concentrar toda a fundacao em um periodo recente ou antigo.
+- sorteio reprodutivel com seed registrada;
+- estratificacao por ano quando configurada;
+- registro do hash da amostra e da base completa;
+- a amostra serve apenas para descobrir temas canonicos e criar discriminadores iniciais;
+- a reserva incremental fica reservada para testar o ciclo incremental.
 
 Artefatos esperados:
 
 - `data/analise_qualitativa/incremental/amostra_inicial.csv`
 - `data/analise_qualitativa/incremental/reserva_incremental.csv`
-- `data/analise_qualitativa/incremental/amostragem_manifesto.json`
 
 ## Fase 2: descoberta semantica na amostra
 
 Sobre a amostra inicial:
 
-1. Construir texto analitico por noticia.
-2. Gerar representacao vetorial.
-3. Rodar HDBSCAN para grupos densos e ruido.
-4. Usar cosseno para vizinhos, exemplos representativos e expansao de evidencias.
-5. Produzir resumo dos clusters exploratorios.
-
-Metricas da descoberta:
-
-- Tamanho da amostra.
-- Numero de clusters.
-- Percentual de ruido.
-- Tamanho medio e mediano dos clusters.
-- Termos principais por cluster.
-- Exemplos representativos.
-- Tempo de vetorizacao.
-- Tempo de HDBSCAN.
-- Tempo de vizinhanca por cosseno.
+1. construir texto analitico por noticia;
+2. gerar representacao vetorial;
+3. rodar HDBSCAN para grupos densos e ruido;
+4. usar cosseno para vizinhos, exemplos representativos e expansao de evidencias;
+5. produzir resumo dos clusters exploratorios.
 
 ## Agente 1: bifurcador de temas canonicos
 
 Funcao:
 
-Agrupar clusters exploratorios em blocos tematicos canonicos amplos. Esse agente nao cria regex. Ele cria a taxonomia inicial de temas.
+Agrupar clusters exploratorios em blocos tematicos canonicos amplos. Esse agente nao cria discriminadores. Ele cria a taxonomia inicial de temas.
 
 Entrada:
 
-- Resumo dos clusters da amostra.
-- Termos principais.
-- Titulos e trechos representativos.
-- Tags, crimes sugeridos, modus e operacoes quando existirem.
-- Vizinhos por cosseno.
-- Percentual de ruido e heterogeneidade.
+- resumo dos clusters da amostra;
+- termos principais;
+- titulos e trechos representativos;
+- tags, crimes sugeridos, modus e operacoes quando existirem;
+- vizinhos por cosseno;
+- percentual de ruido e heterogeneidade.
 
 Saida padronizada:
 
-- `theme_id`
 - `canonical_theme`
-- `theme_type`
 - `description`
 - `included_cluster_ids`
 - `included_subthemes`
-- `exclusion_rules`
 - `evidence_terms`
 - `confidence`
-- `automation_decision`
-
-Decisoes possiveis:
-
-- `accept`: tema canonico aceito.
-- `merge`: tema deve ser fundido com outro.
-- `split`: tema amplo demais, precisa virar mais de um bloco.
-- `discard`: cluster ou bloco nao serve para taxonomia inicial.
-- `quarantine`: tema incerto fica fora do banco inicial, mas registrado para monitoramento.
-
-Nao ha revisao humana. O que nao passar pelos criterios automaticos fica em quarentena e nao alimenta regex inicial.
-
-### Etapa obrigatoria: Agente Organizador da Arvore
-
-O Agente 1 deve permanecer responsavel apenas pela fundacao: ele ve os clusters iniciais e cria a taxonomia canonica inicial. A organizacao posterior da arvore deve ser feita por um agente separado para nao misturar responsabilidades nem fragilizar a pipeline.
-
-A metodologia correta exige:
-
-- Agente 1-Fundacao: analisa os clusters iniciais e cria a taxonomia canonica inicial.
-- Agente 3-Residual: classifica residuos e registra folhas candidatas quando nao ha tema canonico defensavel.
-- Agente Organizador da Arvore: apos a rodada incremental, e tambem em ciclos periodicos, recebe a lista completa de temas canonicos, folhas candidatas, contagens, evidencias, regex associadas e similaridade por cosseno.
-- O Agente Organizador da Arvore decide se cada candidata deve ser:
-  - agregada a um tema canonico existente;
-  - mantida como folha candidata;
-  - promovida a novo tema canonico;
-  - fundida com outras candidatas semanticamente equivalentes;
-  - descartada ou mantida em quarentena.
-
-Essa etapa preserva a premissa de interferencia humana zero, mas evita que a arvore cresca com dezenas de folhas quase duplicadas, como variacoes de falsificacao documental, seguranca privada clandestina ou fraudes em certames publicos.
-
-Entrada esperada para a reorganizacao:
-
-- temas canonicos ativos;
-- candidatos do Agente 3;
-- numero de ocorrencias por candidato;
-- titulos e evidencias textuais;
-- regex incrementais aceitas ou rejeitadas;
-- proximidade por cosseno com temas existentes;
-- cluster de origem quando existir.
-
-Saida esperada:
-
-- `canonical_theme` final ou proposto;
-- `decision`: `merge_into_existing`, `promote_to_canonical`, `keep_as_leaf`, `discard`, `quarantine`;
-- `parent_theme`, quando for folha;
-- `merged_candidate_labels`, quando houver fusao;
-- justificativa e evidencias.
-
-Artefato gerado:
-
-- `data/analise_qualitativa/incremental/insumo_agente_organizador_arvore.json`
-- `data/analise_qualitativa/incremental/arvore_temas_agent1_refinada.json`
-
-O arquivo de insumo registra explicitamente:
-
-- temas canonicos atuais;
-- candidatos do Agente 3;
-- contagem por candidato;
-- evidencias textuais;
-- regex aprendidas por tema/candidato quando houver;
-- sugestoes de proximidade por similaridade do cosseno.
+- `decision`
 
 ## Agente 2: gerador de discriminadores
 
 Funcao:
 
-Receber cada bloco tematico canonico aprovado pelo Agente 1 e gerar discriminadores auditaveis para classificar esse tema no restante da base. Um discriminador pode ser uma regex forte, usada para classificacao direta, ou uma flag/sensor binario, usada pela WNN.
+Receber cada bloco tematico canonico aprovado pelo Agente 1 e gerar discriminadores auditaveis para classificar esse tema no restante da base. Cada discriminador e representado como um conjunto pequeno de marcadores lexicais substantivos que alimenta a memoria WNN.
 
 Entrada:
 
-- Tema canonico.
-- Clusters incluidos no tema.
-- Subtemas incluidos.
-- Evidencias textuais.
-- Exemplos positivos.
-- Exemplos negativos ou regras de exclusao.
-- Labels e discriminadores ja existentes.
+- tema canonico;
+- clusters incluidos no tema;
+- subtemas incluidos;
+- evidencias textuais;
+- exemplos positivos;
+- exemplos negativos ou regras de exclusao;
+- labels e discriminadores ja existentes.
 
-Saida padronizada:
+Saida operacional:
 
-- `theme_id`
-- `canonical_theme`
-- `strong_regex_candidates`
-- `wnn_discriminators`
-- `accepted_strong_rules`
-- `rejected_candidates`
-- `quarantined_candidates`
-- `coverage_estimate`
-- `precision_risk`
+- `wnn_feature_bank.json`
+- total de discriminadores por tema;
+- separacao entre discriminadores de `crime` e de `modus_operandi`.
 
 Regras:
 
-- O Agente 2 nao altera a taxonomia.
-- O Agente 2 nao chama a LLM residual.
-- Ele produz discriminadores e valida automaticamente.
-- Regex fortes aprovadas entram em `regex_classifier_rules.json`.
-- Flags/sensores aprovados entram em `wnn_feature_bank.json`.
-- Discriminadores duvidosos ficam em quarentena automatica.
+- o Agente 2 nao altera a taxonomia;
+- o Agente 2 nao chama a LLM residual;
+- ele produz discriminadores e valida automaticamente;
+- discriminadores aprovados entram em `wnn_feature_bank.json`;
+- discriminadores duvidosos ficam em quarentena automatica ou sao descartados.
 
 ## Fase 3: reserva incremental em lotes
 
-Somente depois que os temas canonicos e os discriminadores iniciais existirem, os 90% restantes sao divididos em lotes de 500 noticias.
+Somente depois que os temas canonicos e os discriminadores iniciais existirem, a reserva incremental e dividida em lotes.
 
 Politica de lote:
 
-- Ordenacao por data para simular chegada incremental, ou sorteio controlado para experimento.
-- Cada lote registra tamanho, periodo, hash da entrada e versao das regras antes/depois.
-- Os lotes nao passam pelo Agente 1.
-- Os lotes nao passam pelo Agente 2, exceto quando for necessario regenerar discriminadores por nova versao de tema.
-- O fluxo normal do lote e regex forte -> WNN -> LLM residual -> Agente 3.
+- ordenacao por data para simular chegada incremental, ou sorteio controlado para experimento;
+- cada lote registra tamanho, periodo, hash da entrada e versao do banco WNN;
+- os lotes nao passam pelo Agente 1;
+- os lotes passam pela WNN e, quando necessario, pelo Agente 3;
+- o fluxo normal do lote e preprocessamento -> WNN -> LLM residual -> reorganizacao da arvore.
 
 Artefatos:
 
-- `data/analise_qualitativa/incremental/lotes_manifesto.csv`
-- `data/analise_qualitativa/lotes/lote_0001_input.csv`
-- `data/analise_qualitativa/lotes/lote_0001_classificacoes.jsonl`
-- `data/analise_qualitativa/lotes/lote_0001_relatorio.md`
+- `data/analise_qualitativa/lotes/lote_0001_classificacoes.csv`
+- `data/analise_qualitativa/incremental/metrics_batches.csv`
+- `data/analise_qualitativa/incremental/events.jsonl`
 
 ## Agente 3: curador automatico de aprendizado
 
 Funcao:
 
-Classificar os casos que escaparam da regex forte e da WNN usando a lista de temas canonicos disponiveis. Quando nenhuma label canonica for defensavel, registrar um novo tema candidato ou colocar o caso em quarentena.
+Classificar os casos que escaparam da WNN usando a lista de temas canonicos disponiveis. Quando nenhuma label canonica for defensavel, registrar um novo tema candidato ou colocar o caso em quarentena/noticia rara.
 
-Entrada:
+Saidas:
 
-- Noticia residual.
-- Labels canonicas disponiveis.
-- Sugestoes por similaridade do cosseno.
-- Resultado da regex anterior.
-- Resultado da WNN, incluindo flags ativas, top labels, confianca e margem.
+- classificacao residual em tema canonico;
+- `novo_tema_candidato`;
+- `noticias_raras`;
+- novos discriminadores de `crime` e `modus_operandi`.
 
-Saida padronizada:
-
-- `decision`
-- `canonical_label`
-- `confidence`
-- `evidence_text`
-- `rationale`
-- `resumo_curto`
-
-Decisoes possiveis:
-
-- `classificar`: residual classificado em uma label canonica.
-- `novo_tema_candidato`: residual tem tema substantivo claro ainda nao coberto.
-- `quarentena`: residual sem encaixe confiavel.
-
-O Agente 3 nao incorpora regex. A incorporacao fica no Agente Aprendiz de Regex.
-
-## Agente Aprendiz de Regex
+## Agente Organizador da Arvore
 
 Funcao:
 
-Receber a classificacao residual feita pelo Agente 3, gerar regex candidatas, validar as regras e incorporar apenas as que tiverem ancora de crime ou modus operandi.
+Receber os temas canonicos atuais, os candidatos do Agente 3, as contagens, as evidencias e a proximidade por cosseno para reorganizar globalmente a taxonomia.
 
-Entrada:
+Decisoes possiveis:
 
-- Noticia residual.
-- Revisao estruturada do Agente 3.
-- Exemplos negativos do lote.
-- Banco ativo de regex.
+- `merge_into_existing`
+- `promote_to_canonical`
+- `keep_as_leaf`
+- `discard`
+- `quarantine`
 
-Tool dedicada:
+Artefatos gerados:
 
-- `aprender_regex_do_residual`
+- `data/analise_qualitativa/incremental/insumo_agente_organizador_arvore.json`
+- `data/analise_qualitativa/incremental/arvore_temas_agent1_refinada.json`
 
-Saida:
+## Metricas centrais
 
-- regex incorporadas;
-- regex em quarentena;
-- validacao positiva/negativa;
-- origem e evidencias.
+As metricas principais da metodologia atual sao:
 
-Nao existe fila de revisao humana. Quarentena significa: nao usar em producao, registrar e reavaliar automaticamente em lotes futuros.
+- documentos classificados pela WNN;
+- residuos pos-WNN;
+- chamadas LLM residuais;
+- discriminadores aprendidos;
+- candidatos compostos de multiplos discriminadores;
+- diversidade de labels de `crime`;
+- diversidade de labels de `modus_operandi`;
+- custo em tokens das chamadas residuais.
 
-### Criterio adicional observado na rodada final
+## Resultado esperado
 
-Durante a rodada final de 15%/85%, foi detectado que algumas regex incrementais estavam usando evidencias operacionais ou contextuais, como nomes de operacao, localidades, orgaos ou trechos administrativos. Isso elevava artificialmente a cobertura, mas piorava a qualidade metodologica.
-
-Por isso, o Agente 2 passou a exigir ancora de crime ou modus operandi antes de incorporar qualquer regex gerada apos revisao do Agente 3.
-
-Exemplos de regras que devem ir para quarentena:
-
-- padroes baseados em nome de operacao;
-- padroes baseados apenas em localidade;
-- padroes baseados em orgao publico ou unidade administrativa;
-- padroes com palavras genericas de operacao policial;
-- padroes sem termo substantivo da label canonica.
-
-Exemplos de regras que podem ser incorporadas:
-
-- `arma` + `fogo` + `ilegal` para `armas_municoes`;
-- `radio` + `clandestina` para `radiodifusao_clandestina`;
-- `vantagem` + `indevida` para `corrupcao_desvio_recursos_publicos`;
-- `extracao` + `madeira` para `crimes_ambientais`;
-- `quadrilha` + `roubo` quando o contexto justificar `crime_organizado`.
-
-Essa decisao faz parte da metodologia: a meta nao e maximizar regex a qualquer custo, mas maximizar regras auditaveis que representem crime ou modus operandi.
-
-## Interferencia humana zero
-
-A metodologia precisa rodar sem decisao humana durante o ciclo.
-
-Controles automaticos substituem revisao humana:
-
-- Schema Pydantic obrigatorio para toda resposta de agente.
-- Validacao de regex por compilacao.
-- Teste contra exemplos positivos.
-- Teste contra exemplos negativos.
-- Bloqueio de termos proibidos ou genericos.
-- Limite de explosao de cobertura fora do tema.
-- Quarentena automatica para baixa confianca.
-- Registro de todos os eventos em JSONL.
-- Reprocessamento automatico de regras em quarentena quando surgirem novas evidencias.
-
-O humano aparece apenas fora do ciclo, como avaliador metodologico posterior dos relatorios, nao como parte da classificacao ou aprendizado.
-
-## HDBSCAN vs cosseno
-
-O HDBSCAN e usado na fase de fundacao para separar grupos densos e detectar ruido. A similaridade do cosseno e usada para recuperar vizinhos, escolher exemplos representativos e medir estabilidade entre documentos.
-
-Hipotese operacional:
-
-- HDBSCAN ajuda a descobrir topicos latentes na amostra.
-- Cosseno ajuda a recuperar exemplos e medir proximidade incremental.
-- Os lotes incrementais nao precisam reclusterizar toda a base, salvo em rodadas periodicas de recalibracao.
-
-## Metricas obrigatorias
-
-### Fundacao
-
-- Tamanho da base completa.
-- Tamanho da amostra inicial.
-- Seed e criterio de amostragem.
-- Numero de clusters exploratorios.
-- Numero de temas canonicos aceitos.
-- Clusters descartados ou em quarentena.
-- Regex iniciais geradas.
-- Regex iniciais aceitas, rejeitadas e em quarentena.
-- Tempo da clusterizacao.
-- Tempo do Agente 1.
-- Tempo do Agente 2.
-
-### Incremental
-
-- Total de documentos por lote.
-- Percentual classificado por regex.
-- Percentual enviado a LLM.
-- Tokens e custo estimado.
-- Tempo total do lote.
-- Regex aprendidas pelo Agente Aprendiz de Regex.
-- Regex rejeitadas.
-- Regex em quarentena.
-- Reducao progressiva de chamadas a LLM.
-- Cobertura adicional apos cada lote.
-
-### Qualidade automatica
-
-- Concordancia regex vs LLM em amostras automaticas.
-- Taxa de conflito entre regras.
-- Falsos positivos estimados por contraexemplos.
-- Falsos negativos estimados por residuos recorrentes.
-- Estabilidade de tema canonico entre lotes.
-- Reincidencia de casos em quarentena.
-
-## Estrutura de arquivos atual
-
-```text
-rodar_sistema.bat
-rodar_sistema.py
-scripts/
-|-- incremental/
-|   |-- run_all_incremental.py              # Orquestrador que encadeia as etapas
-|   |-- run_all_incremente.py              # Alias do orquestrador
-|   |-- amostragem.py                       # Base completa -> amostra temporal configuravel / reserva incremental
-|   |-- clusterizacao_inicial.py            # HDBSCAN/cosseno na amostra
-|   |-- agente1_temas.py                    # Etapa/orquestracao do Agente 1
-|   |-- agente2_regex_inicial.py            # Etapa/orquestracao do Agente 2
-|   |-- processar_lotes.py                  # Regex em lotes + chamada do Agente 3
-|   |-- relatorios.py                       # Metricas, graficos e relatorios
-|   `-- common.py                           # Contratos, caminhos e utilitarios
-|-- pf_incremental_methodology_run.py       # Wrapper de compatibilidade
-|-- pf_operacoes_pipeline.py                # Geracao/sincronizacao da base
-|-- pf_llm_metadata.py                      # Parser/contexto e LLM residual
-|-- pf_regex_classifier.py                  # Motor regex sem regras antigas
-|-- agentes/
-|   |-- agente1_temas.py                    # Agente 1: bifurcador de temas canonicos
-|   |-- agente2_regex.py                    # Agente 2: geracao/validacao de regex
-|   |-- agente3_residual.py                 # Agente 3: revisao/classificacao residual
-|   |-- agente_aprendiz_regex.py            # Agente Aprendiz de Regex: gera/incorpora regex pos-residual
-|   |-- agente_organizador_arvore.py        # Agente Organizador da Arvore
-|   `-- pf_incremental_agents_langchain.py  # Scaffold LangChain/Ollama
-|-- schemas/
-|   `-- pf_incremental_agent_schemas.py     # Schemas Pydantic dos agentes
-|-- tools/
-    |-- pf_generate_langchain_tools.py      # Gerador de tools
-    |-- pf_incremental_langchain_tools.py   # Tools geradas/curadas
-    |-- pf_regex_learning_tools.py          # Tool unica do Agente Aprendiz de Regex
-    `-- pf_theme_tree_tools.py              # Tool unica do Agente Organizador da Arvore
-
-data/analise_qualitativa/
-|-- regex_classifier_rules.json
-|-- incremental/
-|   |-- amostra_inicial.csv
-|   |-- reserva_incremental.csv
-|   |-- cluster_assignments_amostra.csv
-|   |-- resumo_clusters_amostra.csv
-|   |-- temas_canonicos_agent1.json
-|   |-- regex_iniciais_agent2.json
-|   |-- regex_banco_agent2.json
-|   |-- metrics_batches.csv
-|   |-- README_METRICAS.md
-|   |-- relatorio_execucao_metodologia.md
-|   |-- run_manifest.json
-|   |-- run_result.json
-|   |-- events.jsonl
-|   `-- figures/
-`-- lotes/
-    `-- lote_0001_classificacoes.csv
-```
-
-## Comando oficial
-
-O sistema foi desenhado para execucao sem argumentos:
-
-```bat
-rodar_sistema.bat
-```
-
-Modelo local padrao:
-
-- OpenAI quando `PF_LLM_PROVIDER=openai`
-- Fallback local compativel com os estudos LangChain: `llama3.2`
-
-## Criterios de sucesso
-
-A metodologia sera considerada bem-sucedida se demonstrar:
-
-1. Temas canonicos estaveis gerados automaticamente a partir de amostra inicial.
-2. Regex iniciais suficientes para classificar parcela relevante da reserva incremental.
-3. Reducao progressiva da taxa de chamada a LLM.
-4. Aprendizado automatico incorporado sem revisao humana.
-5. Quarentena automatica para regras incertas.
-6. Relatorios capazes de explicar custo, tempo, cobertura, regras e residuos.
-7. Reprodutibilidade por seeds, hashes, schemas e logs de eventos.
-
-## Resultado observado: rodada final 15%/85%
-
-Fechamento registrado em 2026-05-16.
-
-Configuracao da rodada:
-
-- Provedor principal: OpenAI.
-- Modelo principal: `gpt-4.1-mini`.
-- Fallback local: `llama3.2`.
-- Base total: 8106 noticias.
-- Amostra de fundacao: 1216 noticias, equivalente a 15% da base.
-- Reserva incremental: 6890 noticias, equivalente a 85% da base.
-- Estratificacao temporal: por ano.
-- Lote incremental: 10 noticias.
-- Clusterizacao da amostra: 24 clusters exploratorios.
-- Agente 1: 17 temas canonicos aceitos.
-- Agente 2: 322 regex iniciais aceitas.
-
-Resultado final:
-
-- Lotes concluidos: 689.
-- Documentos processados: 6890 de 6890.
-- Classificados por regex: 5661.
-- Enviados ao Agente 3/LLM residual: 1229.
-- Cobertura acumulada por regex: 82,1626%.
-- Regex incrementais incorporadas: 209.
-- Novos temas candidatos: 85.
-- Quarentenas do Agente 3: 64.
-- Erros de classificacao do Agente 3: 0.
-
-Leitura metodologica:
-
-- A cobertura por regex saiu de 75,8% nos primeiros 500 documentos e fechou acima de 82% no acumulado final.
-- Apos o filtro de crime/modus, a incorporacao de regex ficou mais conservadora, mas mais auditavel.
-- O resultado confirma a hipotese central: a LLM residual e usada para aprender excecoes, e parte desse aprendizado passa a reduzir chamadas futuras.
-- A existencia de 36 novos temas candidatos mostra que a taxonomia inicial nao deve ser tratada como final; ela deve formar uma arvore em que folhas recorrentes podem amadurecer para novos nos canonicos.
-
-Interrupcao operacional observada:
-
-- A execucao parou uma vez apos o lote 372 por erro de escrita no arquivo ativo `data/analise_qualitativa/regex_classifier_rules.json`.
-- O erro ocorreu durante a compactacao do banco de regex aprendido.
-- A correcao aplicada foi trocar a escrita direta por escrita atomica em arquivo temporario seguida de substituicao.
-- Foi criado `scripts/resume_final_15_llm.py` para retomar apenas os lotes pendentes, preservando os resultados ja gravados em `metrics_batches.csv`.
-- A retomada concluiu todos os 689 lotes.
-
-Artefatos do checkpoint:
-
-- `data/analise_qualitativa/incremental/metrics_batches.csv`
-- `data/analise_qualitativa/incremental/events.jsonl`
-- `data/analise_qualitativa/incremental/temas_candidatos_agent3.jsonl`
-- `data/analise_qualitativa/regex_classifier_rules.json`
-- `logs/execucao_final_15_llm.err.log`
-- `logs/execucao_final_15_llm_resume.err.log`
+O objetivo nao e maximizar classificacao a qualquer custo, mas manter uma camada auditavel, versionada e reaproveitavel para temas recorrentes, deixando a LLM concentrada nos casos novos, raros, ambiguos ou compostos.

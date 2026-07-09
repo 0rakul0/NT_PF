@@ -11,7 +11,7 @@ def plot_metrics(metrics: pd.DataFrame) -> list[object]:
     figures = []
     fig, ax = plt.subplots(figsize=(11, 5))
     wnn_accepted = metrics["wnn_accepted"] if "wnn_accepted" in metrics else pd.Series([0] * len(metrics), index=metrics.index)
-    post_wnn_residual = metrics["post_wnn_residual"] if "post_wnn_residual" in metrics else metrics["regex_residual"]
+    post_wnn_residual = metrics["post_wnn_residual"] if "post_wnn_residual" in metrics else pd.Series([0] * len(metrics), index=metrics.index)
     composite = metrics.get("wnn_multi_discriminator_candidates", pd.Series([0] * len(metrics), index=metrics.index))
     ax.bar(metrics["iteration"], wnn_accepted, label="WNN")
     ax.bar(metrics["iteration"], post_wnn_residual, bottom=wnn_accepted, label="Residual pos-WNN")
@@ -63,7 +63,7 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
     if not metrics.empty:
         total_docs = int(metrics["docs"].sum())
         total_wnn = int(metrics.get("wnn_accepted", pd.Series(dtype=int)).sum())
-        total_post_wnn_residual = int(metrics.get("post_wnn_residual", metrics["regex_residual"]).sum())
+        total_post_wnn_residual = int(metrics.get("post_wnn_residual", pd.Series(dtype=int)).sum())
         total_llm = int(metrics["llm_processed"].sum())
         total_learned = int(metrics["learned_rules"].sum())
         total_composite = int(metrics.get("wnn_multi_discriminator_candidates", pd.Series(dtype=int)).sum())
@@ -96,7 +96,7 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
         )
         for _, row in metrics.iterrows():
             lines.append(
-                f"- {row['batch_id']}: docs={int(row['docs'])}, residual={int(row.get('post_wnn_residual', row.get('regex_residual', 0)))}, "
+                f"- {row['batch_id']}: docs={int(row['docs'])}, residual={int(row.get('post_wnn_residual', 0))}, "
                 f"wnn={int(row.get('wnn_accepted', 0))}, llm={int(row['llm_processed'])}, aprendizados={int(row['learned_rules'])}, "
                 f"candidatos_compostos={int(row.get('wnn_multi_discriminator_candidates', 0))}, taxa_wnn={row.get('wnn_rate', 0):.2%}"
             )

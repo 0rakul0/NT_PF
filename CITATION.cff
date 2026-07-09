@@ -11,13 +11,13 @@ license: "MIT"
 abstract: >-
   NT PF coleta noticias publicas de operacoes da Policia Federal brasileira e
   aplica uma metodologia incremental autonomoma com amostragem, clusterizacao,
-  agentes LangChain, regras regex auditaveis e LLM residual local.
+  agentes LangChain, discriminadores auditaveis, memoria WNN e LLM residual local.
 keywords:
   - "policia federal"
   - "brasil"
   - "web scraping"
   - "langchain"
-  - "regex"
+  - "wnn"
   - "aprendizado incremental"
   - "analise textual"
   - "dados publicos"

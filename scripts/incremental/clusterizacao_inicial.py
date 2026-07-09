@@ -139,7 +139,11 @@ def build_semantic_clusters(sample: list[dict[str, Any]], seed: int) -> tuple[pd
     embeddings = Normalizer(copy=False).fit_transform(embeddings)
     min_cluster_size = max(8, min(60, int(np.sqrt(len(sample))) * 2))
     try:
-        labels = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=max(4, min_cluster_size // 2)).fit_predict(embeddings)
+        labels = HDBSCAN(
+            min_cluster_size=min_cluster_size,
+            min_samples=max(4, min_cluster_size // 2),
+            copy=False,
+        ).fit_predict(embeddings)
         algorithm = "hdbscan"
         non_noise_clusters = {int(label) for label in labels if int(label) != -1}
         noise_ratio = float(np.mean(np.asarray(labels) == -1))

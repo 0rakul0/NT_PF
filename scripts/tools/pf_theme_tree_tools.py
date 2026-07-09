@@ -17,7 +17,7 @@ from scripts.incremental.common import RunConfig
 
 @tool
 def organizar_arvore_temas(_: str = "") -> str:
-    """Organiza a arvore global de temas com temas canonicos, candidatos, contagens, evidencias, regex e cosseno."""
+    """Organiza a arvore global de temas com temas canonicos, candidatos, contagens, evidencias, discriminadores WNN e cosseno."""
     result = run_theme_tree_organizer(RunConfig(reset=False))
     return json.dumps(result, ensure_ascii=False, default=str)
 

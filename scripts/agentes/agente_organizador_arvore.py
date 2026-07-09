@@ -5,7 +5,6 @@ from collections import Counter, defaultdict
 from typing import Any
 
 from scripts.incremental.common import (
-    ACTIVE_REGEX_BANK_PATH,
     NEW_THEME_CANDIDATES_JSONL,
     RARE_NEWS_DESCRIPTION,
     RARE_NEWS_LABEL,
@@ -115,31 +114,8 @@ def _tokens(label: str) -> set[str]:
     return {token for token in label.split("_") if token and token not in WEAK_THEME_TOKENS}
 
 
-def _regex_by_label() -> dict[str, list[dict[str, Any]]]:
-    if not ACTIVE_REGEX_BANK_PATH.exists():
-        return {}
-    payload = read_json(ACTIVE_REGEX_BANK_PATH)
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for item in payload if isinstance(payload, list) else []:
-        label = str(item.get("classificador", "") or item.get("label", "")).strip()
-        if not label:
-            continue
-        for pattern in item.get("patterns_do_classificador", []) or []:
-            if isinstance(pattern, dict):
-                grouped[label].append(
-                    {
-                        "pattern": pattern.get("pattern_do_classificador", ""),
-                        "source": pattern.get("source", item.get("source", "")),
-                        "uses": pattern.get("uses", 0),
-                        "examples": pattern.get("examples", [])[:3],
-                    }
-                )
-    return grouped
-
-
 def _candidate_groups() -> list[dict[str, Any]]:
     rows = read_jsonl(NEW_THEME_CANDIDATES_JSONL)
-    regex_lookup = _regex_by_label()
     grouped: dict[str, dict[str, Any]] = {}
     for row in rows:
         label = str(row.get("canonical_label", "")).strip()
@@ -153,7 +129,6 @@ def _candidate_groups() -> list[dict[str, Any]]:
                 "examples": [],
                 "evidence_terms": [],
                 "iterations": [],
-                "learned_regex": [],
                 "cosine_candidates": [],
                 "marcadores_secundarios": [],
                 "relacoes_operacionais": [],
@@ -188,7 +163,6 @@ def _candidate_groups() -> list[dict[str, Any]]:
                 if len(item["evidence_terms"]) >= 12:
                     break
     for label, item in grouped.items():
-        item["learned_regex"] = regex_lookup.get(label, [])[:12]
         similarity_text = " ".join(
             [
                 label.replace("_", " "),
@@ -203,7 +177,6 @@ def _candidate_groups() -> list[dict[str, Any]]:
 
 def _active_themes() -> list[dict[str, Any]]:
     payload = read_json(THEMES_JSON)
-    regex_lookup = _regex_by_label()
     themes = []
     for theme in payload.get("themes", []):
         if theme.get("decision") != "accept":
@@ -216,8 +189,6 @@ def _active_themes() -> list[dict[str, Any]]:
                 "included_cluster_ids": theme.get("included_cluster_ids", []),
                 "included_subthemes": theme.get("included_subthemes", []),
                 "evidence_terms": theme.get("evidence_terms", []),
-                "learned_regex_count": len(regex_lookup.get(label, [])),
-                "learned_regex_sample": regex_lookup.get(label, [])[:8],
             }
         )
     if RARE_NEWS_LABEL not in {str(theme["canonical_theme"]) for theme in themes}:
@@ -228,8 +199,6 @@ def _active_themes() -> list[dict[str, Any]]:
                 "included_cluster_ids": [],
                 "included_subthemes": [],
                 "evidence_terms": ["residual sem encaixe", "caso raro", "sem tema canonico defensavel"],
-                "learned_regex_count": 0,
-                "learned_regex_sample": [],
             }
         )
     return themes
@@ -379,66 +348,6 @@ def _refined_label_map(response: ThemeTreeRefinementResponse) -> dict[str, str]:
     return mapping
 
 
-def _apply_refined_tree_to_regex_bank(response: ThemeTreeRefinementResponse) -> dict[str, int]:
-    if not ACTIVE_REGEX_BANK_PATH.exists():
-        return {"remapped_classifiers": 0, "removed_classifiers": 0, "merged_classifiers": 0}
-    mapping = _refined_label_map(response)
-    if not mapping:
-        return {"remapped_classifiers": 0, "removed_classifiers": 0, "merged_classifiers": 0}
-
-    payload = read_json(ACTIVE_REGEX_BANK_PATH)
-    if not isinstance(payload, list):
-        return {"remapped_classifiers": 0, "removed_classifiers": 0, "merged_classifiers": 0}
-
-    grouped: dict[str, dict[str, Any]] = {}
-    remapped = 0
-    removed = 0
-    merged = 0
-    for item in payload:
-        if not isinstance(item, dict):
-            continue
-        original_label = str(item.get("classificador", "") or item.get("label", "")).strip()
-        target_label = mapping.get(original_label, original_label)
-        if target_label in {"", RARE_NEWS_LABEL}:
-            removed += 1
-            continue
-        if target_label != original_label:
-            remapped += 1
-        updated = dict(item)
-        updated["classificador"] = target_label
-        updated["source"] = "mixed" if target_label != original_label else updated.get("source", "")
-        patterns = []
-        for pattern in updated.get("patterns_do_classificador", []) or []:
-            if not isinstance(pattern, dict):
-                continue
-            candidate = dict(pattern)
-            examples = list(candidate.get("examples", []) or [])
-            if original_label != target_label:
-                examples.append(f"remapped_from:{original_label}")
-            candidate["examples"] = examples[:8]
-            patterns.append(candidate)
-        updated["patterns_do_classificador"] = patterns
-        if target_label not in grouped:
-            grouped[target_label] = updated
-            continue
-        merged += 1
-        current = grouped[target_label]
-        current["uses"] = int(current.get("uses", 0) or 0) + int(updated.get("uses", 0) or 0)
-        current["source"] = "mixed"
-        current_examples = list(current.get("examples", []) or [])
-        current["examples"] = (current_examples + list(updated.get("examples", []) or []))[:12]
-        seen_patterns = {str(pattern.get("pattern_do_classificador", "")) for pattern in current.get("patterns_do_classificador", []) or []}
-        for pattern in patterns:
-            key = str(pattern.get("pattern_do_classificador", ""))
-            if key and key not in seen_patterns:
-                current.setdefault("patterns_do_classificador", []).append(pattern)
-                seen_patterns.add(key)
-
-    ordered = [grouped[label] for label in sorted(grouped)]
-    write_json(ACTIVE_REGEX_BANK_PATH, ordered)
-    return {"remapped_classifiers": remapped, "removed_classifiers": removed, "merged_classifiers": merged}
-
-
 def _apply_refined_tree_to_wnn_bank(response: ThemeTreeRefinementResponse) -> dict[str, int]:
     if not WNN_FEATURE_BANK_PATH.exists():
         return {"remapped_discriminators": 0, "removed_discriminators": 0}
@@ -498,7 +407,7 @@ def refine_theme_tree(config: RunConfig) -> ThemeTreeRefinementResponse:
             "agent3_candidate_themes": candidates,
             "notes": [
                 "Insumo completo do Agente Organizador da Arvore.",
-                "Cada candidato inclui contagem, evidencias, regex aprendidas quando houver e sugestoes por similaridade do cosseno.",
+                "Cada candidato inclui contagem, evidencias e sugestoes por similaridade do cosseno.",
                 "Candidatos composto_* podem nascer de multiplos discriminadores acionados; trate-os como evidencia para ajustar pais, folhas ou relacoes operacionais, nao como promocao automatica.",
             ],
         },
@@ -538,10 +447,8 @@ def refine_theme_tree(config: RunConfig) -> ThemeTreeRefinementResponse:
         response = _fallback_decisions(active_themes, candidates)
 
     response = _taxonomy_policy_decisions(active_themes, candidates)
-    regex_bank_result = _apply_refined_tree_to_regex_bank(response)
     wnn_bank_result = _apply_refined_tree_to_wnn_bank(response)
     append_event({"stage": "agente_organizador_arvore", "status": "taxonomy_policy_applied"})
-    append_event({"stage": "agente_organizador_arvore", "status": "regex_bank_remapped", **regex_bank_result})
     append_event({"stage": "agente_organizador_arvore", "status": "wnn_bank_remapped", **wnn_bank_result})
 
     write_json(REFINED_THEME_TREE_JSON, response.model_dump())

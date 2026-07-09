@@ -74,7 +74,7 @@ def write_markdown(summary: dict[str, Any], path: Path = OUTPUT_MD) -> Path:
         f"| Tokens totais | {summary['tokens_total']} |",
         f"| Media de tokens por residual | {summary['avg_tokens_per_llm']} |",
         "",
-        "O custo operacional variavel deve ser estimado sobre os tokens residuais, pois noticias classificadas por regex nao consomem inferencia LLM.",
+        "O custo operacional variavel deve ser estimado sobre os tokens residuais, pois noticias classificadas pela WNN nao consomem inferencia LLM.",
         "",
     ]
     path.write_text("\n".join(lines), encoding="utf-8")

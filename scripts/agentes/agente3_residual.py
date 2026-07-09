@@ -9,11 +9,36 @@ from scripts.incremental.llm_api import TokenUsage, ZERO_TOKEN_USAGE, invoke_jso
 from scripts.pf_llm_models import normalize_slug
 from scripts.schemas.pf_incremental_agent_schemas import ResidualReviewAgentResponse
 from scripts.agentes.agente1_temas import normalize_theme_label
+from scripts.text_utils import fold_text
 
-try:
-    from scripts.pf_regex_classifier import fold_text
-except ModuleNotFoundError:
-    from pf_regex_classifier import fold_text
+
+MODUS_LABEL_ALIASES = {
+    "madeira_ilegal": "extracao_ilegal_madeira",
+    "exploracao_ilegal_madeira": "extracao_ilegal_madeira",
+    "extracao_ilegal_de_madeira": "extracao_ilegal_madeira",
+    "exploracao_ilicita_madeira": "extracao_ilegal_madeira",
+    "mineracao_ilegal": "garimpo_ilegal",
+    "garimpo_clandestino": "garimpo_ilegal",
+    "trafico_animais_silvestres": "trafico_de_especies",
+    "trafico_fauna_silvestre": "trafico_de_especies",
+    "trafico_vida_silvestre": "trafico_de_especies",
+    "pesca_clandestina": "pesca_ilegal",
+}
+BLOCKED_MODUS_LABELS = {
+    "atuacao_clandestina",
+    "falta_de_fiscalizacao",
+}
+
+
+def normalize_modus_label(label: str) -> str:
+    normalized = normalize_slug(label)
+    normalized = MODUS_LABEL_ALIASES.get(normalized, normalized)
+    if not normalized or normalized in BLOCKED_MODUS_LABELS:
+        return ""
+    if normalized.startswith("fiscalizacao_"):
+        if normalized != "fiscalizacao_ambiental":
+            return ""
+    return normalized
 
 
 def body_text(doc: dict[str, Any]) -> str:
@@ -46,6 +71,28 @@ def map_secondary_labels(labels: list[str], allowed_labels: list[str], primary: 
         if canonical and canonical != primary and canonical not in mapped:
             mapped.append(canonical)
     return mapped[:8]
+
+
+def map_modus_labels(labels: list[str]) -> list[str]:
+    mapped: list[str] = []
+    for label in labels:
+        normalized = normalize_modus_label(label)
+        if normalized and normalized not in mapped:
+            mapped.append(normalized)
+    return mapped[:8]
+
+
+def _fallback_canonical_from_cosine(cosine_candidates: list[dict[str, Any]], allowed_labels: list[str]) -> str:
+    if not cosine_candidates:
+        return ""
+    top = cosine_candidates[0]
+    try:
+        score = float(top.get("score", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        score = 0.0
+    if score < 0.22:
+        return ""
+    return map_to_canonical_label([str(top.get("label", ""))], allowed_labels)
 
 
 def deterministic_new_theme_candidate(doc: dict[str, Any], allowed_labels: list[str]) -> ResidualReviewAgentResponse | None:
@@ -110,7 +157,10 @@ Tarefa:
   * exemplo: trafico de drogas + lavagem de dinheiro + organizacao criminosa deve virar crime_organizado com marcadores_secundarios=["trafico_drogas","lavagem_dinheiro"];
 - analise somente o corpo da noticia informado em Texto; ignore titulo, tags, slug do arquivo e metadados externos;
 - responda somente um objeto JSON valido com as chaves:
-  decision, canonical_label, confidence, evidence_text, rationale, resumo_curto, tema_principal, marcadores_secundarios, relacao_operacional;
+  decision, canonical_label, confidence, evidence_text, rationale, resumo_curto, tema_principal, marcadores_secundarios, modus_operandi, relacao_operacional;
+- preencha modus_operandi com zero ou mais labels curtas em lowercase_com_underscores que descrevam a forma de execucao.
+- exemplos de modus_operandi validos: arma_fogo, fraude_documental, fraude_digital, fraude_pix, arrombamento, abordagem_via_publica, invasao_dispositivo, lavagem_financeira, armazenamento_digital, compartilhamento_online, extracao_ilegal_madeira, garimpo_ilegal, desmatamento, trafico_de_especies, caca_ilegal, pesca_ilegal, uso_ilegal_solo, comercializacao_ilegal, transporte_ilegal, apreensao_madeira, fiscalizacao_ambiental, atividade_clandestina, risco_ambiental.
+- em crimes ambientais, apreensao_madeira, fiscalizacao_ambiental, atividade_clandestina e risco_ambiental podem ser usados quando descreverem a forma operacional observada no caso.
 - se decision for novo_tema_candidato, canonical_label deve ser uma nova label em lowercase_com_underscores.
 
 Labels canonicas permitidas:
@@ -130,16 +180,33 @@ Texto:
         return review.model_copy(update={"canonical_label": candidate_label}), provider, model_name, token_usage
     if review.decision != "classificar":
         return rare_news_review(review), provider, model_name, token_usage
+    if not str(review.canonical_label or "").strip():
+        cosine_fallback = _fallback_canonical_from_cosine(cosine_candidates, allowed_labels)
+        if cosine_fallback:
+            review = review.model_copy(
+                update={
+                    "canonical_label": cosine_fallback,
+                    "tema_principal": review.tema_principal or cosine_fallback,
+                    "rationale": (
+                        review.rationale + " "
+                        if review.rationale
+                        else ""
+                    )
+                    + "Label canonica ausente na resposta; aplicado fallback pela melhor sugestao de cosseno.",
+                }
+            )
     canonical_label = map_to_canonical_label([review.canonical_label], allowed_labels)
     if not canonical_label:
         return rare_news_review(review, "Label retornada fora da lista canonica permitida."), provider, model_name, token_usage
     secondary = map_secondary_labels(review.marcadores_secundarios, allowed_labels, canonical_label)
+    modus = map_modus_labels(review.modus_operandi)
     relation = review.relacao_operacional or ("coocorrencia_sem_fusao" if secondary else "tema_unico")
     return review.model_copy(
         update={
             "canonical_label": canonical_label,
             "tema_principal": review.tema_principal or canonical_label,
             "marcadores_secundarios": secondary,
+            "modus_operandi": modus,
             "relacao_operacional": relation,
         }
     ), provider, model_name, token_usage
@@ -160,6 +227,7 @@ def append_new_theme_candidate(doc: dict[str, Any], review: ResidualReviewAgentR
                     "rationale": review.rationale,
                     "tema_principal": review.tema_principal,
                     "marcadores_secundarios": review.marcadores_secundarios,
+                    "modus_operandi": review.modus_operandi,
                     "relacao_operacional": review.relacao_operacional,
                     "resumo_curto": review.resumo_curto,
                 },

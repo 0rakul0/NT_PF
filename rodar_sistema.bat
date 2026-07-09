@@ -18,7 +18,7 @@ echo - amostra inicial 10%% com estratificacao temporal
 echo - massa incremental 90%%
 echo - lotes de 500 noticias
 echo - Agente 2 gera discriminadores para a WNN
-echo - regex deterministica desativada por padrao
+echo - classificacao deterministica baseada em memoria WNN
 echo - agente separado revisa a arvore ao final de cada lote
 echo - gerar metricas, graficos e README automatico
 echo.

@@ -196,7 +196,7 @@ def regex_residual() -> None:
     ax.set_xlabel("Lote")
     ax.set_ylabel("Noticias")
     ax.legend(loc="lower right", frameon=True)
-    save_current(fig, "figura-3-regex-vs-residual.png")
+    save_current(fig, "figura-3-wnn-vs-residual.png")
 
     fig, ax = plt.subplots(figsize=(11, 5.6))
     ax.plot(BATCH_METRICS["iteracao"], BATCH_METRICS["taxa_regex"], marker="o", label="Taxa por lote", color="#4C78A8")
@@ -212,7 +212,7 @@ def regex_residual() -> None:
     ax.set_xlabel("Lote")
     ax.set_ylabel("Proporcao")
     ax.legend(loc="lower right", frameon=True)
-    save_current(fig, "figura-4-taxa-regex.png")
+    save_current(fig, "figura-4-taxa-wnn.png")
 
 
 def temas_finais() -> None:

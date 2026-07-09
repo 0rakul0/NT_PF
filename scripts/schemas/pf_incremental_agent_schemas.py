@@ -5,26 +5,9 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-RuleKind = Literal["crime", "modus"]
-RuleDecision = Literal["incorporar", "rejeitar", "quarentena"]
 TopicType = Literal["crime", "modus", "setor", "operacao", "tema_institucional", "misto", "ruido"]
 ThemeDecision = Literal["accept", "merge", "split", "discard", "quarantine"]
 ThemeTreeDecision = Literal["merge_into_existing", "promote_to_canonical", "keep_as_leaf", "discard", "quarantine"]
-
-
-class RegexCandidate(BaseModel):
-    """Regex proposta por um agente para classificar casos futuros."""
-
-    kind: RuleKind = Field(description="Tipo da regra candidata.")
-    label: str = Field(description="Label canonica associada a regex.")
-    pattern: str = Field(description="Expressao regular candidata.")
-    rationale: str = Field(description="Justificativa textual para a regex.")
-    expected_precision_risk: str = Field(
-        default="medio",
-        description="Risco estimado de falso positivo: baixo, medio ou alto.",
-    )
-    positive_examples: list[str] = Field(default_factory=list, description="Exemplos positivos usados.")
-    negative_examples: list[str] = Field(default_factory=list, description="Exemplos negativos ou contraexemplos.")
 
 
 class CanonicalTheme(BaseModel):
@@ -51,45 +34,8 @@ class ThemeBifurcationAgentResponse(BaseModel):
     global_risks: list[str] = Field(default_factory=list, description="Riscos metodologicos automaticos.")
 
 
-class InitialRegexAgentResponse(BaseModel):
-    """Resposta padronizada do Agente 2: gerador de regex iniciais."""
-
-    theme_id: str = Field(default="", description="Identificador do tema canonico.")
-    canonical_topic: str = Field(description="Tema canonico associado.")
-    regex_candidates: list[RegexCandidate] = Field(default_factory=list, description="Regex candidatas avaliadas.")
-    accepted_initial_rules: list[RegexCandidate] = Field(default_factory=list, description="Regex aprovadas.")
-    rejected_candidates: list[RegexCandidate] = Field(default_factory=list, description="Regex rejeitadas.")
-    quarantined_candidates: list[RegexCandidate] = Field(default_factory=list, description="Regex em quarentena automatica.")
-    coverage_estimate: float = Field(ge=0.0, le=1.0, description="Estimativa de cobertura automatica.")
-    precision_risk: str = Field(description="Risco estimado de falso positivo.")
-
-
-class RegexIncorporationDecision(BaseModel):
-    """Decisao individual do Agente Aprendiz de Regex sobre uma regex candidata."""
-
-    decision: RuleDecision = Field(description="Decisao tomada para a regex.")
-    kind: RuleKind = Field(description="Tipo da regra.")
-    label: str = Field(description="Label canonica avaliada.")
-    pattern: str = Field(description="Regex avaliada.")
-    validation_summary: str = Field(description="Resumo da validacao aplicada.")
-    justification: str = Field(description="Justificativa da decisao.")
-
-
-class LearningAgentResponse(BaseModel):
-    """Resposta padronizada do Agente Aprendiz de Regex."""
-
-    batch_id: str = Field(default="", description="Identificador do lote, quando disponivel.")
-    decisions: list[RegexIncorporationDecision] = Field(default_factory=list, description="Decisoes por regex.")
-    incorporated_count: int = Field(ge=0, description="Quantidade de regex incorporadas.")
-    rejected_count: int = Field(ge=0, description="Quantidade de regex rejeitadas.")
-    quarantined_count: int = Field(ge=0, description="Quantidade de regex em quarentena automatica.")
-    learned_labels: list[str] = Field(default_factory=list, description="Labels afetadas pelo aprendizado.")
-    residual_risks: list[str] = Field(default_factory=list, description="Riscos restantes apos a decisao.")
-    next_automatic_tests: list[str] = Field(default_factory=list, description="Testes automaticos recomendados.")
-
-
 class ResidualReviewAgentResponse(BaseModel):
-    """Resposta padronizada do Agente 3 para revisar residuais do regex."""
+    """Resposta padronizada do Agente 3 para revisar residuais do pipeline WNN."""
 
     decision: Literal["classificar", "quarentena", "novo_tema_candidato"] = Field(description="Decisao automatica sobre o residual.")
     canonical_label: str = Field(description="Uma label canonica do Agente 1, uma nova label candidata, ou vazio em quarentena.")
@@ -99,6 +45,7 @@ class ResidualReviewAgentResponse(BaseModel):
     resumo_curto: str = Field(default="", description="Resumo factual curto do residual.")
     tema_principal: str = Field(default="", description="Tema dominante quando houver multiplos marcadores.")
     marcadores_secundarios: list[str] = Field(default_factory=list, description="Marcadores presentes, mas secundarios.")
+    modus_operandi: list[str] = Field(default_factory=list, description="Modos de atuacao observados no caso.")
     relacao_operacional: str = Field(default="", description="cadeia_operacional, crime_organizado_multidominio, coocorrencia_sem_fusao ou tema_unico.")
 
     @model_validator(mode="before")
@@ -127,6 +74,13 @@ class ResidualReviewAgentResponse(BaseModel):
             return "quarentena"
         return text
 
+    @field_validator("canonical_label", mode="before")
+    @classmethod
+    def normalize_canonical_label(cls, value: object) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
     @field_validator("tema_principal", "relacao_operacional", mode="before")
     @classmethod
     def normalize_optional_slug(cls, value: object) -> str:
@@ -136,7 +90,7 @@ class ResidualReviewAgentResponse(BaseModel):
 
         return normalize_slug(str(value))
 
-    @field_validator("marcadores_secundarios", mode="before")
+    @field_validator("marcadores_secundarios", "modus_operandi", mode="before")
     @classmethod
     def ensure_secondary_list(cls, value: object) -> list[str]:
         if value is None:
@@ -146,7 +100,7 @@ class ResidualReviewAgentResponse(BaseModel):
         text = str(value).strip()
         return [text] if text else []
 
-    @field_validator("marcadores_secundarios")
+    @field_validator("marcadores_secundarios", "modus_operandi")
     @classmethod
     def normalize_secondary_values(cls, value: list[str]) -> list[str]:
         from scripts.pf_llm_models import normalize_slug
@@ -182,32 +136,6 @@ class OperationalThemeBifurcationResponse(BaseModel):
     quarantined_cluster_ids: list[int] = Field(default_factory=list)
     discarded_cluster_ids: list[int] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
-
-
-class RegexRuleProposal(BaseModel):
-    """Regex proposta pelo Agente 2."""
-
-    kind: RuleKind = Field(description="crime ou modus")
-    label: str
-    pattern: str
-    rationale: str
-    risk: str = Field(description="baixo, medio ou alto")
-
-
-class InitialRegexResponse(BaseModel):
-    """Resposta operacional do Agente 2 para um tema canonico."""
-
-    canonical_theme: str
-    accepted_rules: list[RegexRuleProposal] = Field(default_factory=list)
-    rejected_rules: list[RegexRuleProposal] = Field(default_factory=list)
-    quarantined_rules: list[RegexRuleProposal] = Field(default_factory=list)
-    notes: list[str] = Field(default_factory=list)
-
-
-class InitialRegexBatchResponse(BaseModel):
-    """Resposta operacional do Agente 2 para todos os temas canonicos."""
-
-    themes: list[InitialRegexResponse] = Field(default_factory=list)
 
 
 class ThemeCandidateDecision(BaseModel):

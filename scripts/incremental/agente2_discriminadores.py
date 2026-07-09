@@ -33,10 +33,23 @@ def run(config: RunConfig) -> dict[str, object]:
         "wnn_feature_bank": str(WNN_FEATURE_BANK_PATH),
         "wnn_discriminators": feature_bank.get("discriminator_count", 0),
         "wnn_labels": len(feature_bank.get("labels", [])),
+        "wnn_crime_discriminators": len(
+            [
+                item
+                for item in feature_bank.get("discriminators", [])
+                if isinstance(item, dict) and str(item.get("kind", "crime")) == "crime"
+            ]
+        ),
+        "wnn_modus_discriminators": len(
+            [
+                item
+                for item in feature_bank.get("discriminators", [])
+                if isinstance(item, dict) and str(item.get("kind", "crime")) == "modus"
+            ]
+        ),
         "discriminator_mode": "tokens_only",
-        "generalization_policy": "micro_world_markers_from_body_text",
+        "generalization_policy": "crime_and_modus_markers_from_body_text",
         "uses_title_or_tags": False,
-        "regex_generated": False,
     }
     write_json(RUN_DIR / "agente2_result.json", result)
     append_event(result)

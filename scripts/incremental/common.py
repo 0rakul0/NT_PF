@@ -15,10 +15,10 @@ from langchain_ollama import ChatOllama
 from scripts.incremental.preprocessamento_linguistico import preprocess_body_text
 
 try:
-    from scripts.pf_llm_metadata import build_llm_context, parse_news_markdown
+    from scripts.news_markdown import build_llm_context, parse_news_markdown
     from scripts.project_config import ANALYSIS_DIR, NEWS_MARKDOWN_DIR, PROJECT_ROOT
 except ModuleNotFoundError:
-    from pf_llm_metadata import build_llm_context, parse_news_markdown
+    from news_markdown import build_llm_context, parse_news_markdown
     from project_config import ANALYSIS_DIR, NEWS_MARKDOWN_DIR, PROJECT_ROOT
 
 
@@ -29,8 +29,6 @@ EVENTS_JSONL = RUN_DIR / "events.jsonl"
 RUN_SNAPSHOTS_DIR = ANALYSIS_DIR / "run_snapshots"
 DASHBOARD_HTML = ANALYSIS_DIR / "dashboard_comparacao.html"
 
-ACTIVE_REGEX_BANK_PATH = ANALYSIS_DIR / "regex_classifier_rules.json"
-AGENT2_REGEX_BANK_PATH = RUN_DIR / "regex_banco_agent2.json"
 WNN_FEATURE_BANK_PATH = ANALYSIS_DIR / "wnn_feature_bank.json"
 
 DOCS_JSONL = RUN_DIR / "documentos_base.jsonl"
@@ -39,7 +37,6 @@ RESERVE_CSV = RUN_DIR / "reserva_incremental.csv"
 CLUSTER_ASSIGNMENTS_CSV = RUN_DIR / "cluster_assignments_amostra.csv"
 CLUSTER_SUMMARY_CSV = RUN_DIR / "resumo_clusters_amostra.csv"
 THEMES_JSON = RUN_DIR / "temas_canonicos_agent1.json"
-INITIAL_REGEX_JSON = RUN_DIR / "regex_iniciais_agent2.json"
 COSINE_PROFILE_PKL = RUN_DIR / "perfis_cosseno_temas.pkl"
 COSINE_PROFILE_JSON = RUN_DIR / "perfis_cosseno_temas.json"
 NEW_THEME_CANDIDATES_JSONL = RUN_DIR / "temas_candidatos_agent3.jsonl"
@@ -68,8 +65,6 @@ class RunConfig:
     sample_fraction: float = 0.10
     batch_size: int = 500
     seed: int = 42
-    regex_threshold: float = 0.85
-    regex_enabled: bool = False
     wnn_enabled: bool = True
     wnn_confidence_threshold: float = 0.50
     wnn_margin_threshold: float = 0.12
@@ -86,10 +81,11 @@ class RunConfig:
     ollama_num_ctx: int = 131072
     ollama_num_predict: int = 1024
     agent3_min_confidence: float = 0.55
-    initial_regex_target_per_theme: int | None = 0
     resume_batches: bool = True
     preserve_previous_run: bool = True
-    theme_tree_review_interval_batches: int = 1
+    theme_tree_review_interval_batches: int = 0
+    dashboard_update_interval_batches: int = 0
+    wnn_compaction_interval_batches: int = 2
     local_fallback_models: tuple[str, ...] = ("llama3.1:latest", "gemma3n:e2b", "llama3:8b")
 
 
@@ -115,7 +111,6 @@ def reset_outputs() -> list[str]:
             deleted.append(str(resolved))
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
     RUN_DIR.mkdir(parents=True, exist_ok=True)
-    ACTIVE_REGEX_BANK_PATH.write_text("[]\n", encoding="utf-8")
     WNN_FEATURE_BANK_PATH.write_text("{}\n", encoding="utf-8")
     return deleted
 
@@ -126,7 +121,6 @@ def snapshot_existing_run(label: str = "") -> dict[str, object]:
     candidates = [
         RUN_DIR,
         LOTS_DIR,
-        ACTIVE_REGEX_BANK_PATH,
         WNN_FEATURE_BANK_PATH,
         DASHBOARD_HTML,
     ]

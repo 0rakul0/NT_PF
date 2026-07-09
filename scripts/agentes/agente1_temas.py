@@ -171,7 +171,7 @@ def generate_canonical_themes(cluster_summary: pd.DataFrame, config: RunConfig) 
         "Se um cluster misto tiver subtema claro, bifurque em mais de um tema quando necessario. "
         "Nao funda dominios distintos apenas por coocorrencia: mineracao ilegal + trafico de drogas sem ponte operacional deve permanecer multi-rotulo/subtema separado. "
         "Se trafico, lavagem, armas e organizacao/faccao/associacao aparecerem conectados como cadeia operacional, agrupe sob crime_organizado e registre os eixos como subtemas/evidencias. "
-        "Nao gere regex. Nao peca revisao humana; use accept, discard ou quarantine. "
+        "Nao gere padroes ordenados nem regras deterministicas legadas. Nao peca revisao humana; use accept, discard ou quarantine. "
         "Clusters:\n"
         + json.dumps(payload, ensure_ascii=False)[:24000]
     )

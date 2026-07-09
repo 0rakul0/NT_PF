@@ -11,13 +11,12 @@ do projeto `NT PF`.
 - `data/pf_operacoes_conteudos.csv`: manifesto de extracao das noticias.
 - `data/noticias_markdown/*.md`: textos extraidos das noticias.
 
-## Saidas Atuais
+## Saidas atuais
 
 A execucao oficial grava os artefatos em:
 
 - `data/analise_qualitativa/incremental/`
 - `data/analise_qualitativa/lotes/`
-- `data/analise_qualitativa/regex_classifier_rules.json`
 
 Os principais artefatos esperados sao:
 
@@ -27,8 +26,8 @@ Os principais artefatos esperados sao:
 - `cluster_assignments_amostra.csv`
 - `resumo_clusters_amostra.csv`
 - `temas_canonicos_agent1.json`
-- `regex_iniciais_agent2.json`
-- `regex_banco_agent2.json`
+- `agente2_result.json`
+- `wnn_feature_bank.json`
 - `metrics_batches.csv`
 - `relatorio_execucao_metodologia.md`
 - `run_manifest.json`
@@ -38,15 +37,14 @@ Os principais artefatos esperados sao:
 ## Metodo
 
 A metodologia usa scripts encadeados. `amostragem.py` gera `documentos_base.jsonl`,
-`amostra_inicial.csv` e `reserva_incremental.csv` com uma amostra de 3%,
-estratificada por tempo para capturar fragmentos de diferentes momentos da base;
-`clusterizacao_inicial.py` gera os clusters da amostra; `agente1_temas.py` gera
-os nomes canonicos; `agente2_regex_inicial.py` gera as regex iniciais;
-`processar_lotes.py` usa os 97% restantes em lotes. Cada lote passa primeiro
-pelo banco ativo de regex. Esse banco comeca como a lista aprovada pelo Agente 2
-em `regex_banco_agent2.json`; os residuos sao enviados para a LLM local e o
-Agente 3 decide automaticamente quais aprendizados entram no arquivo ativo
-`regex_classifier_rules.json`.
+`amostra_inicial.csv` e `reserva_incremental.csv` com amostragem estratificada
+no tempo; `clusterizacao_inicial.py` gera os clusters da amostra;
+`agente1_temas.py` gera os nomes canonicos; `agente2_discriminadores.py` gera
+os discriminadores iniciais; `processar_lotes.py` usa a reserva incremental em
+lotes. Cada lote passa pela camada WNN. Quando a WNN nao resolve o caso com
+confianca suficiente, os residuos sao enviados para a LLM local e o Agente 3
+decide automaticamente quais aprendizados entram no banco ativo
+`wnn_feature_bank.json`.
 
 ## Licenciamento
 

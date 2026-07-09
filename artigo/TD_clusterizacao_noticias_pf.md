@@ -12,7 +12,7 @@ Esse processo é difícil porque grandes bases textuais são heterogêneas, cres
 
 Modelos de linguagem ampliam a capacidade de interpretar textos e podem apoiar tarefas de classificação, extração de evidências e nomeação de temas. No entanto, usar LLM em toda a base pode ser caro, pouco previsível e menos reprodutível quando não há uma camada determinística de verificação. A proposta deste trabalho parte dessa tensão: usar LLM onde ela agrega mais valor, isto é, nos resíduos, ambiguidades e exceções, e converter parte desse aprendizado em marcadores auditáveis que passam a compor uma memória WNN. Com isso, busca-se um ciclo de aprendizado contínuo que contribua para diminuir custos operacionais ao longo do tempo.
 
-Este Texto para Discussão tem como objetivo propor uma metodologia incremental, autônoma e transparente para clusterizar, classificar e aprender continuamente a partir de grandes bases textuais. A proposta busca responder a um problema operacional comum a instituições que lidam com dados textuais em larga escala: como organizar temas recorrentes, reconhecer exceções, reduzir custo de inferência e preservar rastreabilidade ao longo de sucessivas rodadas de dados. A metodologia é aplicada empiricamente a notícias públicas da Polícia Federal, por constituírem uma base real, volumosa, heterogênea e marcada por termos especializados; nessa aplicação, o alvo de classificação é crime ou modus operandi. Na amostra de fundação, a clusterização gerou 35 clusters brutos, posteriormente consolidados em 27 folhas temáticas e organizados em 17 temas canônicos, indicando que os agrupamentos exploratórios precisavam ser interpretados e refinados antes de se tornarem categorias operacionais. O texto está organizado da seguinte forma: a seção 2 apresenta o referencial teórico; a seção 3 discute trabalhos relacionados; a seção 4 detalha a metodologia; a seção 5 apresenta a avaliação experimental; a seção 6 apresenta a conclusão, os critérios de qualidade e as limitações observadas; e o Apêndice registra métricas por lote.
+Este Texto para Discussão tem como objetivo propor uma metodologia incremental, autônoma e transparente para clusterizar, classificar e aprender continuamente a partir de grandes bases textuais. A proposta busca responder a um problema operacional comum a instituições que lidam com dados textuais em larga escala: como organizar temas recorrentes, reconhecer exceções, reduzir custo de inferência e preservar rastreabilidade ao longo de sucessivas rodadas de dados. A metodologia é aplicada empiricamente a notícias públicas da Polícia Federal, por constituírem uma base real, volumosa, heterogênea e marcada por termos especializados; nessa aplicação, o sistema busca identificar simultaneamente o tema criminal principal da notícia e, quando houver evidência suficiente, o respectivo modus operandi. Na amostra de fundação, a clusterização gerou folhas temáticas exploratórias que precisaram ser interpretadas e refinadas antes de se tornarem categorias operacionais. O texto está organizado da seguinte forma: a seção 2 apresenta o referencial teórico; a seção 3 discute trabalhos relacionados; a seção 4 detalha a metodologia; a seção 5 apresenta a avaliação experimental; a seção 6 apresenta a conclusão, os critérios de qualidade e as limitações observadas; e o Apêndice registra métricas por lote.
 
 Assim, o resultado esperado não se limita à classificação pontual da base usada como aplicação, mas consiste em um procedimento transferível de clusterização, classificação e treinamento incremental autônomo, com rastreabilidade e menor dependência de intervenção humana no ciclo operacional.
 
@@ -82,7 +82,7 @@ O ciclo é executado por transferência explícita de artefatos entre componente
 
 ### 4.2 Unidade documental, alvo de classificação e controles de domínio
 
-A unidade classificada pela metodologia é o documento textual individual. Na aplicação empírica, essa unidade é uma notícia pública da Polícia Federal, tratada como um registro composto por campos como título, subtítulo, data, tags, corpo, fonte e link. O objetivo não é classificar todos os elementos mencionados no texto, mas atribuir uma label principal ao documento segundo um atributo substantivo definido previamente.
+A unidade classificada pela metodologia é o documento textual individual. Na aplicação empírica, essa unidade é uma notícia pública da Polícia Federal, tratada como um registro composto por campos como título, subtítulo, data, tags, corpo, fonte e link. O objetivo não é classificar todos os elementos mencionados no texto, mas atribuir ao documento um crime canônico principal, complementado, quando possível, por um `modus_operandi` auditável.
 
 A primeira decisão metodológica é, portanto, definir esse atributo. Em uma base jurídica, ele pode ser tipo de ação; em uma base de saúde, agravo ou procedimento; em uma base de segurança, natureza criminal ou modus operandi. Na aplicação com notícias da Polícia Federal, o alvo é o domínio criminal ou o modus operandi principal. Por isso, categorias como `trafico_drogas`, `crimes_contra_criancas`, `crime_organizado`, `corrupcao_desvio_recursos_publicos`, `crimes_ambientais`, `armas_municoes`, `falsificacao_documental` e `moeda_falsa` são temas substantivos.
 
@@ -129,13 +129,13 @@ Esse contrato mostra que a saída de uma etapa é sempre a entrada explícita da
 
 A fundação temática constrói a primeira versão da taxonomia e do banco de discriminadores. A base estruturada é dividida em duas massas: uma amostra inicial, preferencialmente estratificada no tempo, e uma reserva incremental. A amostra é usada para descobrir temas e criar discriminadores iniciais; a reserva é usada para medir cobertura, resíduos e aprendizado ao longo dos lotes.
 
-Cada documento da amostra é convertido em texto de domínio. Essa etapa prioriza título, subtítulo, tags, condutas, crimes, objetos ilícitos, modus operandi e trechos relevantes do corpo. Ao mesmo tempo, reduz o peso de localidades, nomes de operação, órgãos parceiros e termos administrativos genéricos. O objetivo é representar o atributo substantivo que será classificado, não todos os metadados presentes no documento.
+Cada documento da amostra é convertido em texto de domínio. Na fundação temática, essa etapa pode combinar título, subtítulo, tags, condutas, crimes, objetos ilícitos, modos de execução e trechos relevantes do corpo para ampliar a diversidade semântica disponível à clusterização exploratória. Ao mesmo tempo, reduz o peso de localidades, nomes de operação, órgãos parceiros e termos administrativos genéricos. O objetivo é representar o atributo substantivo que será classificado, não todos os metadados presentes no documento.
 
-Em seguida, os textos de domínio são vetorizados e submetidos ao HDBSCAN. O clusterizador procura regiões densas de documentos semanticamente próximos e separa documentos que não formam grupo estável. O resultado ainda não é uma taxonomia, mas um conjunto de folhas exploratórias. Essas folhas podem ser úteis para revelar recorrências, mas também podem sair fragmentadas: documentos sobre o mesmo fenômeno podem ficar em clusters diferentes por variação lexical, diferença de foco narrativo, presença de subtópicos ou distribuição desigual de densidade.
+Em seguida, os textos de domínio são vetorizados e submetidos a uma clusterização exploratória com HDBSCAN preferencial e fallback controlado. Quando o HDBSCAN encontra regiões densas e estáveis, ele ajuda a separar documentos semanticamente próximos e a isolar ruído. Quando a distribuição da amostra não sustenta essa segmentação com estabilidade suficiente, a execução pode recorrer a um algoritmo de fallback, preservando o objetivo metodológico de produzir folhas exploratórias auditáveis. O resultado ainda não é uma taxonomia, mas um conjunto de folhas exploratórias. Essas folhas podem ser úteis para revelar recorrências, mas também podem sair fragmentadas: documentos sobre o mesmo fenômeno podem ficar em clusters diferentes por variação lexical, diferença de foco narrativo, presença de subtópicos ou distribuição desigual de densidade.
 
-Por esse motivo, a similaridade do cosseno é aplicada depois do HDBSCAN como etapa de consolidação semântica. Enquanto o HDBSCAN responde à pergunta "quais documentos formam regiões densas no espaço vetorial?", o cosseno ajuda a responder "quais dessas regiões apontam para o mesmo tema substantivo?". A medida compara a direção dos vetores de clusters, documentos e perfis temáticos, permitindo identificar proximidade semântica mesmo quando os textos não compartilham exatamente os mesmos termos. Assim, folhas sobre abuso sexual infantil, pornografia infantojuvenil e compartilhamento de material podem ser aproximadas antes da nomeação canônica, pois tratam de uma mesma família temática.
+Por esse motivo, a similaridade do cosseno é aplicada depois da clusterização exploratória como etapa de consolidação semântica. Enquanto o clusterizador responde à pergunta "quais documentos formam grupos exploratórios próximos no espaço vetorial?", o cosseno ajuda a responder "quais desses grupos apontam para o mesmo tema substantivo?". A medida compara a direção dos vetores de clusters, documentos e perfis temáticos, permitindo identificar proximidade semântica mesmo quando os textos não compartilham exatamente os mesmos termos. Assim, folhas sobre abuso sexual infantil, pornografia infantojuvenil e compartilhamento de material podem ser aproximadas antes da nomeação canônica, pois tratam de uma mesma família temática.
 
-O cosseno, contudo, não decide sozinho a classificação final. Ele produz evidência de aproximação para o Agente 1 e para a revisão residual, mas a consolidação precisa respeitar o alvo substantivo definido no domínio. Essa cautela evita que folhas sejam unidas apenas por sinais acidentais, como localidade, órgão, nome de operação ou vocabulário institucional recorrente. Na metodologia, portanto, o HDBSCAN descobre folhas exploratórias, o cosseno mede a proximidade entre essas folhas e os agentes decidem se a aproximação deve virar tema canônico, subtema, candidato ou apenas evidência auxiliar.
+O cosseno, contudo, não decide sozinho a classificação final. Ele produz evidência de aproximação para o Agente 1 e para a revisão residual, mas a consolidação precisa respeitar o alvo substantivo definido no domínio. Essa cautela evita que folhas sejam unidas apenas por sinais acidentais, como localidade, órgão, nome de operação ou vocabulário institucional recorrente. Na metodologia, portanto, a clusterização exploratória descobre folhas, o cosseno mede a proximidade entre essas folhas e os agentes decidem se a aproximação deve virar tema canônico, subtema, candidato ou apenas evidência auxiliar.
 
 O Agente 1 recebe os clusters consolidados, as evidências textuais e o alvo substantivo da classificação. Sua função é transformar folhas exploratórias em temas canônicos, agregando folhas equivalentes, separando subtemas quando houver identidade distinta e impedindo que localidades, entidades ou nomes de operação sejam promovidos a classe principal. Na aplicação PF, por exemplo, folhas sobre pornografia infantojuvenil, abuso sexual infantil e compartilhamento de material podem ser consolidadas em `crimes_contra_criancas`; folhas sobre garimpo ilegal, extração mineral irregular e dano ambiental podem alimentar `crimes_ambientais`, desde que a evidência substantiva seja ambiental.
 
@@ -147,11 +147,11 @@ A Figura 2 apresenta um recorte ilustrativo dessa mediação entre clusters e te
 
 ### 4.5 Pré-processamento linguístico e memória WNN
 
-Na versão atual da metodologia, a camada determinística deixa de ser baseada prioritariamente em regex e passa a operar por uma memória WNN construída a partir de discriminadores canônicos. Antes da classificação, o corpo da notícia passa por pré-processamento linguístico: remoção de stopwords, normalização lexical e seleção preferencial de substantivos, verbos e adjetivos. Título, tags, nomes de operação e metadados externos podem ser preservados para auditoria, mas não devem definir sozinhos a classe.
+Na versão atual da metodologia, a camada determinística deixa de ser baseada prioritariamente em regex e passa a operar por uma memória WNN construída a partir de discriminadores canônicos. Antes da classificação, o texto enviado à WNN passa por pré-processamento linguístico: remoção de stopwords, normalização lexical e seleção preferencial de substantivos, verbos e adjetivos. Na execução incremental, o classificador trabalha sobretudo com o corpo textual reduzido a sinais substantivos; título, tags, nomes de operação e metadados externos podem ser preservados para auditoria, mas não devem definir sozinhos a classe nem a revisão residual.
 
-O Agente 2 recebe os temas canônicos produzidos pelo Agente 1, as folhas de clusters, os termos de domínio e exemplos por tema. Sua tarefa é construir discriminadores: conjuntos pequenos de palavras-chave não ordenadas que caracterizam um micromundo temático. Por exemplo, o tema `crimes_contra_criancas` pode conter marcadores como `abuso_sexual`, `pornografia_infantil`, `exploracao_sexual`, `estupro_vulneravel` e `abuso_sexual_infantojuvenil`. Diferentemente de uma regex, o discriminador não exige que as palavras apareçam em uma ordem fixa.
+O Agente 2 recebe os temas canônicos produzidos pelo Agente 1, as folhas de clusters, os termos de domínio e exemplos por tema. Sua tarefa é construir discriminadores: conjuntos pequenos de palavras-chave não ordenadas que caracterizam um micromundo temático. Na proposta atual, esses discriminadores alimentam dois eixos complementares: o eixo principal de `canonical_label`, que identifica o crime canônico principal da notícia, e o eixo de `modus_operandi`, que registra como a ação foi executada. Por exemplo, o tema `crimes_contra_criancas` pode conter marcadores como `abuso_sexual`, `pornografia_infantil`, `exploracao_sexual`, `estupro_vulneravel` e `abuso_sexual_infantojuvenil`; em paralelo, marcadores como `compartilhamento_online` ou `armazenamento_digital` podem alimentar discriminadores de modo de execução. Diferentemente de uma regex, o discriminador não exige que as palavras apareçam em uma ordem fixa.
 
-A memória WNN é representada por uma matriz de vocabulário discriminativo. Cada palavra-chave sanitizada ocupa uma posição fixa. Quando uma notícia é processada, o texto aciona as posições correspondentes e produz uma imagem binária: `1` para posições encontradas na notícia e `0` para posições ausentes. Quando o Agente 3 identifica um padrão novo, o conjunto de palavras retorna ao Agente 2, que sanitiza, generaliza e injeta os novos marcadores na memória. Se uma palavra já existe, sua posição é reaproveitada; se não existe, ela entra no final da matriz. Assim, vetores antigos permanecem comparáveis por preenchimento de zeros à direita.
+A memória WNN é representada por uma matriz de vocabulário discriminativo. Cada palavra-chave sanitizada ocupa uma posição fixa. Quando uma notícia é processada, o texto aciona as posições correspondentes e produz uma imagem binária: `1` para posições encontradas na notícia e `0` para posições ausentes. A inferência resultante não se limita a uma única classe: ela combina o melhor `canonical_label` disponível, eventuais marcadores secundários e zero ou mais labels de `modus_operandi`. Quando o Agente 3 identifica um padrão novo, o conjunto de palavras retorna ao Agente 2, que sanitiza, generaliza e injeta os novos marcadores na memória. Se uma palavra já existe, sua posição é reaproveitada; se não existe, ela entra no final da matriz. Assim, vetores antigos permanecem comparáveis por preenchimento de zeros à direita.
 
 ![Memória binária WNN e discriminadores canônicos](media/dashboard_wnn_memoria_binaria_linkedin.png)
 
@@ -159,11 +159,11 @@ A memória WNN é representada por uma matriz de vocabulário discriminativo. Ca
 
 ### 4.6 Execução incremental em lotes
 
-Na execução incremental, a reserva é processada em lotes. Cada documento passa primeiro pelo parser e pelo pré-processamento linguístico. Em seguida, o texto semântico é projetado na memória WNN, produzindo um vetor binário e uma lista de posições acionadas. Se os discriminadores ativos sustentam uma label com confiança e margem suficientes, a decisão é registrada como classificação determinística por WNN, com identificação dos marcadores, pontuação por tema, versão da memória e evidência textual.
+Na execução incremental, a reserva é processada em lotes. Cada documento passa primeiro pelo parser e pelo pré-processamento linguístico. Em seguida, o texto semântico é projetado na memória WNN, produzindo um vetor binário e uma lista de posições acionadas. Se os discriminadores ativos sustentam uma decisão com confiança e margem suficientes, a saída é registrada como classificação determinística por WNN. Essa saída inclui ao menos um `canonical_label` principal, pode incluir `marcadores_secundarios` quando houver coocorrência relevante entre eixos temáticos e também pode registrar zero ou mais labels de `modus_operandi`, além da identificação dos marcadores, pontuação por tema, versão da memória e evidência textual.
 
 A similaridade do cosseno atua como evidência auxiliar, não como classificador autônomo. Ela pode reforçar uma decisão quando a notícia está próxima do perfil semântico do tema acionado, ou pode bloquear uma aceitação quando há ambiguidade. Por exemplo, se marcadores de `crime_organizado` aparecem em uma notícia semanticamente muito próxima de `crimes_contra_criancas`, o documento pode ser enviado ao Agente 3 como suspeita, em vez de ser aceito automaticamente pela WNN.
 
-O documento residual é transformado em um pacote de revisão. Esse pacote contém o corpo da notícia, o texto semântico, labels canônicas disponíveis, sugestões por similaridade do cosseno, discriminadores acionados, posições da memória e, quando houver, a razão da abstenção da WNN. Esse é o artefato passado para o Agente 3.
+O documento residual é transformado em um pacote de revisão. Esse pacote contém o corpo da notícia, o texto semântico, labels canônicas disponíveis, sugestões por similaridade do cosseno, discriminadores acionados, posições da memória e, quando houver, a razão da abstenção da WNN. Diferentemente da fundação temática, a revisão residual não depende de título, tags ou slug do arquivo para decidir; ela se concentra no corpo da notícia e nas evidências estruturadas produzidas pela WNN. Esse é o artefato passado para o Agente 3.
 
 ```json
 {
@@ -180,48 +180,47 @@ O documento residual é transformado em um pacote de revisão. Esse pacote cont�
     {"label": "crimes_ambientais", "similaridade": 0.82}
   ],
   "discriminadores_acionados": ["crimes_ambientais"],
-  "status_wnn": "aceito_wnn"
+  "status_wnn": "abstido_wnn"
 }
 ```
 
 ### 4.7 Revisão residual por LLM e aprendizado de discriminadores
 
-O Agente 3 atua apenas nos documentos residuais, ambíguos ou suspeitos. Ele recebe o pacote de revisão e produz uma decisão estruturada. Essa decisão pode classificar o documento em tema canônico existente, propor novo tema candidato ou registrar o caso como notícia rara. A LLM deve indicar as evidências textuais usadas, justificar a decisão e informar se há marcadores reutilizáveis para a memória WNN.
+O Agente 3 atua apenas nos documentos residuais, ambíguos ou suspeitos. Ele recebe o pacote de revisão e produz uma decisão estruturada. Essa decisão pode classificar o documento em tema canônico existente, propor novo tema candidato ou registrar o caso como notícia rara. Na proposta atual, a saída residual separa explicitamente dois eixos: `canonical_label`, que registra o crime canônico principal do documento, e `modus_operandi`, que registra a forma de execução quando houver evidência suficiente. A LLM deve indicar as evidências textuais usadas, justificar a decisão e informar se há marcadores reutilizáveis para a memória WNN.
 
 Para ilustrar, considere a notícia [PF deflagra operação contra crimes de mineração ilegal](https://www.gov.br/pf/pt-br/assuntos/noticias/2024/01/pf-deflagra-operacao-contra-crimes-de-mineracao-ilegal), publicada em 17/01/2024. Se a memória ainda não tiver marcadores suficientes para aceitar `crimes_ambientais`, o documento segue ao Agente 3 como residual. Uma decisão possível é:
 
 ```json
 {
-  "label": "crimes_ambientais",
-  "confidence": "alta",
-  "evidencias": [
-    "crimes de mineracao ilegal",
-    "usurpacao de bens da Uniao",
-    "extracao de quartzo verde sem autorizacao da ANM ou licenca ambiental"
-  ],
-  "justificativa": "A noticia descreve exploracao mineral irregular sem autorizacao do orgao competente e sem licenca ambiental.",
-  "acao_aprendizado": "gerar_discriminador",
-  "marcadores_sugeridos": ["mineracao_ilegal", "extracao_mineral", "sem_licenca_ambiental"],
-  "tema_candidato": null,
-  "documento_raro": false
+  "decision": "classificar",
+  "canonical_label": "crimes_ambientais",
+  "confidence": 0.93,
+  "evidence_text": "crimes de mineracao ilegal; usurpacao de bens da Uniao; extracao de quartzo verde sem autorizacao da ANM ou licenca ambiental",
+  "rationale": "A noticia descreve exploracao mineral irregular sem autorizacao do orgao competente e sem licenca ambiental.",
+  "resumo_curto": "Mineracao ilegal com extracao sem licenca ambiental.",
+  "tema_principal": "crimes_ambientais",
+  "marcadores_secundarios": [],
+  "modus_operandi": ["extracao_ilegal"],
+  "relacao_operacional": "tema_unico"
 }
 ```
 
-O Agente 2 recebe essa decisão residual e não reclassifica o documento. Sua função é converter evidências substantivas em discriminadores generalizáveis. No exemplo, localidades, datas, nomes de operação e órgãos são descartados como sinais acidentais, enquanto mineração ilegal, garimpo, extração mineral, ausência de autorização e licença ambiental são mantidos como sinais classificatórios. O aprendizado resultante poderia ser:
+O Agente 2 recebe essa decisão residual e não reclassifica o documento. Sua função é converter evidências substantivas em discriminadores generalizáveis. No exemplo, localidades, datas, nomes de operação e órgãos são descartados como sinais acidentais, enquanto mineração ilegal, garimpo, extração mineral, ausência de autorização e licença ambiental são mantidos como sinais classificatórios para o `canonical_label`; em paralelo, sinais de forma de execução podem alimentar discriminadores de `modus_operandi`. O aprendizado resultante poderia ser:
 
 ```text
-label: crimes_ambientais
+canonical_label: crimes_ambientais
 marcador 1: mineracao_ilegal
 marcador 2: extracao_mineral
 marcador 3: garimpo_ilegal
 marcador 4: sem_licenca_ambiental
+modus_operandi: extracao_ilegal
 ```
 
 Esses marcadores só entram na memória depois de sanitizados contra o micromundo do tema. Se aprovados, passam a acionar a WNN em lotes futuros sem nova chamada de LLM. Se rejeitados, a decisão residual permanece registrada, mas não altera a memória operacional.
 
 ### 4.8 Fechamento do ciclo e reorganização da árvore
 
-O aprendizado residual fecha o ciclo incremental. Um residual pode gerar três tipos de saída: novos marcadores para um discriminador existente, tema candidato ou documento raro. Marcadores aprovados retornam à memória WNN; o tema candidato vai para a fila de revisão da árvore; o documento raro entra em memória específica para que recorrências futuras sejam detectadas.
+O aprendizado residual fecha o ciclo incremental. Um residual pode gerar três tipos de saída: novos marcadores para discriminadores existentes, tema candidato ou documento raro. Quando aprovados, os marcadores podem reforçar tanto o eixo de `canonical_label` quanto o eixo de `modus_operandi` da memória WNN; o tema candidato vai para a fila de revisão da árvore; o documento raro entra em memória específica para que recorrências futuras sejam detectadas.
 
 O Agente Organizador da Árvore recebe, ao fim de cada lote ou rodada definida, a árvore temática atual, temas candidatos, documentos raros, discriminadores aprendidos, métricas de cobertura e sugestões por similaridade. Sua função é evitar crescimento desordenado da taxonomia e contaminação entre micromundos temáticos. Ele decide se candidatos devem ser absorvidos por temas existentes, promovidos a novos temas, fundidos em macrotemas, mantidos como raros ou descartados como ruído.
 
@@ -254,6 +253,8 @@ O custo operacional é medido pela proporção de documentos resolvidos pela WNN
 
 Esses artefatos permitem reconstruir a origem da amostra, os clusters, as decisões dos agentes, os discriminadores incorporados, a memória binária, as métricas por lote e os casos raros. Cada classificação pode ser rastreada até uma posição da matriz, um marcador, um agente, um lote ou uma decisão residual.
 
+Para favorecer reprodutibilidade operacional, a implementação atual da metodologia usa um conjunto estável de scripts com responsabilidades explícitas: `rodar_sistema.py` orquestra a execução completa; `scripts/pf_operacoes_pipeline.py` sincroniza a base; `scripts/incremental/run_all_incremental.py` executa a metodologia ponta a ponta; `scripts/incremental/amostragem.py`, `clusterizacao_inicial.py`, `agente1_temas.py` e `agente2_discriminadores.py` formam a fundação; `scripts/incremental/processar_lotes.py` executa os lotes; `scripts/agentes/agente3_residual.py` trata resíduos; `scripts/agentes/agente_organizador_arvore.py` reorganiza a árvore; e `scripts/incremental/dashboard_dash.py` expõe o painel operacional. Esses nomes correspondem aos arquivos existentes na versão atual do projeto.
+
 ### 4.10 Reprodutibilidade e aplicação em outra base de dados
 
 A metodologia pode ser reproduzida em outra base textual desde que a nova aplicação explicite o alvo substantivo da classificação, disponha de documentos com texto suficiente para gerar evidências e preserve os artefatos de execução. O que se transfere não é a taxonomia criminal da Polícia Federal nem o banco de discriminadores obtido neste estudo, mas a arquitetura: fundação temática em amostra, classificação determinística por memória auditável, revisão residual por LLM, aprendizado validado de marcadores e registro de auditoria.
@@ -265,7 +266,7 @@ Ao migrar para outro domínio, como saúde pública, decisões judiciais, atendi
 | Elemento | Mantido na reprodução | Adaptado à nova base |
 |---|---|---|
 | Unidade documental | Um registro textual por observação | Campos disponíveis, como título, ementa, descrição ou corpo |
-| Alvo substantivo | Uma label principal auditável | Taxonomia e exemplos próprios do domínio |
+| Alvo substantivo | Um crime canônico principal auditável | Taxonomia e exemplos próprios do domínio |
 | Fundação temática | Amostra estratificada, embeddings e clusterização | Fração amostral, estrato temporal ou institucional e parâmetros |
 | Camada determinística | Banco versionado de discriminadores WNN com evidência | Vocabulário, marcadores aceitos e critérios de validação |
 | Revisão residual | LLM apenas para itens não cobertos | Prompt, modelo, limiar e política para casos raros |
@@ -273,7 +274,7 @@ Ao migrar para outro domínio, como saúde pública, decisões judiciais, atendi
 
 O procedimento de reprodução pode ser executado nos seguintes passos:
 
-1. Definir a pergunta analítica, a unidade documental e a label principal desejada, separando categorias substantivas de metadados auxiliares.
+1. Definir a pergunta analítica, a unidade documental e o crime canônico principal desejado, separando categorias substantivas de metadados auxiliares.
 2. Ingerir e padronizar a nova base, registrando origem, período de coleta, campos utilizados, normalização de caracteres, remoção de duplicidades e eventuais filtros.
 3. Reservar uma amostra de fundação estratificada por tempo ou por outra dimensão relevante e manter os demais documentos como reserva incremental.
 4. Construir o texto de domínio, selecionando campos e termos que expressem o alvo de classificação e reduzindo sinais incidentais.
@@ -294,45 +295,45 @@ Esta seção avalia empiricamente a metodologia em uma base real de notícias p�
 
 ### 5.1 Desenho experimental
 
-A unidade experimental é a notícia individual. A base foi sincronizada a partir do portal público da Polícia Federal e convertida em documentos locais estruturados. A execução documentada utilizou 8.232 notícias, das quais 1.235 compuseram a amostra inicial de fundação e 6.997 formaram a reserva incremental. A amostra foi estratificada por ano para preservar variação temporal, enquanto a reserva foi processada em 14 lotes. A tabela a seguir sintetiza o desenho experimental.
+A unidade experimental é a notícia individual. A base foi sincronizada a partir do portal público da Polícia Federal e convertida em documentos locais estruturados. A execução documentada nesta versão utilizou 8.310 notícias, das quais 831 compuseram a amostra inicial de fundação e 7.479 formaram a reserva incremental. A amostra foi estratificada por ano para preservar variação temporal, enquanto a reserva foi processada em 15 lotes. A tabela a seguir sintetiza o desenho experimental.
 
-Esta versão do artigo distingue duas camadas de avaliação. A primeira é a baseline histórica `regex-first`, já executada e preservada para comparação. A segunda é a evolução WNN, na qual a classificação determinística passa a ser feita por discriminadores canônicos e memória binária, mantendo a LLM apenas para resíduos, ambiguidades e aprendizado de novos marcadores. Essa separação é necessária porque a mudança de regex para WNN altera o mecanismo determinístico, os artefatos auditáveis e as métricas de cobertura.
+O foco desta avaliação é a rodada WNN já saneada, sem dependência operacional de regex. A camada determinística passa a ser formada por discriminadores canônicos auditáveis, acionados sobre uma memória binária de marcadores. A LLM fica restrita aos resíduos pós-WNN, ambiguidades e aprendizado incremental de novos marcadores.
 
 **Tabela 5 - Desenho experimental da aplicação.**
 
 | Elemento experimental | Definição na aplicação |
 |---|---|
 | Unidade experimental | Notícia pública da Polícia Federal |
-| Tarefa avaliada | Atribuição de uma label principal de crime ou modus operandi |
+| Tarefa avaliada | Atribuição de um crime canônico principal em `canonical_label` e extração complementar de `modus_operandi` |
 | Fator principal | Arquitetura incremental com memória WNN e LLM apenas residual |
-| Parâmetros fixados | Amostra estratificada, lotes de aproximadamente 500 notícias e revisão da árvore ao fim dos lotes |
+| Parâmetros fixados | Amostra estratificada, lotes de aproximadamente 500 notícias e revisão global da árvore ao fim da rodada |
 | Variáveis de resposta | Cobertura WNN, taxa residual, chamadas LLM, marcadores aprendidos, candidatos compostos, notícias raras e custo em tokens |
-| Baseline operacional | Comparação com a execução `regex-first` preservada como rodada anterior |
+| Baseline operacional | Comparação com a snapshot preservada anterior à sanitização dos discriminadores |
 | Artefatos de verificação | `metrics_batches.csv`, `events.jsonl`, `wnn_feature_bank.json`, árvore temática e saídas pós-reorganização |
 
-Não foi executada uma baseline externa com classificadores concorrentes. A comparação central desta avaliação é operacional: mede-se quanto da reserva incremental foi resolvido pela camada determinística antes de acionar LLM. Na baseline, essa camada era o banco de regex; na evolução proposta, é a memória WNN. Essa escolha é coerente com a hipótese prática do trabalho: se o método for adequado, a maior parte dos documentos recorrentes deve ser absorvida por uma memória auditável, deixando a LLM concentrada nos casos residuais.
+Não foi executada uma baseline externa com classificadores concorrentes. A comparação central desta avaliação é operacional: mede-se quanto da reserva incremental foi resolvido pela camada determinística antes de acionar LLM. A hipótese prática do trabalho é que, se a fundação temática e os discriminadores estiverem bem ancorados, a maior parte dos documentos recorrentes será absorvida pela memória WNN, deixando a LLM concentrada nos casos residuais.
 
 ### 5.2 Dados, amostragem e parâmetros da execução
 
-A tabela a seguir apresenta os dados usados na execução. A fração de 15% não é um parâmetro obrigatório da metodologia, mas foi usada nesta aplicação para construir uma fundação temática inicial suficientemente diversa sem consumir toda a base na etapa exploratória.
+A tabela a seguir apresenta os dados usados na execução. A fração de 10% não é um parâmetro obrigatório da metodologia, mas foi usada nesta aplicação para construir uma fundação temática inicial suficientemente diversa sem consumir toda a base na etapa exploratória.
 
 **Tabela 6 - Dados, amostragem e parâmetros da execução.**
 
 | Item | Valor |
 |---|---:|
-| Base total | 8.232 notícias |
-| Amostra inicial | 1.235 notícias |
-| Fração da amostra | 15% |
-| Reserva incremental | 6.997 notícias |
+| Base total | 8.310 notícias |
+| Amostra inicial | 831 notícias |
+| Fração da amostra | 10% |
+| Reserva incremental | 7.479 notícias |
 | Estratificação | Ano |
-| Lotes incrementais | 14 |
-| Tamanho médio dos lotes | 499,79 notícias |
+| Lotes incrementais | 15 |
+| Tamanho médio dos lotes | 498,60 notícias |
 
 Na etapa de clusterização inicial, a execução registrou `minibatch_kmeans_fallback` como algoritmo operacional da rodada, com posterior consolidação por similaridade do cosseno. Esse registro é importante para a reprodutibilidade: a arquitetura metodológica prevê clusterização exploratória seguida de consolidação semântica, mas a implementação concreta deve documentar o algoritmo efetivamente usado, suas versões e seus parâmetros.
 
 ### 5.3 Fundação temática e temas canônicos
 
-Na fundação temática, a clusterização inicial produziu 35 clusters brutos. A consolidação por similaridade do cosseno reduziu esse conjunto para 27 clusters consolidados, com 3 grupos fundidos e sem clusters classificados como ruído. O Agente 1 aceitou 17 temas canônicos. Esse resultado indica que a etapa exploratória gerou folhas temáticas úteis, mas também mostrou fragmentação que precisava ser corrigida antes da nomeação canônica.
+Na fundação temática, a clusterização inicial produziu 25 clusters brutos, sem clusters de ruído. O Agente 1 aceitou 17 temas canônicos para inaugurar a taxonomia operacional. Esse resultado indica que a etapa exploratória já conseguiu separar famílias relevantes do corpus PF, mas ainda exigiu interpretação semântica para transformar agrupamentos vetoriais em temas substantivos utilizáveis no aprendizado incremental.
 
 Para interpretar os temas iniciais, esta avaliação retoma o recorte da árvore operacional apresentado anteriormente na Figura 2, na seção de Metodologia. A figura exemplifica como folhas de clusters consolidados foram agrupadas em temas canônicos, reforçando que a taxonomia inicial não resulta da adoção direta dos clusters, mas da interpretação das folhas segundo famílias substantivas. A tabela a seguir resume a passagem de clusters brutos para temas aceitos.
 
@@ -340,38 +341,42 @@ Para interpretar os temas iniciais, esta avaliação retoma o recorte da árvore
 
 | Item | Valor |
 |---|---:|
-| Clusters brutos | 35 |
-| Clusters consolidados | 27 |
-| Grupos fundidos por cosseno | 3 |
+| Clusters brutos | 25 |
 | Clusters de ruído | 0 |
 | Temas canônicos aceitos | 17 |
-| Clusters em quarentena | 0 |
-| Clusters descartados | 0 |
+| Amostra inicial usada na fundação | 831 |
+| Reserva incremental liberada para classificação | 7.479 |
 
-A redução de 35 clusters brutos para 27 clusters consolidados indica que parte da separação inicial era granular demais para ser tratada como tema final. A figura a seguir mostra os principais grupos consolidados da fundação temática. Ela deve ser lida como fotografia da amostra inicial, não como taxonomia definitiva.
+A figura a seguir mostra os principais grupos consolidados da fundação temática. Ela deve ser lida como fotografia da amostra inicial, não como taxonomia definitiva.
 
 ![Principais grupos consolidados da amostra inicial](media/figura-2-clusters-fundacao.png)
 
 *Figura 4 - Principais grupos consolidados da amostra inicial.*
 
-### 5.4 Baseline regex e banco inicial de discriminadores
+### 5.4 Banco inicial de discriminadores WNN
 
-Na execução histórica usada como baseline, o Agente 2 gerou 6.629 regex iniciais aceitas a partir dos temas canônicos e das evidências textuais da fundação. Essas regras formaram a camada determinística usada na reserva incremental e atingiram alta cobertura operacional. Entretanto, a análise posterior mostrou uma limitação importante: regex podem depender da ordem das palavras, podem incorporar sinais acidentais e podem crescer em quantidade sem necessariamente melhorar a precisão semântica. Por isso, a evolução WNN substitui o banco principal por discriminadores canônicos não ordenados.
+Após a fundação, o Agente 2 gerou 546 discriminadores WNN para inaugurar a memória determinística. Esses discriminadores funcionam como marcadores canônicos auditáveis e não dependem da ordem superficial das palavras. Ao longo da reserva incremental, o residual revisado pela LLM acrescentou 2.561 novos marcadores, sempre acoplados a labels já existentes ou a candidatos controlados de reorganização temática.
 
-**Tabela 8 - Baseline regex e evolução WNN.**
+A snapshot preservada antes da sanitização é útil como referência de engenharia. Nela, a execução partia de uma base menor de discriminadores e terminou com explosão de candidatos compostos. Na rodada atual, esse comportamento foi fortemente reduzido: os candidatos multi-discriminador caíram para 58, enquanto o organizador da árvore avaliou 41 casos e absorveu 39 em temas já existentes. Em outras palavras, houve crescimento de conhecimento sem crescimento proporcional de fragmentação taxonômica.
+
+**Tabela 8 - Banco inicial e crescimento controlado da memória WNN.**
 
 | Item | Valor |
 |---|---:|
 | Temas canônicos de entrada | 17 |
-| Regex iniciais aceitas na baseline | 6.629 |
-| Banco determinístico atual | `wnn_feature_bank.json` |
-| Perfis de cosseno registrados | 17 temas |
+| Discriminadores WNN iniciais | 546 |
+| Marcadores aprendidos no residual | 2.561 |
+| Candidatos multi-discriminador | 58 |
+| Tamanho final do vocabulário da memória | 668 posições |
+| Banco determinístico versionado | `wnn_feature_bank.json` |
 
 A composição do banco é relevante para a interpretação experimental porque define a capacidade inicial da camada determinística. Quanto mais bem ancorados estiverem os discriminadores no alvo substantivo, menor tende a ser a dependência de LLM nos lotes seguintes. Por outro lado, marcadores amplos demais podem produzir falsos positivos, razão pela qual a metodologia exige sanitização, versionamento e rastreamento da origem de cada marcador.
 
 ### 5.5 Cobertura incremental e custo operacional
 
-Na rodada WNN atual, a reserva incremental processou 7.479 notícias em 15 lotes. No acumulado, 6.200 notícias foram classificadas pela memória de discriminadores e 1.279 permaneceram como residual pós-WNN. Dessas, 1.261 exigiram revisão pelo Agente 3/LLM. A taxa WNN acumulada foi de 82,90%, enquanto a pressão de chamada LLM ficou em 16,86%. Esses números devem ser lidos contra a baseline regex preservada: a cobertura regex era maior, mas a evolução WNN prioriza auditabilidade por marcadores, redução de dependência de ordem lexical e aprendizado versionado.
+Na rodada WNN atual, a reserva incremental processou 7.479 notícias em 15 lotes. No acumulado, 6.232 notícias foram classificadas pela memória de discriminadores e 1.247 permaneceram como residual pós-WNN. Dessas, 1.246 exigiram revisão pelo Agente 3/LLM. A taxa WNN acumulada foi de 83,33%, enquanto a pressão de chamada LLM ficou em 16,66%.
+
+Em comparação com a snapshot preservada anterior à sanitização, a taxa WNN subiu de 80,01% para 83,33% e o volume de chamadas LLM caiu de 1.569 para 1.246. Essa comparação deve ser lida com cautela, porque as rodadas não têm exatamente a mesma base nem a mesma fundação inicial. Ainda assim, ela sugere ganho operacional real: menos residual, menos revisão humana mediada por LLM e reorganização temática mais estável.
 
 **Tabela 9 - Indicadores acumulados da execução WNN.**
 
@@ -379,76 +384,83 @@ Na rodada WNN atual, a reserva incremental processou 7.479 notícias em 15 lotes
 |---|---:|
 | Notícias na reserva incremental | 7.479 |
 | Lotes processados | 15 |
-| Classificadas pela WNN | 6.200 |
-| Residuais pós-WNN | 1.279 |
-| Chamadas LLM residuais | 1.261 |
-| Taxa WNN acumulada | 82,90% |
-| Taxa residual pós-WNN | 17,10% |
-| Taxa de chamada LLM | 16,86% |
-| Marcadores aprendidos no residual | 916 |
-| Aprendizados por lote, em média | 61,07 |
-| Vocabulário da memória WNN ao final | 872 posições |
-| Redução média ponderada do texto semântico | 40,13% |
+| Classificadas pela WNN | 6.232 |
+| Residuais pós-WNN | 1.247 |
+| Chamadas LLM residuais | 1.246 |
+| Taxa WNN acumulada | 83,33% |
+| Taxa residual pós-WNN | 16,67% |
+| Taxa de chamada LLM | 16,66% |
+| Marcadores aprendidos no residual | 2.561 |
+| Aprendizados por lote, em média | 170,73 |
+| Vocabulário da memória WNN ao final | 668 posições |
+| Redução média do texto semântico | 40,12% |
 
-A figura a seguir apresenta a rodada WNN atual, indicando por lote quantos documentos foram resolvidos pela memória de discriminadores e quantos permaneceram como residual pós-WNN para revisão pelo Agente 3/LLM. A leitura deve ser comparada à baseline regex preservada, mas representa a nova arquitetura de classificação.
+A figura a seguir apresenta a rodada WNN atual, indicando por lote quantos documentos foram resolvidos pela memória de discriminadores e quantos permaneceram como residual pós-WNN para revisão pelo Agente 3/LLM.
 
-![WNN versus residual por iteração](media/figura-3-regex-vs-residual.png)
+![WNN versus residual por iteração](media/figura-3-wnn-vs-residual.png)
 
 *Figura 5 - Documentos classificados pela WNN e enviados à revisão residual por lote.*
 
 A figura seguinte mostra a taxa de aceitação WNN ao longo dos lotes. A variação entre lotes indica que a cobertura depende da composição temática de cada rodada e da qualidade dos discriminadores já aprendidos.
 
-![Taxa WNN por iteração](media/figura-4-taxa-regex.png)
+![Taxa WNN por iteração](media/figura-4-taxa-wnn.png)
 
 *Figura 6 - Taxa de classificação WNN ao longo dos lotes.*
 
-O custo operacional foi medido pelo consumo de tokens nas chamadas residuais. A execução WNN registrou 1.261 chamadas LLM, 1.976.676 tokens de prompt, 269.458 tokens de conclusão e 2.246.134 tokens totais, com média de 1.781,23 tokens por chamada residual. Esses valores mostram o custo associado apenas aos documentos que escaparam da memória WNN ou foram tratados como ambíguos; em uma estratégia que acionasse LLM para toda a reserva, o número de chamadas seria 7.479. A tabela a seguir detalha as medidas de custo.
+O custo operacional foi medido pelo consumo de tokens nas chamadas residuais. A execução WNN registrou 1.246 chamadas LLM, 1.904.742 tokens de prompt, 329.563 tokens de conclusão e 2.234.305 tokens totais, com média de 1.793,18 tokens por chamada residual. Esses valores mostram o custo associado apenas aos documentos que escaparam da memória WNN ou foram tratados como ambíguos; em uma estratégia que acionasse LLM para toda a reserva, o número de chamadas seria 7.479. A tabela a seguir detalha as medidas de custo.
 
 **Tabela 10 - Custo de inferência nas chamadas residuais WNN.**
 
 | Medida de custo | Valor |
 |---|---:|
-| Chamadas LLM residuais | 1.261 |
-| `prompt_tokens_total` | 1.976.676 |
-| `completion_tokens_total` | 269.458 |
-| `tokens_total` | 2.246.134 |
-| Média de tokens por chamada LLM | 1.781,23 |
+| Chamadas LLM residuais | 1.246 |
+| `prompt_tokens_total` | 1.904.742 |
+| `completion_tokens_total` | 329.563 |
+| `tokens_total` | 2.234.305 |
+| Média de tokens por chamada LLM | 1.793,18 |
 
 ### 5.6 Aprendizado residual, reorganização temática e casos raros
 
-A revisão residual não apenas classifica exceções: ela também registra evidências para aprendizado. Na execução baseline, o Agente Aprendiz de Regex incorporou 11 novas regras. Na evolução WNN, esse papel passa a ser desempenhado pelo Agente 2 como aprendiz de discriminadores: a decisão residual do Agente 3 é convertida em marcadores não duplicados, sanitizados contra o micromundo do tema e inseridos na memória. O Agente Organizador da árvore continua responsável por evitar proliferação de temas e por controlar candidatos compostos.
+A revisão residual não apenas classifica exceções: ela também registra evidências para aprendizado. Na arquitetura WNN, esse papel é desempenhado pelo Agente 2 como aprendiz de discriminadores: a decisão residual do Agente 3 é convertida em marcadores não duplicados, sanitizados contra o micromundo do tema e inseridos na memória. O Agente Organizador da árvore continua responsável por evitar proliferação de temas e por controlar candidatos compostos.
 
 **Tabela 11 - Aprendizado residual e reorganização temática WNN.**
 
 | Item | Valor |
 |---|---:|
-| Marcadores aprendidos pelo residual WNN | 916 |
-| Novos temas candidatos registrados | 22 |
-| Candidatos multi-discriminador | 54 |
-| Notícias raras sinalizadas pelo Agente 3 | 162 |
-| Temas/folhas incorporados a temas existentes | 17 |
-| Temas promovidos a canônicos | 4 |
-| Casos mantidos como folha | 1 |
-| Notícias raras finais | 179 |
-| Erros do Agente 3 | 18 |
+| Marcadores aprendidos pelo residual WNN | 2.561 |
+| Novos temas candidatos registrados | 32 |
+| Candidatos multi-discriminador | 58 |
+| Notícias raras sinalizadas pelo Agente 3 | 182 |
+| Notícias raras promovidas a candidato | 31 |
+| Candidatos avaliados pelo organizador | 41 |
+| Casos absorvidos por temas existentes | 39 |
+| Temas promovidos a canônicos | 2 |
+| Notícias raras finais | 192 |
+| Erros do Agente 3 | 1 |
 
-Esses resultados indicam que o residual funcionou como mecanismo de aprendizado controlado, não como caminho para proliferação automática de categorias. As notícias raras permaneceram separadas porque não havia recorrência ou evidência suficiente para promovê-las com segurança. A figura a seguir apresenta o Top 10 de temas consolidados na aplicação PF após a classificação WNN e a revisão residual. Para fins de visualização, labels operacionais equivalentes foram agrupadas; a classe `noticias_raras` fica fora do gráfico por funcionar como categoria residual de auditoria, não como tema substantivo consolidado.
+Esses resultados indicam que o residual funcionou como mecanismo de aprendizado controlado, não como caminho para proliferação automática de categorias. O sinal mais forte disso está no balanço entre candidatos e absorções: quase todos os casos avaliados pelo organizador da árvore foram incorporados a temas já existentes, e apenas dois foram promovidos a temas canônicos novos. As notícias raras permaneceram separadas porque não havia recorrência ou evidência suficiente para promovê-las com segurança. A figura a seguir apresenta o Top 10 de temas consolidados na aplicação PF após a classificação WNN e a revisão residual. Para fins de visualização, labels operacionais equivalentes foram agrupadas; a classe `noticias_raras` fica fora do gráfico por funcionar como categoria residual de auditoria, não como tema substantivo consolidado.
 
 ![Top 10 temas consolidados após classificação das notícias raras](media/figura-5-temas-finais.png)
 
 *Figura 7 - Top 10 temas consolidados após classificação WNN e revisão residual.*
 
+Como a proposta atual produz dois eixos de saída, não basta observar apenas a distribuição final dos crimes canônicos. Também é importante visualizar a estrutura que a classificação efetivamente gera ao final da rodada: a raiz da memória WNN, os crimes canônicos principais aceitos como `canonical_label` e, abaixo de cada um deles, os respectivos `modus_operandi` associados. A figura seguinte mostra exatamente essa estrutura produzida pela execução. Para manter legibilidade no artigo, a imagem apresenta um recorte dos crimes mais frequentes e de seus principais modos, enquanto a árvore completa permanece registrada nos artefatos da rodada.
+
+![Árvore produzida pela classificação final WNN](media/figura-8-arvore-wnn-crime-modus.png)
+
+*Figura 8 - Estrutura de saída produzida pela classificação final WNN: `WNN -> crime canônico -> modus operandi`.*
+
 ### 5.7 Interpretação e ameaças à validade
 
-A avaliação experimental apoia a hipótese operacional do trabalho: uma fundação temática inicial combinada a uma camada determinística auditável consegue classificar grande parte da reserva incremental, deixando a LLM concentrada em uma fração menor dos documentos. A baseline regex atingiu taxa acumulada de 95,13% e taxa residual de 4,87%, mas essa cobertura precisa ser interpretada com cautela, pois regras muito amplas podem cobrir documentos sem necessariamente classificar com precisão. A evolução WNN busca preservar a auditabilidade, reduzir dependência de ordem lexical e tornar o aprendizado residual mais granular.
+A avaliação experimental apoia a hipótese operacional do trabalho: uma fundação temática inicial combinada a uma camada determinística auditável consegue classificar grande parte da reserva incremental, deixando a LLM concentrada em uma fração menor dos documentos. Na rodada atual, a memória WNN resolveu 83,33% da reserva incremental antes de qualquer revisão residual. Além disso, a comparação com a snapshot preservada sugere ganho de engenharia: a taxa WNN melhorou, o residual diminuiu e o tempo total somado dos lotes caiu de aproximadamente 28.204 segundos para 6.824 segundos.
 
-Entretanto, a interpretação deve considerar limites. Primeiro, a comparação é interna e operacional; não houve avaliação contra uma baseline externa de classificação supervisionada ou contra uma LLM aplicada a toda a base. Segundo, a qualidade da fundação depende da amostra inicial e da composição temporal da base. Terceiro, a execução registrou um algoritmo de clusterização de fallback, o que precisa ser considerado em reexecuções ou comparações futuras. Quarto, tanto regex quanto discriminadores WNN podem gerar falsos positivos se seus sinais forem amplos demais ou contaminados por outros temas. Por fim, notícias raras não devem ser tratadas como erro automático: elas funcionam como memória de exceções e só devem ser promovidas quando houver recorrência ou evidência substantiva suficiente.
+Entretanto, a interpretação deve considerar limites. Primeiro, a comparação é interna e operacional; não houve avaliação contra uma baseline externa de classificação supervisionada ou contra uma LLM aplicada a toda a base. Segundo, a rodada comparada não usa exatamente a mesma fundação: a snapshot preservada tinha base total de 8.260 notícias, amostra inicial de 5% e 16 lotes, enquanto a rodada atual usa 8.310 notícias, amostra inicial de 10% e 15 lotes. Terceiro, a execução registrou um algoritmo de clusterização de fallback, o que precisa ser considerado em reexecuções ou comparações futuras. Quarto, discriminadores WNN ainda podem gerar falsos positivos se seus sinais forem amplos demais ou contaminados por outros temas. Por fim, notícias raras não devem ser tratadas como erro automático: elas funcionam como memória de exceções e só devem ser promovidas quando houver recorrência ou evidência substantiva suficiente.
 
 ## 6. Conclusão
 
 Este trabalho partiu do problema de organizar grandes bases textuais institucionais que crescem continuamente, combinam temas recorrentes e emergentes e exigem classificação rastreável. Para enfrentar esse problema, foi proposta uma metodologia incremental que separa a classificação recorrente, realizada por uma camada determinística auditável, da interpretação residual, reservada à LLM. A evolução mais recente substitui a lógica `regex-first` por uma memória WNN de discriminadores canônicos, na qual cada notícia pode ser representada como uma imagem binária de marcadores acionados.
 
-A aplicação às notícias públicas da Polícia Federal mostrou que a proposta é operacionalmente viável no domínio analisado. A baseline regex atingiu alta cobertura, classificando 95,13% da reserva incremental e encaminhando 4,87% para revisão residual por LLM. Esse resultado é relevante como referência, mas também motivou a evolução metodológica: substituir regras sensíveis à ordem das palavras por discriminadores não ordenados, versionados e representados em uma memória binária. Assim, os resíduos não são tratados apenas como falhas de classificação: eles alimentam novos marcadores, temas candidatos, reorganização da árvore temática e registros de `noticias_raras`.
+A aplicação às notícias públicas da Polícia Federal mostrou que a proposta é operacionalmente viável no domínio analisado. Na rodada WNN documentada nesta versão, a memória determinística classificou 6.232 das 7.479 notícias incrementais, atingindo cobertura acumulada de 83,33% antes do acionamento da LLM. Esse resultado é relevante porque mostra que os resíduos não são tratados apenas como falhas de classificação: eles alimentam novos marcadores, temas candidatos, reorganização da árvore temática e registros de `noticias_raras`.
 
 A principal contribuição do trabalho é integrar clusterização exploratória, consolidação semântica, agentes de linguagem, discriminadores WNN, memória binária auditável e aprendizado incremental em um mesmo procedimento reprodutível. A metodologia não depende de assumir clusters como categorias finais nem de acionar LLM sobre toda a base. Em vez disso, transforma agrupamentos iniciais em evidências, converte parte dessas evidências em marcadores e preserva uma trilha de decisão para cada etapa relevante. Com isso, oferece uma alternativa para contextos institucionais que precisam combinar escala, transparência e atualização contínua.
 
@@ -494,21 +506,21 @@ A Tabela 12 apresenta o detalhamento por lote usado na avaliação experimental 
 
 | Lote | Notícias | WNN | Residual pós-WNN | LLM | Aprendizados | Raras | Tokens | Taxa WNN |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| lote_0001 | 500 | 475 | 25 | 25 | 17 | 7 | 42.293 | 95,00% |
-| lote_0002 | 500 | 394 | 106 | 106 | 79 | 20 | 179.472 | 78,80% |
-| lote_0003 | 500 | 418 | 82 | 82 | 64 | 14 | 136.903 | 83,60% |
-| lote_0004 | 500 | 396 | 104 | 104 | 80 | 23 | 167.236 | 79,20% |
-| lote_0005 | 500 | 417 | 83 | 83 | 60 | 11 | 137.057 | 83,40% |
-| lote_0006 | 500 | 426 | 74 | 62 | 40 | 13 | 104.463 | 85,20% |
-| lote_0007 | 500 | 427 | 73 | 73 | 58 | 2 | 136.072 | 85,40% |
-| lote_0008 | 500 | 418 | 82 | 82 | 67 | 3 | 154.403 | 83,60% |
-| lote_0009 | 500 | 417 | 83 | 82 | 50 | 9 | 150.054 | 83,40% |
-| lote_0010 | 500 | 423 | 77 | 77 | 63 | 3 | 145.378 | 84,60% |
-| lote_0011 | 500 | 397 | 103 | 102 | 72 | 9 | 190.018 | 79,40% |
-| lote_0012 | 500 | 377 | 123 | 122 | 87 | 17 | 223.627 | 75,40% |
-| lote_0013 | 500 | 423 | 77 | 76 | 48 | 7 | 141.284 | 84,60% |
-| lote_0014 | 500 | 416 | 84 | 83 | 57 | 10 | 149.283 | 83,20% |
-| lote_0015 | 479 | 376 | 103 | 102 | 74 | 14 | 188.591 | 78,50% |
+| lote_0001 | 500 | 475 | 25 | 25 | 45 | 7 | 44.739 | 95,00% |
+| lote_0002 | 500 | 397 | 103 | 103 | 215 | 19 | 184.781 | 79,40% |
+| lote_0003 | 500 | 423 | 77 | 77 | 157 | 13 | 136.485 | 84,60% |
+| lote_0004 | 500 | 397 | 103 | 103 | 185 | 24 | 176.301 | 79,40% |
+| lote_0005 | 500 | 420 | 80 | 80 | 136 | 13 | 139.757 | 84,00% |
+| lote_0006 | 500 | 428 | 72 | 72 | 131 | 14 | 127.909 | 85,60% |
+| lote_0007 | 500 | 429 | 71 | 71 | 176 | 3 | 130.459 | 85,80% |
+| lote_0008 | 500 | 419 | 81 | 81 | 196 | 4 | 149.682 | 83,80% |
+| lote_0009 | 500 | 418 | 82 | 82 | 178 | 12 | 147.794 | 83,60% |
+| lote_0010 | 500 | 425 | 75 | 75 | 192 | 5 | 138.026 | 85,00% |
+| lote_0011 | 500 | 398 | 102 | 102 | 214 | 10 | 185.707 | 79,60% |
+| lote_0012 | 500 | 380 | 120 | 120 | 240 | 24 | 216.187 | 76,00% |
+| lote_0013 | 500 | 426 | 74 | 74 | 137 | 6 | 134.114 | 85,20% |
+| lote_0014 | 500 | 419 | 81 | 80 | 159 | 11 | 140.466 | 83,80% |
+| lote_0015 | 479 | 378 | 101 | 101 | 200 | 17 | 181.898 | 78,91% |
 
 ### 8.2 Distribuição final por tema consolidado
 
@@ -518,26 +530,26 @@ A Tabela 13 apresenta a distribuição final por tema após a reorganização da
 
 | Tema final consolidado | WNN | Agente 3 | Incorporado | Promovido | Mantido como folha | Notícia rara | Total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| crime_organizado | 2.167 | 187 | 0 | 0 | 0 | 0 | 2.354 |
-| crimes_ambientais | 1.733 | 115 | 0 | 0 | 0 | 0 | 1.848 |
-| crimes_contra_criancas | 1.158 | 62 | 0 | 0 | 0 | 0 | 1.220 |
-| corrupcao_desvio_recursos_publicos | 172 | 246 | 2 | 0 | 0 | 0 | 420 |
-| trafico_drogas | 267 | 29 | 5 | 0 | 0 | 0 | 301 |
-| contrabando_descaminho | 36 | 194 | 3 | 0 | 0 | 0 | 233 |
-| noticias_raras | 0 | 0 | 7 | 0 | 0 | 179 | 186 |
-| crimes_eleitorais | 97 | 49 | 0 | 0 | 0 | 0 | 146 |
-| armas_municoes | 109 | 11 | 0 | 0 | 0 | 0 | 120 |
-| crimes_previdenciarios | 97 | 21 | 0 | 0 | 0 | 0 | 118 |
-| lavagem_dinheiro | 96 | 13 | 0 | 0 | 0 | 0 | 109 |
-| moeda_falsa | 85 | 16 | 0 | 0 | 0 | 0 | 101 |
-| crimes_sistema_financeiro | 50 | 43 | 0 | 0 | 0 | 0 | 93 |
-| fraudes_auxilios_beneficios | 38 | 45 | 0 | 0 | 0 | 0 | 83 |
-| trabalho_escravo | 44 | 2 | 0 | 0 | 0 | 0 | 46 |
-| crimes_ciberneticos | 13 | 31 | 0 | 0 | 0 | 0 | 44 |
-| radiodifusao_clandestina | 33 | 7 | 0 | 0 | 0 | 0 | 40 |
-| crimes_migratorios | 5 | 6 | 0 | 0 | 0 | 0 | 11 |
+| crime_organizado | 2.166 | 121 | 0 | 0 | 0 | 0 | 2.287 |
+| crimes_ambientais | 1.736 | 83 | 0 | 0 | 0 | 0 | 1.819 |
+| crimes_contra_criancas | 1.158 | 57 | 0 | 0 | 0 | 0 | 1.215 |
+| corrupcao_desvio_recursos_publicos | 173 | 211 | 2 | 0 | 0 | 0 | 386 |
+| trafico_drogas | 267 | 33 | 6 | 0 | 0 | 0 | 306 |
+| contrabando_descaminho | 51 | 186 | 3 | 0 | 0 | 0 | 240 |
+| noticias_raras | 0 | 0 | 9 | 0 | 0 | 183 | 192 |
+| fraudes_auxilios_beneficios | 39 | 123 | 0 | 0 | 0 | 0 | 162 |
+| crimes_eleitorais | 98 | 45 | 0 | 0 | 0 | 0 | 143 |
+| armas_municoes | 108 | 22 | 0 | 0 | 0 | 0 | 130 |
+| lavagem_dinheiro | 96 | 26 | 0 | 0 | 0 | 0 | 122 |
+| crimes_previdenciarios | 98 | 6 | 0 | 0 | 0 | 0 | 104 |
+| crimes_sistema_financeiro | 47 | 47 | 0 | 0 | 0 | 0 | 94 |
+| moeda_falsa | 85 | 3 | 0 | 0 | 0 | 0 | 88 |
+| crimes_ciberneticos | 18 | 52 | 0 | 0 | 0 | 0 | 70 |
+| trabalho_escravo | 44 | 0 | 0 | 0 | 0 | 0 | 44 |
+| radiodifusao_clandestina | 33 | 9 | 0 | 0 | 0 | 0 | 42 |
+| crimes_migratorios | 15 | 8 | 0 | 0 | 0 | 0 | 23 |
+| ameacas_e_terrorismo | 0 | 0 | 0 | 8 | 0 | 0 | 8 |
 | rara_combate_disseminacao_pornografia | 0 | 0 | 0 | 4 | 0 | 0 | 4 |
-| ameacas_e_terrorismo | 0 | 0 | 0 | 0 | 1 | 0 | 2 |
 
 ### 8.3 Registro da notícia usada no exemplo residual
 
@@ -566,4 +578,4 @@ Setor de Comunicação Social Polícia Federal / Bahia cs.srba@pf.gov.br | www.p
 </noticia>
 ```
 
-O bloco acima não substitui o arquivo bruto da base. Ele apenas reproduz, em forma metodológica, o documento usado para explicar como um residual classificado pela LLM pode ser convertido em regex candidata.
+O bloco acima não substitui o arquivo bruto da base. Ele apenas reproduz, em forma metodológica, o documento usado para explicar como um residual classificado pela LLM pode ser convertido em novos discriminadores WNN candidatos.

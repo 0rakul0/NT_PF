@@ -72,8 +72,6 @@ def build_run_config(reset: bool = True) -> RunConfig:
         sample_fraction=env_float("PF_SAMPLE_FRACTION", 0.10),
         batch_size=env_int("PF_BATCH_SIZE", 500),
         seed=env_int("PF_RANDOM_SEED", 42),
-        regex_threshold=0.0,
-        regex_enabled=False,
         wnn_enabled=env_bool("PF_WNN_ENABLED", True),
         wnn_confidence_threshold=env_float("PF_WNN_CONFIDENCE_THRESHOLD", 0.50),
         wnn_margin_threshold=env_float("PF_WNN_MARGIN_THRESHOLD", 0.12),
@@ -90,10 +88,11 @@ def build_run_config(reset: bool = True) -> RunConfig:
         ollama_num_ctx=env_int("PF_OLLAMA_NUM_CTX", 131072),
         ollama_num_predict=env_int("PF_OLLAMA_NUM_PREDICT", 1024),
         agent3_min_confidence=env_float("PF_AGENT3_MIN_CONFIDENCE", 0.55),
-        initial_regex_target_per_theme=0,
         resume_batches=env_bool("PF_RESUME_BATCHES", True),
         preserve_previous_run=env_bool("PF_PRESERVE_PREVIOUS_RUN", True),
-        theme_tree_review_interval_batches=env_int("PF_THEME_TREE_REVIEW_INTERVAL_BATCHES", 1),
+        theme_tree_review_interval_batches=env_int("PF_THEME_TREE_REVIEW_INTERVAL_BATCHES", 0),
+        dashboard_update_interval_batches=env_int("PF_DASHBOARD_UPDATE_INTERVAL_BATCHES", 0),
+        wnn_compaction_interval_batches=env_int("PF_WNN_COMPACTION_INTERVAL_BATCHES", 2),
         local_fallback_models=local_fallback_models,
     )
 

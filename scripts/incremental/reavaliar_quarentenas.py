@@ -173,11 +173,6 @@ def _refined_tree_mapping() -> tuple[dict[str, str], dict[str, str]]:
 
 
 def _row_label_and_status(row: pd.Series, label_map: dict[str, str], status_map: dict[str, str]) -> tuple[str, str]:
-    if bool(row.get("regex_accepted", False)):
-        inference = _safe_literal_dict(row.get("inference", {}))
-        label = str(inference.get("identidade_canonica", "") or inference.get("canonical_label", "")).strip()
-        return label or "quarentena", "classificado_regex" if label else "quarentena_regex_sem_label"
-
     if bool(row.get("wnn_accepted", False)):
         inference = _safe_literal_dict(row.get("inference", {}))
         label = str(
@@ -282,7 +277,6 @@ def run() -> dict[str, object]:
 
     plot_df = pivot.head(10).drop(columns=["total"], errors="ignore")
     colors = {
-        "classificado_regex": "#4C78A8",
         "classificado_agent3": "#F58518",
         "candidato_merge_into_existing": "#54A24B",
         "candidato_promote_to_canonical": "#72B7B2",

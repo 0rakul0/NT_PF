@@ -196,7 +196,7 @@ def figure_5_6_metrics() -> None:
     ax.set_ylabel("Noticias")
     ax.legend(loc="lower right", frameon=True)
     ax.set_xticks(metrics["iteration"])
-    save(fig, "figura-3-regex-vs-residual.png")
+    save(fig, "figura-3-wnn-vs-residual.png")
 
     fig, ax = plt.subplots(figsize=(11, 5.6))
     ax.plot(metrics["iteration"], metrics["wnn_rate"], marker="o", label="Taxa WNN por lote", color="#009E73")
@@ -207,7 +207,7 @@ def figure_5_6_metrics() -> None:
     ax.set_ylabel("Proporcao")
     ax.legend(loc="lower right", frameon=True)
     ax.set_xticks(metrics["iteration"])
-    save(fig, "figura-4-taxa-regex.png")
+    save(fig, "figura-4-taxa-wnn.png")
 
 
 def figure_7_themes() -> None:

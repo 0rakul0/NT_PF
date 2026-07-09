@@ -11,10 +11,10 @@ import pandas as pd
 
 try:
     from scripts.pf_llm_models import NoticiaLLMInference
-    from scripts.pf_regex_classifier import canonical_label, fold_text
+    from scripts.text_utils import canonical_label, fold_text
 except ModuleNotFoundError:
     from pf_llm_models import NoticiaLLMInference
-    from pf_regex_classifier import canonical_label, fold_text
+    from text_utils import canonical_label, fold_text
 
 
 DEFAULT_FEATURE_WEIGHT = 1.0
@@ -58,6 +58,35 @@ COSINE_SUSPICION_MIN_SCORE = 0.22
 COSINE_ASSISTED_MARGIN_THRESHOLD = 0.04
 CONFIRMED_MEDIUM_THRESHOLD = 2
 CONFIRMED_STRONG_THRESHOLD = 4
+BLOCKED_MODUS_LABELS = {
+    "atuacao_clandestina",
+    "falta_de_fiscalizacao",
+}
+MODUS_LABEL_ALIASES = {
+    "madeira_ilegal": "extracao_ilegal_madeira",
+    "exploracao_ilegal_madeira": "extracao_ilegal_madeira",
+    "extracao_ilegal_de_madeira": "extracao_ilegal_madeira",
+    "exploracao_ilicita_madeira": "extracao_ilegal_madeira",
+    "mineracao_ilegal": "garimpo_ilegal",
+    "garimpo_clandestino": "garimpo_ilegal",
+    "trafico_animais_silvestres": "trafico_de_especies",
+    "trafico_fauna_silvestre": "trafico_de_especies",
+    "trafico_vida_silvestre": "trafico_de_especies",
+    "pesca_clandestina": "pesca_ilegal",
+}
+
+
+def normalize_modus_label(value: object) -> str:
+    normalized = canonical_label(str(value or ""))
+    if not normalized:
+        return ""
+    normalized = MODUS_LABEL_ALIASES.get(normalized, normalized)
+    if normalized in BLOCKED_MODUS_LABELS:
+        return ""
+    if normalized.startswith("fiscalizacao_"):
+        if normalized != "fiscalizacao_ambiental":
+            return ""
+    return normalized
 
 CURATED_THEME_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
     "crimes_contra_criancas": [
@@ -88,6 +117,8 @@ CURATED_THEME_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
         {"name": "contrabando_descaminho", "tokens": ["contrabando", "descaminho"], "weight": 1.2},
         {"name": "cigarros_ilegais", "tokens": ["cigarros", "ilegais"], "weight": 1.05},
         {"name": "mercadoria_estrangeira_irregular", "tokens": ["mercadoria", "estrangeira", "irregular"], "weight": 0.95},
+        {"name": "produto_descaminhado", "tokens": ["produto", "descaminhado"], "weight": 0.95},
+        {"name": "importacao_irregular", "tokens": ["importacao", "irregular"], "weight": 0.9},
     ],
     "lavagem_dinheiro": [
         {"name": "lavagem_dinheiro", "tokens": ["lavagem", "dinheiro"], "weight": 1.2},
@@ -98,6 +129,8 @@ CURATED_THEME_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
         {"name": "desvio_recursos_publicos", "tokens": ["desvio", "recursos", "publicos"], "weight": 1.2},
         {"name": "fraude_licitacao", "tokens": ["fraude", "licitacao"], "weight": 1.1},
         {"name": "contratacao_fraudulenta", "tokens": ["contratacao", "fraudulenta"], "weight": 0.95},
+        {"name": "peculato_recursos_publicos", "tokens": ["peculato", "recursos", "publicos"], "weight": 1.0},
+        {"name": "desvio_verbas_publicas", "tokens": ["desvio", "verbas", "publicas"], "weight": 1.0},
     ],
     "armas_municoes": [
         {"name": "arma_fogo", "tokens": ["arma", "fogo"], "weight": 1.1},
@@ -120,6 +153,21 @@ CURATED_THEME_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
         {"name": "cedulas_falsas", "tokens": ["cedulas", "falsas"], "weight": 1.1},
         {"name": "notas_falsas", "tokens": ["notas", "falsas"], "weight": 1.0},
     ],
+    "crimes_ciberneticos": [
+        {"name": "invasao_dispositivo_informatico", "tokens": ["invasao", "dispositivo", "informatico"], "weight": 1.15},
+        {"name": "dados_cadastrais_violados", "tokens": ["dados", "cadastrais", "violados"], "weight": 0.95},
+        {"name": "fraude_digital_sistemas", "tokens": ["fraude", "digital", "sistemas"], "weight": 0.9},
+    ],
+    "crimes_migratorios": [
+        {"name": "migracao_ilegal", "tokens": ["migracao", "ilegal"], "weight": 1.1},
+        {"name": "passaporte_fraudulento", "tokens": ["passaporte", "fraudulento"], "weight": 1.0},
+        {"name": "visto_irregular", "tokens": ["visto", "irregular"], "weight": 0.95},
+    ],
+    "fraudes_auxilios_beneficios": [
+        {"name": "auxilio_emergencial_fraude", "tokens": ["auxilio", "emergencial", "fraude"], "weight": 1.15},
+        {"name": "beneficio_social_irregular", "tokens": ["beneficio", "social", "irregular"], "weight": 1.0},
+        {"name": "saque_beneficio_indevido", "tokens": ["saque", "beneficio", "indevido"], "weight": 0.95},
+    ],
     "trabalho_escravo": [
         {"name": "trabalho_escravo", "tokens": ["trabalho", "escravo"], "weight": 1.25},
         {"name": "condicoes_analogas_escravidao", "tokens": ["condicoes", "analogas", "escravidao"], "weight": 1.25},
@@ -128,6 +176,126 @@ CURATED_THEME_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
         {"name": "trabalhadores_resgatados", "tokens": ["trabalhadores", "resgatados"], "weight": 1.05},
         {"name": "resgate_trabalhadores", "tokens": ["resgate", "trabalhadores"], "weight": 1.0},
     ],
+}
+
+CURATED_MODUS_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
+    "extracao_ilegal_madeira": [
+        {"name": "extracao_ilegal_madeira", "tokens": ["extracao", "ilegal", "madeira"], "weight": 1.15},
+        {"name": "madeira_ilegal", "tokens": ["madeira", "ilegal"], "weight": 1.05},
+        {"name": "exploracao_ilegal_madeira", "tokens": ["exploracao", "ilegal", "madeira"], "weight": 1.0},
+    ],
+    "garimpo_ilegal": [
+        {"name": "garimpo_ilegal", "tokens": ["garimpo", "ilegal"], "weight": 1.15},
+        {"name": "mineracao_ilegal", "tokens": ["mineracao", "ilegal"], "weight": 1.05},
+        {"name": "extracao_ilegal_ouro", "tokens": ["extracao", "ilegal", "ouro"], "weight": 1.0},
+    ],
+    "desmatamento": [
+        {"name": "desmatamento", "tokens": ["desmatamento"], "weight": 1.1},
+        {"name": "desmatamento_ilegal", "tokens": ["desmatamento", "ilegal"], "weight": 1.05},
+        {"name": "queimada_desmatamento", "tokens": ["queimada", "desmatamento"], "weight": 0.95},
+    ],
+    "trafico_de_especies": [
+        {"name": "trafico_de_especies", "tokens": ["trafico", "especies"], "weight": 1.1},
+        {"name": "animais_silvestres", "tokens": ["animais", "silvestres"], "weight": 1.0},
+        {"name": "fauna_silvestre", "tokens": ["fauna", "silvestre"], "weight": 0.95},
+    ],
+    "caca_ilegal": [
+        {"name": "caca_ilegal", "tokens": ["caca", "ilegal"], "weight": 1.0},
+        {"name": "abate_animal_silvestre", "tokens": ["abate", "animal", "silvestre"], "weight": 0.95},
+    ],
+    "pesca_ilegal": [
+        {"name": "pesca_ilegal", "tokens": ["pesca", "ilegal"], "weight": 1.0},
+        {"name": "uso_redes_pesca", "tokens": ["redes", "pesca"], "weight": 0.95},
+    ],
+    "uso_ilegal_solo": [
+        {"name": "uso_ilegal_solo", "tokens": ["uso", "ilegal", "solo"], "weight": 1.0},
+        {"name": "invasao_terra_publica", "tokens": ["invasao", "terra", "publica"], "weight": 0.95},
+    ],
+    "comercializacao_ilegal": [
+        {"name": "comercializacao_ilegal", "tokens": ["comercializacao", "ilegal"], "weight": 1.0},
+        {"name": "comercio_irregular", "tokens": ["comercio", "irregular"], "weight": 0.95},
+        {"name": "venda_ilegal", "tokens": ["venda", "ilegal"], "weight": 0.95},
+    ],
+    "transporte_ilegal": [
+        {"name": "transporte_ilegal", "tokens": ["transporte", "ilegal"], "weight": 1.0},
+        {"name": "transporte_irregular", "tokens": ["transporte", "irregular"], "weight": 0.95},
+    ],
+    "apreensao_madeira": [
+        {"name": "apreensao_madeira", "tokens": ["apreensao", "madeira"], "weight": 1.0},
+        {"name": "apreensao_madeira_irregular", "tokens": ["apreensao", "madeira", "irregular"], "weight": 0.95},
+    ],
+    "fiscalizacao_ambiental": [
+        {"name": "fiscalizacao_ambiental", "tokens": ["fiscalizacao", "ambiental"], "weight": 1.0},
+        {"name": "acao_fiscalizacao_ambiental", "tokens": ["acao", "fiscalizacao", "ambiental"], "weight": 0.95},
+    ],
+    "atividade_clandestina": [
+        {"name": "atividade_clandestina", "tokens": ["atividade", "clandestina"], "weight": 1.0},
+        {"name": "funcionamento_clandestino", "tokens": ["funcionamento", "clandestino"], "weight": 0.95},
+    ],
+    "risco_ambiental": [
+        {"name": "risco_ambiental", "tokens": ["risco", "ambiental"], "weight": 1.0},
+        {"name": "dano_ambiental", "tokens": ["dano", "ambiental"], "weight": 0.95},
+    ],
+    "arma_fogo": [
+        {"name": "arma_fogo", "tokens": ["arma", "fogo"], "weight": 1.2},
+        {"name": "porte_arma", "tokens": ["porte", "arma"], "weight": 1.0},
+    ],
+    "fraude_documental": [
+        {"name": "documento_falso", "tokens": ["documento", "falso"], "weight": 1.15},
+        {"name": "documentos_falsos", "tokens": ["documentos", "falsos"], "weight": 1.1},
+        {"name": "falsificacao_documental", "tokens": ["falsificacao", "documental"], "weight": 1.0},
+    ],
+    "fraude_digital": [
+        {"name": "perfil_falso", "tokens": ["perfil", "falso"], "weight": 1.05},
+        {"name": "aplicativo_mensagens", "tokens": ["aplicativo", "mensagens"], "weight": 0.95},
+        {"name": "rede_social", "tokens": ["rede", "social"], "weight": 0.9},
+    ],
+    "fraude_pix": [
+        {"name": "fraude_pix", "tokens": ["fraude", "pix"], "weight": 1.2},
+        {"name": "transferencia_pix", "tokens": ["transferencia", "pix"], "weight": 1.0},
+    ],
+    "arrombamento": [
+        {"name": "arrombamento", "tokens": ["arrombamento"], "weight": 1.1},
+        {"name": "porta_arrombada", "tokens": ["porta", "arrombada"], "weight": 1.0},
+    ],
+    "abordagem_via_publica": [
+        {"name": "abordagem_rua", "tokens": ["abordagem", "rua"], "weight": 1.0},
+        {"name": "via_publica", "tokens": ["via", "publica"], "weight": 0.95},
+    ],
+    "invasao_dispositivo": [
+        {"name": "invasao_dispositivo", "tokens": ["invasao", "dispositivo"], "weight": 1.05},
+        {"name": "dispositivo_eletronico", "tokens": ["dispositivo", "eletronico"], "weight": 0.9},
+    ],
+    "lavagem_financeira": [
+        {"name": "ocultacao_valores", "tokens": ["ocultacao", "valores"], "weight": 1.0},
+        {"name": "dissimulacao_bens", "tokens": ["dissimulacao", "bens"], "weight": 0.95},
+    ],
+}
+
+MODUS_HINT_TERMS: dict[str, set[str]] = {
+    "extracao_ilegal_madeira": {"extracao", "exploracao", "ilegal", "madeira"},
+    "garimpo_ilegal": {"garimpo", "mineracao", "ilegal", "ouro"},
+    "desmatamento": {"desmatamento", "queimada", "queimadas", "floresta"},
+    "trafico_de_especies": {"trafico", "especies", "animais", "silvestres", "fauna"},
+    "caca_ilegal": {"caca", "ilegal", "animais", "silvestres"},
+    "pesca_ilegal": {"pesca", "ilegal", "redes", "arrasto"},
+    "uso_ilegal_solo": {"solo", "terra", "ocupacao", "invasao"},
+    "comercializacao_ilegal": {"comercializacao", "ilegal", "comercio", "venda"},
+    "transporte_ilegal": {"transporte", "ilegal", "irregular", "carga", "embarcacao"},
+    "apreensao_madeira": {"apreensao", "madeira", "toras"},
+    "fiscalizacao_ambiental": {"fiscalizacao", "ambiental", "ibama", "funai"},
+    "atividade_clandestina": {"atividade", "clandestina", "funcionamento", "ilegal"},
+    "risco_ambiental": {"risco", "ambiental", "degradacao", "contaminacao"},
+    "arma_fogo": {"arma", "fogo", "armas", "municao", "municoes"},
+    "fraude_documental": {"documento", "documentos", "falso", "falsos", "falsificacao"},
+    "fraude_digital": {"perfil", "rede", "social", "mensagens", "aplicativo", "conta"},
+    "fraude_pix": {"pix", "transferencia", "chave", "bancaria"},
+    "arrombamento": {"arrombamento", "arrombada", "rompimento", "porta", "janela"},
+    "abordagem_via_publica": {"abordagem", "via", "publica", "rua"},
+    "invasao_dispositivo": {"invasao", "dispositivo", "celular", "eletronico", "eletronicos"},
+    "lavagem_financeira": {"ocultacao", "dissimulacao", "valores", "bens", "contas"},
+    "armazenamento_digital": {"armazenamento", "arquivos", "conteudo", "dispositivo"},
+    "compartilhamento_online": {"compartilhamento", "internet", "online", "rede", "social"},
 }
 
 THEME_MICRO_WORLD_ANCHORS: dict[str, set[str]] = {
@@ -205,7 +373,7 @@ THEME_MICRO_WORLD_ANCHORS: dict[str, set[str]] = {
         "trabalho",
     },
     "crimes_ciberneticos": {"cibernetico", "ciberneticos", "dados", "dispositivos", "internet", "invasao", "sistemas"},
-    "crimes_migratorios": {"imigracao", "migracao", "migrantes", "passaportes"},
+    "crimes_migratorios": {"imigracao", "migracao", "migrantes", "passaportes", "vistos", "estrangeiros"},
     "crimes_previdenciarios": {"aposentadoria", "beneficio", "beneficios", "inss", "previdencia", "previdenciario"},
     "crimes_eleitorais": {"compra", "eleicoes", "eleitoral", "eleitorais", "votos"},
     "crimes_sistema_financeiro": {"bancaria", "financeiro", "sistema", "emprestimos"},
@@ -259,6 +427,7 @@ class WNNClassification:
     confidence: float
     margin: float
     top_label: str
+    modus_operandi: list[str]
     active_discriminators: list[dict[str, object]]
     scores: list[dict[str, object]]
     feature_bank: str
@@ -279,6 +448,7 @@ class WNNClassification:
             "confidence": round(self.confidence, 4),
             "margin": round(self.margin, 4),
             "top_label": self.top_label,
+            "modus_operandi": self.modus_operandi[:8],
             "feature_bank": self.feature_bank,
             "active_discriminators": self.active_discriminators[:20],
             "scores": self.scores[:5],
@@ -295,6 +465,11 @@ class WNNClassification:
 def _stable_id(label: str, pattern: str) -> str:
     digest = hashlib.sha1(f"{label}:{pattern}".encode("utf-8")).hexdigest()[:12]
     return f"{canonical_label(label)}__{digest}"
+
+
+def _rule_kind(value: object, default: str = "crime") -> str:
+    kind = canonical_label(str(value or "")).strip()
+    return kind if kind in {"crime", "modus"} else default
 
 
 def parent_theme(label: str) -> str:
@@ -540,18 +715,180 @@ def _token_present_in_words(token: str, words: set[str]) -> bool:
     return any(word.startswith(normalized) or normalized.startswith(word) for word in words if len(word) >= 4)
 
 
+def _normalize_memory_token(token: object) -> str:
+    normalized = canonical_label(str(token))
+    if len(normalized) < 4:
+        return ""
+    plural_rules = (
+        ("coes", "cao"),
+        ("oes", "ao"),
+        ("ais", "al"),
+        ("eis", "el"),
+        ("is", "il"),
+        ("ns", "m"),
+        ("s", ""),
+    )
+    for suffix, replacement in plural_rules:
+        if len(normalized) > len(suffix) + 3 and normalized.endswith(suffix):
+            candidate = normalized[: -len(suffix)] + replacement
+            if len(candidate) >= 4:
+                return candidate
+    return normalized
+
+
 def _memory_tokens_from_discriminator(item: dict[str, object]) -> list[str]:
-    raw_tokens = item.get("tokens", [])
-    if not isinstance(raw_tokens, list):
-        raw_tokens = _tokens_from_regex_pattern(str(item.get("pattern", "")))
     output: list[str] = []
-    for token in raw_tokens:
-        normalized = canonical_label(str(token))
-        if len(normalized) < 4 or normalized in BLOCKED_SENSOR_TERMS:
-            continue
-        if normalized not in output:
-            output.append(normalized)
+    for tokens in _discriminator_token_variants(item):
+        for token in tokens:
+            normalized = _normalize_memory_token(token)
+            if len(normalized) < 4 or normalized in BLOCKED_SENSOR_TERMS:
+                continue
+            if normalized not in output:
+                output.append(normalized)
     return output
+
+
+def _variant_signature(tokens: Iterable[object]) -> str:
+    normalized = sorted(
+        {
+            token
+            for token in (canonical_label(str(value)) for value in tokens)
+            if token and len(token) >= 4 and token not in BLOCKED_SENSOR_TERMS
+        }
+    )
+    return "|".join(normalized)
+
+
+def _discriminator_variants(item: dict[str, object]) -> list[dict[str, object]]:
+    variants: list[dict[str, object]] = []
+    raw_tokens = item.get("tokens", [])
+    base_tokens = raw_tokens if isinstance(raw_tokens, list) else _tokens_from_pattern_payload(str(item.get("pattern", "")))
+    base_clean = [
+        token
+        for token in (canonical_label(str(value)) for value in base_tokens)
+        if token and len(token) >= 4 and token not in BLOCKED_SENSOR_TERMS
+    ]
+    if base_clean:
+        variants.append(
+            {
+                "name": str(item.get("name", "") or "_".join(base_clean[:4])),
+                "tokens": base_clean,
+                "source": str(item.get("source", "")),
+                "confirmations": int(item.get("confirmations", 0) or 0),
+                "variant_signature": _variant_signature(base_clean),
+                "is_primary": True,
+            }
+        )
+    raw_variants = item.get("marker_variants", [])
+    if isinstance(raw_variants, list):
+        for raw_variant in raw_variants:
+            if not isinstance(raw_variant, dict):
+                continue
+            tokens = raw_variant.get("tokens", [])
+            if not isinstance(tokens, list):
+                continue
+            clean = [
+                token
+                for token in (canonical_label(str(value)) for value in tokens)
+                if token and len(token) >= 4 and token not in BLOCKED_SENSOR_TERMS
+            ]
+            if len(clean) < 2:
+                continue
+            signature = _variant_signature(clean)
+            if not signature or any(signature == str(item.get("variant_signature", "")) for item in variants):
+                continue
+            variants.append(
+                {
+                    "name": str(raw_variant.get("name", "") or "_".join(clean[:4])),
+                    "tokens": clean,
+                    "source": str(raw_variant.get("source", "")),
+                    "confirmations": int(raw_variant.get("confirmations", 0) or 0),
+                    "variant_signature": signature,
+                    "is_primary": False,
+                }
+            )
+    return variants
+
+
+def _discriminator_token_variants(item: dict[str, object]) -> list[list[str]]:
+    return [
+        [str(token) for token in variant.get("tokens", []) if str(token)]
+        for variant in _discriminator_variants(item)
+        if isinstance(variant.get("tokens", []), list)
+    ]
+
+
+def _find_compatible_discriminator_owner(
+    candidate: dict[str, object],
+    discriminators: list[dict[str, object]],
+) -> dict[str, object] | None:
+    label = canonical_label(str(candidate.get("label", "")))
+    kind = _rule_kind(candidate.get("kind", "crime"))
+    candidate_tokens = {
+        canonical_label(str(token))
+        for token in candidate.get("tokens", [])
+        if canonical_label(str(token))
+    }
+    if len(candidate_tokens) < 2:
+        return None
+    best_owner: dict[str, object] | None = None
+    best_score = 0
+    label_hints = set(_label_hint_tokens(label)).union(_label_tokens(label))
+    for item in discriminators:
+        if not isinstance(item, dict):
+            continue
+        if canonical_label(str(item.get("label", ""))) != label:
+            continue
+        if _rule_kind(item.get("kind", "crime")) != kind:
+            continue
+        item_variant_tokens = {
+            canonical_label(str(token))
+            for variant_tokens in _discriminator_token_variants(item)
+            for token in variant_tokens
+            if canonical_label(str(token))
+        }
+        overlap = candidate_tokens.intersection(item_variant_tokens)
+        hint_overlap = overlap.intersection(label_hints)
+        score = len(hint_overlap) * 10 + len(overlap)
+        if score > best_score:
+            best_score = score
+            best_owner = item
+    return best_owner if best_score >= 1 else None
+
+
+def _append_marker_variant(owner: dict[str, object], candidate: dict[str, object]) -> dict[str, object]:
+    variants = owner.setdefault("marker_variants", [])
+    if not isinstance(variants, list):
+        variants = []
+        owner["marker_variants"] = variants
+    tokens = [
+        token
+        for token in (canonical_label(str(value)) for value in candidate.get("tokens", []))
+        if token and len(token) >= 4 and token not in BLOCKED_SENSOR_TERMS
+    ]
+    signature = _variant_signature(tokens)
+    if not signature:
+        return owner
+    for variant in variants:
+        if not isinstance(variant, dict):
+            continue
+        if str(variant.get("variant_signature", "")) == signature:
+            variant["confirmations"] = int(variant.get("confirmations", 0) or 0) + 1
+            owner["confirmations"] = int(owner.get("confirmations", 0) or 0) + 1
+            return owner
+    variants.append(
+        {
+            "name": str(candidate.get("name", "") or "_".join(tokens[:4])),
+            "tokens": tokens,
+            "source": str(candidate.get("source", "agent3_learned_discriminator")),
+            "confirmations": int(candidate.get("confirmations", 1) or 1),
+            "variant_signature": signature,
+            "rationale": str(candidate.get("rationale", "")),
+        }
+    )
+    owner["confirmations"] = int(owner.get("confirmations", 0) or 0) + 1
+    owner["variant_count"] = len([item for item in variants if isinstance(item, dict)]) + 1
+    return owner
 
 
 def sync_feature_memory(payload: dict[str, object]) -> dict[str, object]:
@@ -563,7 +900,7 @@ def sync_feature_memory(payload: dict[str, object]) -> dict[str, object]:
     vocab: list[str] = []
     if isinstance(previous_tokens, list):
         for token in previous_tokens:
-            normalized = canonical_label(str(token))
+            normalized = _normalize_memory_token(token)
             if len(normalized) >= 4 and normalized not in BLOCKED_SENSOR_TERMS and normalized not in vocab:
                 vocab.append(normalized)
 
@@ -655,7 +992,7 @@ def _literal_pattern(value: str) -> str:
     return r"\s+".join(rf"\b{re.escape(token)}\w*\b" for token in tokens)
 
 
-def _tokens_from_regex_pattern(pattern: str) -> list[str]:
+def _tokens_from_pattern_payload(pattern: str) -> list[str]:
     tokens = re.findall(r"\\b([a-z0-9]{3,})", fold_text(pattern))
     if not tokens:
         tokens = _tokens_from_text(pattern)
@@ -861,7 +1198,30 @@ def _agent2_generalized_marker_sets(label: str, terms: Iterable[str]) -> list[li
     return markers
 
 
-def _marker_signature(label: str, tokens: Iterable[object]) -> str:
+def _agent2_modus_marker_sets(terms: Iterable[str]) -> dict[str, list[str]]:
+    normalized_terms = [
+        token
+        for term in terms
+        for token in _substantive_tokens(str(term))
+    ]
+    token_set = set(normalized_terms)
+    output: dict[str, list[str]] = {}
+    for modus_label, hints in MODUS_HINT_TERMS.items():
+        selected = [token for token in normalized_terms if token in hints]
+        if len(set(selected)) >= 2:
+            deduped: list[str] = []
+            for token in selected:
+                if token not in deduped:
+                    deduped.append(token)
+            output[modus_label] = deduped[:4]
+            continue
+        overlap = [token for token in hints if token in token_set]
+        if len(overlap) >= 2:
+            output[modus_label] = overlap[:4]
+    return output
+
+
+def _marker_signature(label: str, tokens: Iterable[object], kind: str = "crime") -> str:
     normalized = sorted(
         {
             token
@@ -871,21 +1231,25 @@ def _marker_signature(label: str, tokens: Iterable[object]) -> str:
     )
     if not normalized:
         return ""
-    return f"{canonical_label(label)}:{'|'.join(normalized)}"
+    return f"{_rule_kind(kind)}:{canonical_label(label)}:{'|'.join(normalized)}"
 
 
 def _marker_signature_from_discriminator(item: dict[str, object]) -> str:
     label = canonical_label(str(item.get("label", "")))
+    kind = _rule_kind(item.get("kind", "crime"))
     tokens = item.get("tokens")
     if isinstance(tokens, list) and tokens:
-        return _marker_signature(label, tokens)
-    return _marker_signature(label, _tokens_from_regex_pattern(str(item.get("pattern", ""))))
+        return _marker_signature(label, tokens, kind=kind)
+    return _marker_signature(label, _tokens_from_pattern_payload(str(item.get("pattern", ""))), kind=kind)
 
 
 def learned_rule_to_discriminator(rule: dict[str, object]) -> dict[str, object] | None:
+    kind = _rule_kind(rule.get("kind", "crime"))
     original_label = canonical_label(str(rule.get("label", "")))
-    label = parent_theme(original_label)
+    label = parent_theme(original_label) if kind == "crime" else normalize_modus_label(original_label)
     if not original_label:
+        return None
+    if kind == "modus" and not label:
         return None
 
     raw_tokens = rule.get("tokens", [])
@@ -901,24 +1265,26 @@ def learned_rule_to_discriminator(rule: dict[str, object]) -> dict[str, object] 
         legacy_pattern = str(rule.get("pattern", "")).strip()
         if not legacy_pattern:
             return None
-        tokens = _tokens_from_regex_pattern(legacy_pattern)
+        tokens = _tokens_from_pattern_payload(legacy_pattern)
     label_terms = _label_tokens(original_label)
     hint_terms = _label_hint_tokens(original_label)
     priority = [token for token in tokens if token in label_terms]
     micro_world = [token for token in tokens if token in hint_terms and token not in priority]
     support = [token for token in tokens if token not in priority and token not in micro_world]
-    selected = [*priority, *micro_world, *support]
+    selected = [*priority, *micro_world, *support] if kind == "crime" else tokens
     selected = selected[:4]
     if len(selected) < 2:
         return None
-    guard_ok, _guard_reason = _marker_matches_micro_world(label, selected)
-    if not guard_ok:
-        return None
+    if kind == "crime":
+        guard_ok, _guard_reason = _marker_matches_micro_world(label, selected)
+        if not guard_ok:
+            return None
 
     unordered = _unordered_pattern(selected)
-    signature = _marker_signature(label, selected)
+    signature = _marker_signature(label, selected, kind=kind)
     discriminator = {
         "id": _stable_id(label, signature),
+        "kind": kind,
         "label": label,
         "name": canonical_label(str(rule.get("name", ""))) or "_".join(selected),
         "pattern": unordered,
@@ -928,13 +1294,18 @@ def learned_rule_to_discriminator(rule: dict[str, object]) -> dict[str, object] 
         "tokens": selected,
         "marker_signature": signature,
         "confirmations": 1,
+        "variant_count": 1,
     }
-    return _with_parent_theme(_apply_strength_metadata(discriminator), original_label)
+    discriminator = _apply_strength_metadata(discriminator)
+    if kind == "crime":
+        return _with_parent_theme(discriminator, original_label)
+    return discriminator
 
 
 def suggest_discriminator_rules_from_review(doc: dict[str, Any], review: Any) -> list[dict[str, object]]:
     label = canonical_label(str(getattr(review, "canonical_label", "") or ""))
-    if not label:
+    review_modus = getattr(review, "modus_operandi", []) or []
+    if not label and not review_modus:
         return []
     parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
     evidence = str(
@@ -951,29 +1322,96 @@ def suggest_discriminator_rules_from_review(doc: dict[str, Any], review: Any) ->
         if token not in BLOCKED_SENSOR_TERMS
     ]
     if label == "crime_organizado" and not set(evidence_tokens).intersection(ORGANIZED_CRIME_BRIDGE_TOKENS):
-        return []
-    selected: list[str] = []
-    for token in [*label_terms, *[token for token in evidence_tokens if token in hint_terms], *evidence_tokens]:
-        if token not in selected:
-            selected.append(token)
-        if len(selected) >= 5:
-            break
-    if len(selected) < 2:
-        return []
-    return [
-        {
-            "label": label,
-            "name": "_".join(selected[:4]),
-            "tokens": selected,
-            "source": "agent3_learned_discriminator",
-            "rationale": "marcador WNN aprendido a partir de classificacao residual do Agente 3",
-        }
-    ]
+        label = ""
+
+    output: list[dict[str, object]] = []
+    if label:
+        selected: list[str] = []
+        prioritized_tokens = [
+            *label_terms,
+            *[token for token in evidence_tokens if token in hint_terms],
+            *[token for token in evidence_tokens if token in label_terms],
+        ]
+        for token in prioritized_tokens:
+            if token not in selected:
+                selected.append(token)
+            if len(selected) >= 5:
+                break
+        if len(selected) >= 2 and set(selected).intersection(set(label_terms).union(hint_terms)):
+            output.append(
+                {
+                    "kind": "crime",
+                    "label": label,
+                    "name": "_".join(selected[:4]),
+                    "tokens": selected,
+                    "source": "agent3_learned_discriminator",
+                    "rationale": "marcador WNN aprendido a partir da classificacao residual do Agente 3",
+                }
+            )
+
+    for raw_modus in review_modus:
+        modus_label = normalize_modus_label(raw_modus)
+        if not modus_label:
+            continue
+        modus_terms = [token for token in modus_label.split("_") if len(token) >= 4]
+        selected_modus: list[str] = []
+        prioritized_modus = [
+            *modus_terms,
+            *[token for token in evidence_tokens if token in modus_terms],
+        ]
+        for token in prioritized_modus:
+            if token not in selected_modus:
+                selected_modus.append(token)
+            if len(selected_modus) >= 5:
+                break
+        if len(selected_modus) < 2 or not set(selected_modus).intersection(modus_terms):
+            continue
+        output.append(
+            {
+                "kind": "modus",
+                "label": modus_label,
+                "name": "_".join(selected_modus[:4]),
+                "tokens": selected_modus,
+                "source": "agent3_learned_modus_discriminator",
+                "rationale": "marcador WNN de modus operandi aprendido a partir da classificacao residual do Agente 3",
+            }
+        )
+    return output
+
+
+def _discriminator_priority(item: dict[str, object]) -> tuple[int, int, float, str]:
+    source = str(item.get("source", "") or "")
+    curated = 1 if "curated" in source else 0
+    confirmations = int(item.get("confirmations", 0) or 0)
+    variant_count = int(item.get("variant_count", 1) or 1)
+    weight = float(item.get("weight", DEFAULT_FEATURE_WEIGHT) or DEFAULT_FEATURE_WEIGHT)
+    return (curated, variant_count, confirmations, weight, source)
+
+
+def _cap_discriminators_per_label(
+    discriminators: list[dict[str, object]],
+    max_per_label: int,
+) -> list[dict[str, object]]:
+    if max_per_label <= 0:
+        return discriminators
+    grouped: dict[tuple[str, str], list[dict[str, object]]] = {}
+    for item in discriminators:
+        key = (
+            _rule_kind(item.get("kind", "crime")),
+            canonical_label(str(item.get("label", ""))),
+        )
+        grouped.setdefault(key, []).append(item)
+    limited: list[dict[str, object]] = []
+    for key in sorted(grouped):
+        items = sorted(grouped[key], key=_discriminator_priority, reverse=True)
+        limited.extend(items[:max_per_label])
+    return limited
 
 
 def append_discriminators_from_learned_rules(
     rules: list[dict[str, object]],
     feature_bank_path: Path | str,
+    max_discriminators_per_label: int = 35,
 ) -> list[dict[str, object]]:
     payload = load_feature_bank(feature_bank_path)
     if not payload:
@@ -996,6 +1434,14 @@ def append_discriminators_from_learned_rules(
         for item in discriminators
         if isinstance(item, dict)
     }
+    existing_variant_owner: dict[str, dict[str, object]] = {}
+    for item in discriminators:
+        if not isinstance(item, dict):
+            continue
+        for variant in _discriminator_variants(item):
+            signature = str(variant.get("variant_signature", ""))
+            if signature:
+                existing_variant_owner[signature] = item
     added: list[dict[str, object]] = []
     for rule in rules:
         discriminator = learned_rule_to_discriminator(rule)
@@ -1009,9 +1455,30 @@ def append_discriminators_from_learned_rules(
             _apply_strength_metadata(existing)
             added.append(existing)
             continue
+        variant_signature = _variant_signature(discriminator.get("tokens", []))
+        variant_owner = existing_variant_owner.get(variant_signature)
+        if variant_owner is not None:
+            _append_marker_variant(variant_owner, discriminator)
+            _apply_strength_metadata(variant_owner)
+            added.append(variant_owner)
+            continue
+        compatible_owner = _find_compatible_discriminator_owner(discriminator, discriminators)
+        if compatible_owner is not None:
+            _append_marker_variant(compatible_owner, discriminator)
+            existing_variant_owner[variant_signature] = compatible_owner
+            _apply_strength_metadata(compatible_owner)
+            added.append(compatible_owner)
+            continue
         discriminators.append(discriminator)
         existing_by_signature[signature] = discriminator
+        existing_variant_owner[variant_signature] = discriminator
         added.append(discriminator)
+
+    discriminators = _cap_discriminators_per_label(
+        [item for item in discriminators if isinstance(item, dict)],
+        max_per_label=max_discriminators_per_label,
+    )
+    payload["discriminators"] = discriminators
 
     labels = sorted(
         {
@@ -1066,7 +1533,7 @@ def compact_feature_bank(feature_bank_path: Path | str) -> dict[str, int]:
                 if token and len(token) >= 4 and token not in BLOCKED_SENSOR_TERMS
             ]
         else:
-            clean_tokens = _tokens_from_regex_pattern(str(item.get("pattern", "")))
+            clean_tokens = _tokens_from_pattern_payload(str(item.get("pattern", "")))
         if len(clean_tokens) < 2:
             item["tokens"] = clean_tokens
             item["weight"] = min(float(item.get("weight", WEAK_SIGNAL_WEIGHT) or WEAK_SIGNAL_WEIGHT), WEAK_SIGNAL_WEIGHT)
@@ -1079,21 +1546,53 @@ def compact_feature_bank(feature_bank_path: Path | str) -> dict[str, int]:
             item["guard_rejection"] = guard_reason
             rejected_by_guard.append(item)
             continue
+        kind = _rule_kind(item.get("kind", "crime"))
         item["tokens"] = clean_tokens
+        item["kind"] = kind
         item["label"] = parent
-        if parent != original_label:
+        if kind == "crime" and parent != original_label:
             item["subtheme"] = original_label
             item["parent_theme"] = parent
         else:
             item.pop("subtheme", None)
             item.pop("parent_theme", None)
-        signature = _marker_signature(parent, clean_tokens)
+        signature = _marker_signature(parent, clean_tokens, kind=kind)
         if not signature:
             continue
         if signature in seen:
             continue
         item["marker_signature"] = signature
         item["pattern"] = _unordered_pattern(clean_tokens)
+        cleaned_variants: list[dict[str, object]] = []
+        for variant in _discriminator_variants(item):
+            if bool(variant.get("is_primary")):
+                continue
+            variant_tokens = [
+                token
+                for token in (canonical_label(str(value)) for value in variant.get("tokens", []))
+                if token and len(token) >= 4 and token not in BLOCKED_SENSOR_TERMS
+            ]
+            variant_signature = _variant_signature(variant_tokens)
+            if not variant_signature or variant_signature == signature:
+                continue
+            if any(str(existing.get("variant_signature", "")) == variant_signature for existing in cleaned_variants):
+                continue
+            cleaned_variants.append(
+                {
+                    "name": str(variant.get("name", "") or "_".join(variant_tokens[:4])),
+                    "tokens": variant_tokens,
+                    "source": str(variant.get("source", item.get("source", ""))),
+                    "confirmations": int(variant.get("confirmations", 0) or 0),
+                    "variant_signature": variant_signature,
+                    "rationale": str(variant.get("rationale", "")),
+                }
+            )
+        if cleaned_variants:
+            item["marker_variants"] = cleaned_variants
+            item["variant_count"] = len(cleaned_variants) + 1
+        else:
+            item.pop("marker_variants", None)
+            item["variant_count"] = 1
         _apply_strength_metadata(item)
         seen.add(signature)
         compacted.append(item)
@@ -1106,6 +1605,27 @@ def compact_feature_bank(feature_bank_path: Path | str) -> dict[str, int]:
         }
     )
     themes: dict[str, dict[str, object]] = {}
+    for label in labels:
+        theme_discriminators = [
+            item
+            for item in compacted
+            if canonical_label(str(item.get("label", ""))) == label
+        ]
+        themes[label] = {
+            "canonical_theme": label,
+            "discriminator_count": len(theme_discriminators),
+            "discriminators": theme_discriminators,
+        }
+
+    compacted = _cap_discriminators_per_label(compacted, max_per_label=35)
+    labels = sorted(
+        {
+            canonical_label(str(item.get("label", "")))
+            for item in compacted
+            if item.get("label")
+        }
+    )
+    themes = {}
     for label in labels:
         theme_discriminators = [
             item
@@ -1160,17 +1680,55 @@ def _curated_discriminator(label: str, item: dict[str, object]) -> dict[str, obj
     if not pattern:
         return None
     discriminator = {
-        "id": _stable_id(label, _marker_signature(label, tokens)),
+        "id": _stable_id(label, _marker_signature(label, tokens, kind="crime")),
+        "kind": "crime",
         "label": label,
         "name": name or "_".join(tokens),
         "pattern": pattern,
         "tokens": tokens,
-        "marker_signature": _marker_signature(label, tokens),
+        "marker_signature": _marker_signature(label, tokens, kind="crime"),
         "weight": float(item.get("weight", DEFAULT_FEATURE_WEIGHT) or DEFAULT_FEATURE_WEIGHT),
         "source": "agent2_curated_discriminator",
         "rationale": f"discriminador substantivo do tema canonico {label}",
+        "variant_count": 1,
     }
     return _with_parent_theme(_apply_strength_metadata(discriminator), original_label)
+
+
+def _curated_modus_discriminator(label: str, item: dict[str, object]) -> dict[str, object] | None:
+    label = normalize_modus_label(label)
+    if not label:
+        return None
+    name = canonical_label(str(item.get("name", "")))
+    raw_tokens = item.get("tokens", [])
+    if not isinstance(raw_tokens, list):
+        return None
+    tokens = [
+        token
+        for token in (canonical_label(str(value)) for value in raw_tokens)
+        if token and len(token) >= 4 and token not in BLOCKED_SENSOR_TERMS
+    ]
+    if not tokens:
+        return None
+    pattern = _unordered_pattern(tokens)
+    if not pattern:
+        return None
+    signature = _marker_signature(label, tokens, kind="modus")
+    return _apply_strength_metadata(
+        {
+            "id": _stable_id(label, signature),
+            "kind": "modus",
+            "label": label,
+            "name": name or "_".join(tokens),
+            "pattern": pattern,
+            "tokens": tokens,
+            "marker_signature": signature,
+            "weight": float(item.get("weight", DEFAULT_FEATURE_WEIGHT) or DEFAULT_FEATURE_WEIGHT),
+            "source": "agent2_curated_modus_discriminator",
+            "rationale": f"discriminador de modus operandi {label}",
+            "variant_count": 1,
+        }
+    )
 
 
 def build_feature_bank(
@@ -1228,12 +1786,13 @@ def build_feature_bank(
             guard_ok, _guard_reason = _marker_matches_micro_world(label, tokens)
             if not guard_ok:
                 continue
-            key = _marker_signature(label, tokens)
+            key = _marker_signature(label, tokens, kind="crime")
             if not key or key in seen:
                 continue
             seen.add(key)
             discriminator = {
                 "id": _stable_id(label, key),
+                "kind": "crime",
                 "label": label,
                 "name": "_".join(tokens[:4]),
                 "pattern": _unordered_pattern(tokens),
@@ -1252,12 +1811,13 @@ def build_feature_bank(
             if not pattern:
                 continue
             tokens = _tokens_from_text(term_text)
-            key = _marker_signature(label, tokens)
+            key = _marker_signature(label, tokens, kind="crime")
             if key in seen:
                 continue
             seen.add(key)
             discriminator = {
                     "id": _stable_id(label, key),
+                    "kind": "crime",
                     "label": label,
                     "pattern": pattern,
                     "tokens": tokens,
@@ -1267,6 +1827,30 @@ def build_feature_bank(
                     "rationale": f"termo de evidencia do tema {label}: {term_text}",
                 }
             discriminators_by_label.setdefault(label, []).append(_with_parent_theme(_apply_strength_metadata(discriminator), original_label))
+
+        for modus_label, tokens in _agent2_modus_marker_sets(theme_terms).items():
+            discriminator = _curated_modus_discriminator(
+                modus_label,
+                {"name": modus_label, "tokens": tokens, "weight": EVIDENCE_FEATURE_WEIGHT},
+            )
+            if discriminator is None:
+                continue
+            key = str(discriminator.get("marker_signature") or _marker_signature_from_discriminator(discriminator))
+            if key in seen:
+                continue
+            seen.add(key)
+            discriminators_by_label.setdefault(modus_label, []).append(discriminator)
+
+    for modus_label, items in sorted(CURATED_MODUS_DISCRIMINATORS.items()):
+        for curated in items:
+            discriminator = _curated_modus_discriminator(modus_label, curated)
+            if discriminator is None:
+                continue
+            key = str(discriminator.get("marker_signature") or _marker_signature_from_discriminator(discriminator))
+            if key in seen:
+                continue
+            seen.add(key)
+            discriminators_by_label.setdefault(modus_label, []).append(discriminator)
 
     discriminators: list[dict[str, object]] = []
     for label, items in sorted(discriminators_by_label.items()):
@@ -1297,7 +1881,7 @@ def build_feature_bank(
         active_ids = sorted(
             str(item["id"])
             for item in discriminators
-            if _tokens_match_text(item.get("tokens", []), words)
+            if _rule_kind(item.get("kind", "crime")) == "crime" and _tokens_match_text(item.get("tokens", []), words)
         )
         if not active_ids:
             continue
@@ -1343,7 +1927,28 @@ def load_feature_bank(path: Path | str) -> dict[str, object]:
         payload = json.loads(resolved.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
-    return payload if isinstance(payload, dict) else {}
+    if not isinstance(payload, dict):
+        return {}
+    discriminators = payload.get("discriminators", [])
+    if isinstance(discriminators, list):
+        cleaned: list[dict[str, object]] = []
+        seen: set[str] = set()
+        for item in discriminators:
+            if not isinstance(item, dict):
+                continue
+            if _rule_kind(item.get("kind", "crime")) == "modus":
+                normalized = normalize_modus_label(item.get("label", ""))
+                if not normalized:
+                    continue
+                item = dict(item)
+                item["label"] = normalized
+            signature = str(item.get("marker_signature") or _marker_signature_from_discriminator(item))
+            if signature in seen:
+                continue
+            seen.add(signature)
+            cleaned.append(item)
+        payload["discriminators"] = cleaned
+    return payload
 
 
 def active_discriminators(text: str, feature_bank: dict[str, object]) -> list[dict[str, object]]:
@@ -1352,15 +1957,27 @@ def active_discriminators(text: str, feature_bank: dict[str, object]) -> list[di
     for item in feature_bank.get("discriminators", []):
         if not isinstance(item, dict):
             continue
-        raw_tokens = item.get("tokens", [])
-        if not isinstance(raw_tokens, list) or not _tokens_match_text(raw_tokens, words):
+        matched_variant: dict[str, object] | None = None
+        for variant in _discriminator_variants(item):
+            variant_tokens = variant.get("tokens", [])
+            if isinstance(variant_tokens, list) and _tokens_match_text(variant_tokens, words):
+                matched_variant = variant
+                break
+        if matched_variant is None:
             continue
         active.append(
             {
                 "id": str(item.get("id", "")),
-                "label": parent_theme(str(item.get("label", ""))),
+                "kind": _rule_kind(item.get("kind", "crime")),
+                "label": (
+                    parent_theme(str(item.get("label", "")))
+                    if _rule_kind(item.get("kind", "crime")) == "crime"
+                    else normalize_modus_label(item.get("label", ""))
+                ),
                 "subtheme": canonical_label(str(item.get("subtheme", ""))),
-                "tokens": item.get("tokens", []) if isinstance(item.get("tokens", []), list) else [],
+                "tokens": matched_variant.get("tokens", []) if isinstance(matched_variant.get("tokens", []), list) else [],
+                "matched_variant_name": str(matched_variant.get("name", "")),
+                "variant_count": len(_discriminator_variants(item)),
                 "weight": float(item.get("weight", DEFAULT_FEATURE_WEIGHT) or DEFAULT_FEATURE_WEIGHT),
                 "strength": str(item.get("strength", "medium") or "medium"),
                 "confirmations": int(item.get("confirmations", 0) or 0),
@@ -1368,6 +1985,26 @@ def active_discriminators(text: str, feature_bank: dict[str, object]) -> list[di
             }
         )
     return active
+
+
+def _modus_scores(active: list[dict[str, object]]) -> dict[str, float]:
+    scores: dict[str, float] = {}
+    for item in active:
+        if _rule_kind(item.get("kind", "crime")) != "modus":
+            continue
+        label = canonical_label(str(item.get("label", "")))
+        if not label:
+            continue
+        scores[label] = scores.get(label, 0.0) + float(item.get("weight", DEFAULT_FEATURE_WEIGHT) or DEFAULT_FEATURE_WEIGHT)
+    return scores
+
+
+def _top_modus_operandi(active: list[dict[str, object]], limit: int = 6) -> list[str]:
+    scores = _modus_scores(active)
+    return [
+        label
+        for label, _score in sorted(scores.items(), key=lambda item: item[1], reverse=True)[:limit]
+    ]
 
 
 def _label_evidence_counts(active: list[dict[str, object]]) -> dict[str, dict[str, int]]:
@@ -1418,6 +2055,7 @@ def classify_with_wnn(
     sync_feature_memory(feature_bank)
     memory_state = binary_memory_for_text(text, feature_bank)
     active = active_discriminators(text, feature_bank)
+    modus_operandi = _top_modus_operandi(active)
     if not active:
         return WNNClassification(
             None,
@@ -1425,6 +2063,7 @@ def classify_with_wnn(
             0.0,
             0.0,
             "",
+            [],
             active,
             [],
             str(feature_bank_path),
@@ -1434,9 +2073,28 @@ def classify_with_wnn(
             memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
         )
 
+    crime_active = [item for item in active if _rule_kind(item.get("kind", "crime")) == "crime"]
+    if not crime_active:
+        status = "abstain_only_modus" if modus_operandi else "abstain_insufficient_crime_discriminators"
+        return WNNClassification(
+            None,
+            status,
+            0.0,
+            0.0,
+            "",
+            modus_operandi,
+            active,
+            [],
+            str(feature_bank_path),
+            memory_binary=str(memory_state.get("binary", "")),
+            memory_active_positions=list(memory_state.get("active_positions", [])),
+            memory_version=int(memory_state.get("version", 0) or 0),
+            memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+        )
     active_ids = {str(item["id"]) for item in active}
+
     scores_by_label: dict[str, float] = {}
-    for item in active:
+    for item in crime_active:
         label = _active_label(item)
         scores_by_label[label] = scores_by_label.get(label, 0.0) + float(item["weight"])
 
@@ -1482,6 +2140,7 @@ def classify_with_wnn(
             0.0,
             0.0,
             "",
+            modus_operandi,
             active,
             [],
             str(feature_bank_path),
@@ -1535,6 +2194,7 @@ def classify_with_wnn(
             confidence,
             margin,
             top_label,
+            modus_operandi,
             active,
             scores,
             str(feature_bank_path),
@@ -1552,6 +2212,7 @@ def classify_with_wnn(
             confidence,
             margin,
             top_label,
+            modus_operandi,
             active,
             scores,
             str(feature_bank_path),
@@ -1569,6 +2230,7 @@ def classify_with_wnn(
             confidence,
             margin,
             top_label,
+            modus_operandi,
             active,
             scores,
             str(feature_bank_path),
@@ -1589,7 +2251,7 @@ def classify_with_wnn(
         tema_principal=top_label,
         marcadores_secundarios=secondary,
         relacao_operacional=relation,
-        modus_operandi=[],
+        modus_operandi=modus_operandi,
     )
     return WNNClassification(
         inference,
@@ -1597,6 +2259,7 @@ def classify_with_wnn(
         confidence,
         margin,
         top_label,
+        modus_operandi,
         active,
         scores,
         str(feature_bank_path),
