@@ -431,6 +431,11 @@ class WNNClassification:
     active_discriminators: list[dict[str, object]]
     scores: list[dict[str, object]]
     feature_bank: str
+    crime_confidence: float = 0.0
+    crime_margin: float = 0.0
+    crime_autonomous: bool = False
+    modus_confidence: float = 0.0
+    modus_evidence_count: int = 0
     theme_candidate: dict[str, object] | None = None
     memory_binary: str = ""
     memory_active_positions: list[int] | None = None
@@ -439,7 +444,7 @@ class WNNClassification:
 
     @property
     def accepted(self) -> bool:
-        return self.inference is not None and self.status == "accepted"
+        return self.inference is not None and self.status.startswith("accepted_crime")
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -449,6 +454,11 @@ class WNNClassification:
             "margin": round(self.margin, 4),
             "top_label": self.top_label,
             "modus_operandi": self.modus_operandi[:8],
+            "crime_confidence": round(self.crime_confidence, 4),
+            "crime_margin": round(self.crime_margin, 4),
+            "crime_autonomous": self.crime_autonomous,
+            "modus_confidence": round(self.modus_confidence, 4),
+            "modus_evidence_count": int(self.modus_evidence_count),
             "feature_bank": self.feature_bank,
             "active_discriminators": self.active_discriminators[:20],
             "scores": self.scores[:5],
@@ -2007,6 +2017,18 @@ def _top_modus_operandi(active: list[dict[str, object]], limit: int = 6) -> list
     ]
 
 
+def _modus_axis_summary(active: list[dict[str, object]], limit: int = 6) -> tuple[list[str], float, int]:
+    scores = _modus_scores(active)
+    if not scores:
+        return [], 0.0, 0
+    ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    total = sum(float(score) for _label, score in ranked)
+    top = float(ranked[0][1]) if ranked else 0.0
+    confidence = (top / total) if total > 0 else 0.0
+    labels = [label for label, _score in ranked[:limit]]
+    return labels, confidence, len(ranked)
+
+
 def _label_evidence_counts(active: list[dict[str, object]]) -> dict[str, dict[str, int]]:
     counts: dict[str, dict[str, int]] = {}
     for item in active:
@@ -2055,7 +2077,7 @@ def classify_with_wnn(
     sync_feature_memory(feature_bank)
     memory_state = binary_memory_for_text(text, feature_bank)
     active = active_discriminators(text, feature_bank)
-    modus_operandi = _top_modus_operandi(active)
+    modus_operandi, modus_confidence, modus_evidence_count = _modus_axis_summary(active)
     if not active:
         return WNNClassification(
             None,
@@ -2067,6 +2089,11 @@ def classify_with_wnn(
             active,
             [],
             str(feature_bank_path),
+            crime_confidence=0.0,
+            crime_margin=0.0,
+            crime_autonomous=False,
+            modus_confidence=0.0,
+            modus_evidence_count=0,
             memory_binary=str(memory_state.get("binary", "")),
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
@@ -2086,6 +2113,11 @@ def classify_with_wnn(
             active,
             [],
             str(feature_bank_path),
+            crime_confidence=0.0,
+            crime_margin=0.0,
+            crime_autonomous=False,
+            modus_confidence=modus_confidence,
+            modus_evidence_count=modus_evidence_count,
             memory_binary=str(memory_state.get("binary", "")),
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
@@ -2144,6 +2176,11 @@ def classify_with_wnn(
             active,
             [],
             str(feature_bank_path),
+            crime_confidence=0.0,
+            crime_margin=0.0,
+            crime_autonomous=False,
+            modus_confidence=modus_confidence,
+            modus_evidence_count=modus_evidence_count,
             memory_binary=str(memory_state.get("binary", "")),
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
@@ -2174,6 +2211,8 @@ def classify_with_wnn(
         )
     confidence = top_score / total_score if total_score else 0.0
     margin = (top_score - second_score) / top_score if top_score else 0.0
+    crime_confidence = confidence
+    crime_margin = margin
     cosine_supported = _cosine_supports_decision(top_label, secondary, cosine_candidates)
     memory_supported = any(memory_scores_by_label.get(label, 0.0) >= 0.25 for label in [top_label, *secondary])
     cosine_suspect, cosine_suspect_label, cosine_suspect_score = _cosine_suspicion(
@@ -2198,7 +2237,12 @@ def classify_with_wnn(
             active,
             scores,
             str(feature_bank_path),
-            theme_candidate,
+            crime_confidence=crime_confidence,
+            crime_margin=crime_margin,
+            crime_autonomous=False,
+            modus_confidence=modus_confidence,
+            modus_evidence_count=modus_evidence_count,
+            theme_candidate=theme_candidate,
             memory_binary=str(memory_state.get("binary", "")),
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
@@ -2216,7 +2260,12 @@ def classify_with_wnn(
             active,
             scores,
             str(feature_bank_path),
-            theme_candidate,
+            crime_confidence=crime_confidence,
+            crime_margin=crime_margin,
+            crime_autonomous=False,
+            modus_confidence=modus_confidence,
+            modus_evidence_count=modus_evidence_count,
+            theme_candidate=theme_candidate,
             memory_binary=str(memory_state.get("binary", "")),
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
@@ -2234,7 +2283,12 @@ def classify_with_wnn(
             active,
             scores,
             str(feature_bank_path),
-            theme_candidate,
+            crime_confidence=crime_confidence,
+            crime_margin=crime_margin,
+            crime_autonomous=False,
+            modus_confidence=modus_confidence,
+            modus_evidence_count=modus_evidence_count,
+            theme_candidate=theme_candidate,
             memory_binary=str(memory_state.get("binary", "")),
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
@@ -2255,7 +2309,7 @@ def classify_with_wnn(
     )
     return WNNClassification(
         inference,
-        "accepted",
+        "accepted_crime_with_modus" if modus_operandi else "accepted_crime_without_modus",
         confidence,
         margin,
         top_label,
@@ -2263,7 +2317,12 @@ def classify_with_wnn(
         active,
         scores,
         str(feature_bank_path),
-        theme_candidate,
+        crime_confidence=crime_confidence,
+        crime_margin=crime_margin,
+        crime_autonomous=True,
+        modus_confidence=modus_confidence,
+        modus_evidence_count=modus_evidence_count,
+        theme_candidate=theme_candidate,
         memory_binary=str(memory_state.get("binary", "")),
         memory_active_positions=list(memory_state.get("active_positions", [])),
         memory_version=int(memory_state.get("version", 0) or 0),

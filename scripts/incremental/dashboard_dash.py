@@ -694,7 +694,7 @@ def _memory_position_context() -> dict[int, dict[str, Any]]:
     if not isinstance(tokens, list):
         tokens = []
     context: dict[int, dict[str, Any]] = {
-        index: {"token": str(token), "labels": set(), "discriminators": []}
+        index: {"token": str(token), "labels": set(), "discriminators": [], "kinds": set()}
         for index, token in enumerate(tokens)
     }
     token_to_position = {str(token): index for index, token in enumerate(tokens)}
@@ -706,6 +706,7 @@ def _memory_position_context() -> dict[int, dict[str, Any]]:
             continue
         label = _theme_parent(str(item.get("label", "")))
         name = _discriminator_label(item)
+        kind = str(item.get("kind", "crime") or "crime")
         positions = item.get("memory_positions", [])
         if not isinstance(positions, list):
             positions = []
@@ -722,9 +723,12 @@ def _memory_position_context() -> dict[int, dict[str, Any]]:
                 position = int(raw_position)
             except (TypeError, ValueError):
                 continue
-            bucket = context.setdefault(position, {"token": "", "labels": set(), "discriminators": []})
+            bucket = context.setdefault(position, {"token": "", "labels": set(), "discriminators": [], "kinds": set()})
             if label:
                 bucket["labels"].add(label)
+            kind_set = bucket.setdefault("kinds", set())
+            if isinstance(kind_set, set) and kind in {"crime", "modus"}:
+                kind_set.add(kind)
             disc_list = bucket.setdefault("discriminators", [])
             if isinstance(disc_list, list) and name and name not in disc_list:
                 disc_list.append(name)
@@ -777,12 +781,15 @@ def _binary_memory_panel(max_cells: int = MAX_MEMORY_CELLS) -> html.Div:
         token = str(info.get("token", "") or "(sem token)")
         labels = sorted(str(item) for item in info.get("labels", set()) if str(item))
         discriminators = info.get("discriminators", [])
+        kinds = sorted(str(item) for item in info.get("kinds", set()) if str(item))
         if not isinstance(discriminators, list):
             discriminators = []
         lines = [
             f"posicao {index}: {'acesa' if bit == '1' else 'apagada'}",
             f"token: {token}",
         ]
+        if kinds:
+            lines.append("eixos: " + ", ".join(kinds))
         if labels:
             lines.append("temas: " + ", ".join(labels[:6]))
         if discriminators:
@@ -791,22 +798,72 @@ def _binary_memory_panel(max_cells: int = MAX_MEMORY_CELLS) -> html.Div:
 
     truncated = len(binary) > max_cells
     visible_binary = binary[:max_cells]
-    bits = [
-        html.Span(
-            "",
-            className=f"memory-cell {'on' if bit == '1' else 'off'}",
-            title=cell_title(index, bit),
+
+    def section_indexes(kind: str) -> list[int]:
+        indexes: list[int] = []
+        for index, bit in enumerate(visible_binary):
+            if bit not in {"0", "1"}:
+                continue
+            info = position_context.get(index, {})
+            raw_kinds = info.get("kinds", set())
+            if isinstance(raw_kinds, set):
+                mapped_kinds = {str(item) for item in raw_kinds if str(item)}
+            else:
+                mapped_kinds = set()
+            if not mapped_kinds:
+                mapped_kinds = {"crime"}
+            if kind in mapped_kinds:
+                indexes.append(index)
+        return indexes
+
+    def render_section(kind: str, title: str, subtitle: str) -> html.Div:
+        indexes = section_indexes(kind)
+        active_indexes = [index for index in indexes if visible_binary[index] == "1"]
+        bits = [
+            html.Span(
+                "",
+                className=f"memory-cell {'on' if visible_binary[index] == '1' else 'off'}",
+                title=cell_title(index, visible_binary[index]),
+            )
+            for index in indexes
+        ]
+        preview = ", ".join(str(index) for index in active_indexes[:18])
+        if len(active_indexes) > 18:
+            preview += ", ..."
+        return html.Div(
+            [
+                html.Div(title, className="disc-title"),
+                html.Div(subtitle, className="disc-meta"),
+                html.Div(
+                    f"posicoes mapeadas={len(indexes)} | bits acesos={len(active_indexes)}",
+                    className="disc-meta",
+                ),
+                html.Div(bits, className="memory-matrix"),
+                html.Div(
+                    f"posicoes acesas nesta secao: {preview or 'nenhuma'}",
+                    className="disc-markers",
+                ),
+            ],
+            className="memory-panel",
         )
-        for index, bit in enumerate(visible_binary)
-        if bit in {"0", "1"}
-    ]
+
+    overlap = [index for index in section_indexes("crime") if index in set(section_indexes("modus"))]
     return html.Div(
         [
             html.Div(
                 f"versao={memory.get('version', 0)} | largura={memory.get('vocab_size', 0)} | bits acesos={memory.get('active_count', 0)}",
                 className="disc-meta",
             ),
-            html.Div(bits, className="memory-matrix"),
+            render_section(
+                "crime",
+                "Sessao 1 - Qual o crime",
+                "Primeiro bloco da imagem binaria: discriminadores associados ao crime canonico.",
+            ),
+            render_section(
+                "modus",
+                "Sessao 2 - Modus operandi",
+                "Segundo bloco da imagem binaria: discriminadores associados a forma de execucao.",
+            ),
             html.Div(
                 f"visualizacao resumida: primeiros {len(visible_binary)} de {len(binary)} bits da memoria."
                 if truncated
@@ -817,7 +874,13 @@ def _binary_memory_panel(max_cells: int = MAX_MEMORY_CELLS) -> html.Div:
                 "Quadrado verde = palavra-chave da matriz encontrada na noticia; quadrado apagado = posicao conhecida, mas nao acionada.",
                 className="disc-meta",
             ),
-            html.Div(f"posicoes acesas: {position_preview or 'nenhuma'}", className="disc-markers"),
+            html.Div(
+                "Alguns bits podem aparecer nas duas secoes quando o mesmo token participa tanto do eixo de crime quanto do eixo de modus operandi."
+                if overlap
+                else "Cada secao mostra apenas as posicoes associadas ao seu respectivo eixo.",
+                className="disc-meta",
+            ),
+            html.Div(f"posicoes acesas totais: {position_preview or 'nenhuma'}", className="disc-markers"),
             html.Div(str(memory.get("arquivo", "")), className="muted"),
         ],
         className="memory-panel",
@@ -2559,7 +2622,7 @@ def create_app() -> Dash:
                         className="flow-frame",
                         style={"display": "none"},
                     ),
-                    html.H2("Imagem Binaria da Ultima Noticia"),
+                    html.H2("Vetor Binario da Ultima Noticia (grade 0/1)"),
                     html.Div(id="binary-memory-panel", className="memory-wrap"),
                 ],
                 className="panel",

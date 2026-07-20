@@ -74,7 +74,166 @@ def row_arrows(ax, boxes):
         arrow(ax, right(a), left(b))
 
 
+def build_stage_1() -> Path:
+    fig, ax = plt.subplots(figsize=(15, 3.8))
+    ax.set_xlim(0, 16)
+    ax.set_ylim(0, 3.4)
+    ax.axis("off")
+
+    ax.text(8, 3.0, "Etapa 1 - Fundação temática", ha="center", fontsize=18, weight="bold")
+    ax.text(
+        8,
+        2.6,
+        "A amostra inicial descobre temas, organiza folhas semânticas e produz o primeiro banco de regras.",
+        ha="center",
+        fontsize=10.5,
+        color="#333333",
+    )
+
+    fundacao = [
+        draw_box(ax, 0.35, 1.55, 1.35, 0.66, "Base\ntextual", "#f4f4f4"),
+        draw_box(ax, 2.05, 1.55, 1.45, 0.66, "Amostra\ninicial", "#dff0ff"),
+        draw_box(ax, 3.85, 1.55, 1.55, 0.66, "Texto de\ndomínio", "#dff0ff"),
+        draw_box(ax, 5.75, 1.55, 1.35, 0.66, "Embeddings", "#dff0ff"),
+        draw_box(ax, 7.45, 1.55, 1.45, 0.66, "HDBSCAN\nclusters", "#dff0ff"),
+        draw_box(ax, 9.25, 1.55, 1.55, 0.66, "Cosseno\nrefina folhas", "#dff0ff"),
+        draw_box(ax, 11.15, 1.55, 1.55, 0.66, "Agente 1\ntemas", "#e9e4ff"),
+        draw_box(ax, 13.05, 1.55, 1.55, 0.66, "Agente 2\nregex", "#e9e4ff"),
+    ]
+    row_arrows(ax, fundacao)
+    banco_inicial = draw_box(ax, 14.95, 1.55, 0.8, 0.66, "Banco\nregex", "#cdf0c6", fs=9)
+    arrow(ax, right(fundacao[-1]), left(banco_inicial))
+
+    ax.text(
+        8,
+        0.55,
+        "Saída da etapa: uma primeira organização temática do domínio e um banco inicial de regras reaproveitáveis.",
+        ha="center",
+        fontsize=10.2,
+        color="#333333",
+    )
+
+    out = MEDIA / "figura-1-etapa-1-fundacao-tematica.png"
+    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return out
+
+
+def build_stage_2() -> Path:
+    fig, ax = plt.subplots(figsize=(15, 4.2))
+    ax.set_xlim(0, 16)
+    ax.set_ylim(0, 4.0)
+    ax.axis("off")
+
+    ax.text(8, 3.55, "Etapa 2 - Execução incremental", ha="center", fontsize=18, weight="bold")
+    ax.text(
+        8,
+        3.15,
+        "Cada novo lote passa primeiro pela camada barata; apenas o residual segue para interpretação mais cara.",
+        ha="center",
+        fontsize=10.5,
+        color="#333333",
+    )
+
+    execucao = [
+        draw_box(ax, 0.35, 2.0, 1.65, 0.66, "Reserva\nincremental", "#f4f4f4"),
+        draw_box(ax, 2.35, 2.0, 1.25, 0.66, "Parser", "#e6f6df"),
+        draw_box(ax, 3.95, 2.0, 1.55, 0.66, "Texto de\ndomínio", "#e6f6df"),
+        draw_box(ax, 5.85, 2.0, 1.7, 0.66, "Classificador\nregex-first", "#cdf0c6"),
+    ]
+    row_arrows(ax, execucao)
+    classificado = draw_box(ax, 8.05, 2.35, 1.65, 0.66, "Classificado\npor regra", "#cdf0c6")
+    residual = draw_box(ax, 8.05, 1.55, 1.65, 0.66, "Residual\nsem regra", "#ffe2bd")
+    arrow(ax, right(execucao[-1]), left(classificado))
+    arrow(ax, right(execucao[-1]), left(residual))
+    ag3 = draw_box(ax, 10.15, 1.55, 1.45, 0.66, "Agente 3\nLLM", "#ffe2bd")
+    decisao = draw_box(ax, 12.05, 1.55, 1.6, 0.66, "Decisão\nestruturada", "#ffe2bd")
+    auditoria = draw_box(ax, 14.15, 1.95, 1.6, 0.66, "Eventos e\nmétricas", "#ffffff")
+    arrow(ax, right(residual), left(ag3))
+    arrow(ax, right(ag3), left(decisao))
+    arrow(ax, right(classificado), left(auditoria), rad=-0.05)
+    arrow(ax, right(decisao), left(auditoria), rad=0.05)
+
+    ax.text(
+        8,
+        0.55,
+        "Saída da etapa: parte do lote é resolvida autonomamente e parte é encaminhada à LLM com trilha de auditoria.",
+        ha="center",
+        fontsize=10.2,
+        color="#333333",
+    )
+
+    out = MEDIA / "figura-1-etapa-2-execucao-incremental.png"
+    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return out
+
+
+def build_stage_3() -> Path:
+    fig, ax = plt.subplots(figsize=(15, 4.3))
+    ax.set_xlim(0, 16)
+    ax.set_ylim(0, 4.2)
+    ax.axis("off")
+
+    ax.text(8, 3.75, "Etapa 3 - Aprendizado e fechamento do ciclo", ha="center", fontsize=18, weight="bold")
+    ax.text(
+        8,
+        3.35,
+        "O residual resolvido volta ao sistema como regra, reforço ou reorganização temática para os próximos lotes.",
+        ha="center",
+        fontsize=10.5,
+        color="#333333",
+    )
+
+    aprendizagem = [
+        draw_box(ax, 0.35, 2.15, 1.75, 0.66, "Decisão\nresidual", "#ffe2bd"),
+        draw_box(ax, 2.45, 2.15, 1.55, 0.66, "Aprendiz\nregex", "#fff1d6"),
+        draw_box(ax, 4.35, 2.15, 1.65, 0.66, "Validação\nda regra", "#fff1d6"),
+        draw_box(ax, 6.35, 2.15, 1.75, 0.66, "Banco regex\nversionado", "#cdf0c6"),
+    ]
+    row_arrows(ax, aprendizagem)
+    candidato = draw_box(ax, 2.45, 1.1, 1.9, 0.66, "Tema candidato\nou raro", "#eeeeee")
+    arvore = draw_box(ax, 4.75, 1.1, 1.85, 0.66, "Organizador\nda árvore", "#e9e4ff")
+    arvore_saida = draw_box(ax, 7.0, 1.1, 1.75, 0.66, "Árvore\nrefinada", "#e9e4ff")
+    arrow(ax, bottom(aprendizagem[0]), top(candidato))
+    arrow(ax, right(candidato), left(arvore))
+    arrow(ax, right(arvore), left(arvore_saida))
+    retorno = draw_box(
+        ax,
+        9.55,
+        1.25,
+        5.95,
+        1.15,
+        "Retroalimentação do próximo lote\n"
+        "- Banco regex versionado reaparece no classificador\n"
+        "- Árvore refinada amplia os labels disponíveis\n"
+        "- Casos raros recorrentes podem virar novos temas",
+        "#f8f8f8",
+        fs=10,
+    )
+    arrow(ax, right(aprendizagem[-1]), left(retorno))
+    arrow(ax, right(arvore_saida), left(retorno))
+
+    ax.text(
+        8,
+        0.35,
+        "Saída da etapa: memória ampliada, menor dependência futura de LLM e ciclo incremental pronto para recomeçar.",
+        ha="center",
+        fontsize=10.2,
+        color="#333333",
+    )
+
+    out = MEDIA / "figura-1-etapa-3-aprendizado-ciclo.png"
+    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return out
+
+
 def main() -> None:
+    build_stage_1()
+    build_stage_2()
+    build_stage_3()
+
     fig, ax = plt.subplots(figsize=(16, 10))
     ax.set_xlim(0, 16)
     ax.set_ylim(0, 10)

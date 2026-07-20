@@ -26,7 +26,7 @@ class WNNBinaryMemoryTests(unittest.TestCase):
         sync_feature_memory(payload)
 
         memory = payload["memory_vocab"]
-        self.assertEqual(memory["tokens"], ["trafico", "drogas", "organizacao", "criminosa"])
+        self.assertEqual(memory["tokens"], ["trafico", "droga", "organizacao", "criminosa"])
         self.assertEqual(payload["discriminators"][0]["memory_positions"], [0, 1])
         self.assertEqual(payload["discriminators"][1]["memory_positions"], [0, 2, 3])
 
@@ -107,30 +107,34 @@ class WNNBinaryMemoryTests(unittest.TestCase):
             )
 
         self.assertTrue(result.accepted)
+        self.assertEqual(result.status, "accepted_crime_with_modus")
         self.assertEqual(result.top_label, "roubo")
         self.assertEqual(result.inference.crimes_mais_presentes, ["roubo"])
         self.assertEqual(result.inference.modus_operandi, ["arma_fogo"])
+        self.assertTrue(result.crime_autonomous)
+        self.assertGreater(result.crime_confidence, 0.0)
+        self.assertGreater(result.modus_confidence, 0.0)
 
     def test_residual_learning_suggests_crime_and_modus_discriminators(self) -> None:
         review = ResidualReviewAgentResponse(
             decision="classificar",
-            canonical_label="roubo",
+            canonical_label="trafico_drogas",
             confidence=0.9,
-            evidence_text="Roubo com subtracao de celular mediante uso de arma de fogo em via publica.",
-            rationale="Caso com crime patrimonial e modo de execucao explicito.",
-            resumo_curto="Vitima teve celular subtraido com arma de fogo em via publica.",
+            evidence_text="Trafico de drogas com armazenamento digital e uso de arma de fogo em via publica.",
+            rationale="Caso com crime principal e modo de execucao explicito.",
+            resumo_curto="Drogas foram mantidas e negociadas com apoio de arma de fogo.",
             modus_operandi=["arma_fogo", "abordagem_via_publica"],
         )
         doc = {
-            "context": "Roubo com subtracao de celular mediante uso de arma de fogo em via publica.",
-            "body_text": "Roubo com subtracao de celular mediante uso de arma de fogo em via publica.",
+            "context": "Trafico de drogas com armazenamento digital e uso de arma de fogo em via publica.",
+            "body_text": "Trafico de drogas com armazenamento digital e uso de arma de fogo em via publica.",
             "parsed": {},
         }
 
         suggestions = suggest_discriminator_rules_from_review(doc, review)
         kinds = {(item["kind"], item["label"]) for item in suggestions}
 
-        self.assertIn(("crime", "roubo"), kinds)
+        self.assertIn(("crime", "trafico_drogas"), kinds)
         self.assertIn(("modus", "arma_fogo"), kinds)
 
 

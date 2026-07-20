@@ -121,7 +121,7 @@ def figure_1_cycle() -> None:
         box(ax, 0.35, 5.55, 1.55, 0.66, "Reserva\nincremental", "#f4f4f4"),
         box(ax, 2.25, 5.55, 1.15, 0.66, "Parser", "#e6f6df"),
         box(ax, 3.75, 5.55, 1.55, 0.66, "Pre-processa\ntexto", "#e6f6df"),
-        box(ax, 5.65, 5.55, 1.45, 0.66, "Imagem\nbinaria", "#e6f6df"),
+        box(ax, 5.65, 5.55, 1.45, 0.66, "Vetor\nbinario 0/1", "#e6f6df"),
         box(ax, 7.45, 5.55, 1.65, 0.66, "Classificador\nWNN", "#cdf0c6"),
     ]
     row_arrows(ax, execucao)
