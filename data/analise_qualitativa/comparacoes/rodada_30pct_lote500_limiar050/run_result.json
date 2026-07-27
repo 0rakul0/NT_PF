@@ -1,0 +1,10 @@
+{
+  "stage": "relatorios",
+  "metrics": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+  "metrics_readme": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\README_METRICAS.md",
+  "figures": [
+    "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\figures\\wnn_residual_candidatos_por_iteracao.png",
+    "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\figures\\taxas_wnn_llm_candidatos_por_iteracao.png"
+  ],
+  "report": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\relatorio_execucao_metodologia.md"
+}

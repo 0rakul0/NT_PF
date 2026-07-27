@@ -1,0 +1,7 @@
+{
+  "stage": "agente1_temas",
+  "themes_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\temas_canonicos_agent1.json",
+  "themes_accepted": 17,
+  "quarantined_cluster_ids": [],
+  "discarded_cluster_ids": []
+}

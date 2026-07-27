@@ -1,0 +1,230 @@
+{"kind":"deck","id":"pr/3tl1fp","name":"Deck"}
+{"kind":"layout","layoutId":"8997cee4-751f-44b0-b746-564dd59ae4a0","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"34b4482e-7e73-4275-a0ad-0f524be3cb22","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/j0olct","slide":1,"title":"WiSARD/WNN em textos:","textShapes":3}
+{"kind":"shape","id":"sh/gje547y5","slide":1,"bbox":[72,90,84,8]}
+{"kind":"textbox","id":"sh/fi54b2hk","slide":1,"text":"WiSARD/WNN em textos:\nda teoria à aplicação auditável","textPreview":"WiSARD/WNN em textos: | da teoria à aplicação auditável","textChars":53,"textLines":2,"bbox":[72,144,930,150]}
+{"kind":"textbox","id":"sh/ehwn2xgz","slide":1,"text":"Apresentação dos artigos AA e do trabalho final AT","textPreview":"Apresentação dos artigos AA e do trabalho final AT","textChars":50,"textLines":1,"bbox":[72,322,760,38]}
+{"kind":"textbox","id":"sh/p876hczm","slide":1,"text":"Jefferson S. dos Anjos  |  NT_PF","textPreview":"Jefferson S. dos Anjos  |  NT_PF","textChars":32,"textLines":1,"bbox":[72,592,800,28]}
+{"kind":"notes","id":"nt/j0olct","slide":1,"text":"A apresentação está organizada como uma história única: primeiro, a classificação semissupervisionada rápida; depois, as bases teóricas e linguísticas; por fim, a aplicação proposta.\n\n[Sources]\nRangel, F.; Firmino, F.; Lima, P. M. V.; Oliveira, J. (2016). Semi-Supervised Classification of Social Textual Data Using WiSARD. ESANN 2016, pp. 165-170.\nCarneiro, H. C. C. (2017). Theoretical Results on a Weightless Neural Classifier and Application to Computational Linguistics. Tese de Doutorado, COPPE/UFRJ.\ndos Anjos, J. S. Classificação Incremental e Auditável de Crimes em Notícias Institucionais com Memória WNN e LLM Residual. Trabalho final (arquivo fornecido)."}
+{"kind":"slide","id":"sl/10etqt","slide":2,"title":"VISÃO GERAL","textShapes":13}
+{"kind":"shape","id":"sh/hsry90fe","slide":2,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/ap0zelw3","slide":2,"text":"VISÃO GERAL","textPreview":"VISÃO GERAL","textChars":11,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/vq9g7qxo","slide":2,"text":"Os três trabalhos respondem a partes complementares do mesmo problema","textPreview":"Os três trabalhos respondem a partes complementares do mesmo problema","textChars":69,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/4f2hkfe5","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"shape","id":"sh/5gbidkfq","slide":2,"bbox":[90,245,300,230]}
+{"kind":"textbox","id":"sh/it0zi5wz","slide":2,"text":"AA 1","textPreview":"AA 1","textChars":4,"textLines":1,"bbox":[114,270,200,24]}
+{"kind":"textbox","id":"sh/jut0baxk","slide":2,"text":"Aprender com poucos rótulos","textPreview":"Aprender com poucos rótulos","textChars":27,"textLines":1,"bbox":[114,315,250,62]}
+{"kind":"textbox","id":"sh/0jyh8be1","slide":2,"text":"WiSARD semissupervisionada para textos sociais.","textPreview":"WiSARD semissupervisionada para textos sociais.","textChars":47,"textLines":1,"bbox":[114,395,250,58]}
+{"kind":"shape","id":"sh/lk7y1gfm","slide":2,"bbox":[458,245,300,230]}
+{"kind":"textbox","id":"sh/pozalsza","slide":2,"text":"AA 2","textPreview":"AA 2","textChars":4,"textLines":1,"bbox":[482,270,200,24]}
+{"kind":"textbox","id":"sh/4nq9snyp","slide":2,"text":"Entender por que funciona","textPreview":"Entender por que funciona","textChars":25,"textLines":1,"bbox":[482,315,250,62]}
+{"kind":"textbox","id":"sh/3mhsjih4","slide":2,"text":"Bleaching, capacidade de generalização e POS multilíngue.","textPreview":"Bleaching, capacidade de generalização e POS multilíngue.","textChars":57,"textLines":1,"bbox":[482,395,250,58]}
+{"kind":"shape","id":"sh/2l8rqdgj","slide":2,"bbox":[826,245,300,230]}
+{"kind":"textbox","id":"sh/dszapsz6","slide":2,"text":"AT","textPreview":"AT","textChars":2,"textLines":1,"bbox":[850,270,200,24]}
+{"kind":"textbox","id":"sh/crq9wnyl","slide":2,"text":"Aplicar com governança","textPreview":"Aplicar com governança","textChars":22,"textLines":1,"bbox":[850,315,250,62]}
+{"kind":"textbox","id":"sh/rqhsn2h0","slide":2,"text":"Memória WNN + LLM residual para notícias institucionais.","textPreview":"Memória WNN + LLM residual para notícias institucionais.","textChars":56,"textLines":1,"bbox":[850,395,250,58]}
+{"kind":"shape","id":"sh/qp8ruxgv","slide":2,"bbox":[390,332,48,34]}
+{"kind":"shape","id":"sh/1gjatcfi","slide":2,"bbox":[758,332,48,34]}
+{"kind":"textbox","id":"sh/0fat07yx","slide":2,"text":"Fio condutor: aprendizagem incremental, representação binária e decisões explicáveis.","textPreview":"Fio condutor: aprendizagem incremental, representação binária e decisões explicáveis.","textChars":85,"textLines":1,"bbox":[90,548,1050,34]}
+{"kind":"notes","id":"nt/10etqt","slide":2,"text":"Use este slide para orientar a turma. Os textos não são repetição: o primeiro mostra eficiência em aprendizado semissupervisionado; a tese explica bleaching e aplicações linguísticas; o AT adapta a ideia para um fluxo auditável.\n\n[Sources]\nRangel, F.; Firmino, F.; Lima, P. M. V.; Oliveira, J. (2016). Semi-Supervised Classification of Social Textual Data Using WiSARD. ESANN 2016, pp. 165-170.\nCarneiro, H. C. C. (2017). Theoretical Results on a Weightless Neural Classifier and Application to Computational Linguistics. Tese de Doutorado, COPPE/UFRJ.\ndos Anjos, J. S. Classificação Incremental e Auditável de Crimes em Notícias Institucionais com Memória WNN e LLM Residual. Trabalho final (arquivo fornecido)."}
+{"kind":"slide","id":"sl/951mdx","slide":3,"title":"AA 1 | RANGEL ET AL. (2016)","textShapes":13}
+{"kind":"shape","id":"sh/udojq94r","slide":3,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/h0filo3i","slide":3,"text":"AA 1 | RANGEL ET AL. (2016)","textPreview":"AA 1 | RANGEL ET AL. (2016)","textChars":27,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/wf61sjmx","slide":3,"text":"Textos sociais mudam rápido, mas rotular tudo é caro","textPreview":"Textos sociais mudam rápido, mas rotular tudo é caro","textChars":52,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/j2h0nelo","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"textbox","id":"sh/i1oju943","slide":3,"text":"Desafio","textPreview":"Desafio","textChars":7,"textLines":1,"bbox":[90,220,220,35]}
+{"kind":"textbox","id":"sh/54zipo3e","slide":3,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[90,270,24,28]}
+{"kind":"textbox","id":"sh/43q1wjm9","slide":3,"text":"Posts curtos, vocabulário amplo, gírias e hashtags novas.","textPreview":"Posts curtos, vocabulário amplo, gírias e hashtags novas.","textChars":57,"textLines":1,"bbox":[118,270,442,54]}
+{"kind":"textbox","id":"sh/z6d0bu54","slide":3,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[90,350,24,28]}
+{"kind":"textbox","id":"sh/y54zip4z","slide":3,"text":"A distribuição das classes pode mudar com a opinião pública.","textPreview":"A distribuição das classes pode mudar com a opinião pública.","textChars":60,"textLines":1,"bbox":[118,350,442,54]}
+{"kind":"textbox","id":"sh/s7mt0z2l","slide":3,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[90,430,24,28]}
+{"kind":"textbox","id":"sh/t8va9kj6","slide":3,"text":"Há muito mais dado não rotulado que dado rotulado.","textPreview":"Há muito mais dado não rotulado que dado rotulado.","textChars":50,"textLines":1,"bbox":[118,430,442,54]}
+{"kind":"shape","id":"sh/6l4bypkf","slide":3,"bbox":[690,228,420,265]}
+{"kind":"textbox","id":"sh/76ds7u10","slide":3,"text":"Pergunta do artigo","textPreview":"Pergunta do artigo","textChars":18,"textLines":1,"bbox":[720,266,340,28]}
+{"kind":"textbox","id":"sh/gb6t4z2h","slide":3,"text":"Como explorar textos não rotulados\nsem perder velocidade em fluxo?","textPreview":"Como explorar textos não rotulados | sem perder velocidade em fluxo?","textChars":66,"textLines":2,"bbox":[720,320,330,105]}
+{"kind":"textbox","id":"sh/hcfud4j2","slide":3,"text":"Proposta: Semi-Supervised WiSARD (SSW)","textPreview":"Proposta: Semi-Supervised WiSARD (SSW)","textChars":38,"textLines":1,"bbox":[720,448,340,28]}
+{"kind":"notes","id":"nt/951mdx","slide":3,"text":"Explique que o cenário é especificamente texto de redes sociais. O problema não é só acertar uma classe: é acompanhar um fluxo no qual a anotação humana custa caro e a linguagem muda.\n\n[Sources]\nRangel, F.; Firmino, F.; Lima, P. M. V.; Oliveira, J. (2016). Semi-Supervised Classification of Social Textual Data Using WiSARD. ESANN 2016, pp. 165-170."}
+{"kind":"slide","id":"sl/ocgb4j","slide":4,"title":"AA 1 | MÉTODO","textShapes":12}
+{"kind":"shape","id":"sh/9g7q1ofq","slide":4,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/mdw7qtwz","slide":4,"text":"AA 1 | MÉTODO","textPreview":"AA 1 | MÉTODO","textChars":13,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/ne58zexk","slide":4,"text":"A SSW transforma a WiSARD em um classificador de autoaprendizado controlado","textPreview":"A SSW transforma a WiSARD em um classificador de autoaprendizado controlado","textChars":75,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/0repojet","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"shape","id":"sh/lsnqxofe","slide":4,"bbox":[82,270,235,200]}
+{"kind":"textbox","id":"sh/ypw7m9g3","slide":4,"text":"1. Treinar","textPreview":"1. Treinar","textChars":10,"textLines":1,"bbox":[100,300,195,28]}
+{"kind":"textbox","id":"sh/zq58vex8","slide":4,"text":"Padrões rotulados alimentam os discriminadores.","textPreview":"Padrões rotulados alimentam os discriminadores.","textChars":47,"textLines":1,"bbox":[100,346,195,85]}
+{"kind":"shape","id":"sh/cnepkzyx","slide":4,"bbox":[322,340,38,25]}
+{"kind":"shape","id":"sh/don6t4fi","slide":4,"bbox":[372,270,235,200]}
+{"kind":"textbox","id":"sh/9wfixsry","slide":4,"text":"2. Predizer","textPreview":"2. Predizer","textChars":11,"textLines":1,"bbox":[390,300,195,28]}
+{"kind":"textbox","id":"sh/8v6h4nad","slide":4,"text":"Cada texto binário ativa memórias RAM por classe.","textPreview":"Cada texto binário ativa memórias RAM por classe.","textChars":49,"textLines":1,"bbox":[390,346,195,85]}
+{"kind":"shape","id":"sh/nadgvi9s","slide":4,"bbox":[612,340,38,25]}
+{"kind":"shape","id":"sh/m94z2xsn","slide":4,"bbox":[662,270,235,200]}
+{"kind":"textbox","id":"sh/l8vytsr2","slide":4,"text":"3. Medir confiança","textPreview":"3. Medir confiança","textChars":18,"textLines":1,"bbox":[680,300,195,28]}
+{"kind":"textbox","id":"sh/07mh0nah","slide":4,"text":"Compara a melhor e a segunda melhor resposta.","textPreview":"Compara a melhor e a segunda melhor resposta.","textChars":45,"textLines":1,"bbox":[680,346,195,85]}
+{"kind":"shape","id":"sh/z6dgri9w","slide":4,"bbox":[902,340,38,25]}
+{"kind":"shape","id":"sh/y54zydsb","slide":4,"bbox":[952,270,235,200]}
+{"kind":"textbox","id":"sh/d4vyp8rq","slide":4,"text":"4. Realimentar","textPreview":"4. Realimentar","textChars":14,"textLines":1,"bbox":[970,300,195,28]}
+{"kind":"textbox","id":"sh/c3mhw3a5","slide":4,"text":"Só exemplos acima do limiar entram como treino.","textPreview":"Só exemplos acima do limiar entram como treino.","textChars":47,"textLines":1,"bbox":[970,346,195,85]}
+{"kind":"textbox","id":"sh/4n6hc3i1","slide":4,"text":"A adaptação textual evita que padrões totalmente nulos influenciem a decisão, reduzindo o efeito da esparsidade.","textPreview":"A adaptação textual evita que padrões totalmente nulos influenciem a decisão, reduzindo o efeito da esparsidade.","textChars":112,"textLines":1,"bbox":[82,538,1080,42]}
+{"kind":"notes","id":"nt/ocgb4j","slide":4,"text":"WiSARD é uma rede neural sem pesos baseada em memórias RAM. Destaque a salvaguarda: o texto não rotulado só realimenta o modelo quando a confiança é alta. Isso reduz o risco de propagar um erro.\n\n[Sources]\nRangel, F.; Firmino, F.; Lima, P. M. V.; Oliveira, J. (2016). Semi-Supervised Classification of Social Textual Data Using WiSARD. ESANN 2016, pp. 165-170."}
+{"kind":"slide","id":"sl/8qf4mb","slide":5,"title":"AA 1 | EVIDÊNCIAS","textShapes":18}
+{"kind":"shape","id":"sh/4v6lcni5","slide":5,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/3uxkjihk","slide":5,"text":"AA 1 | EVIDÊNCIAS","textPreview":"AA 1 | EVIDÊNCIAS","textChars":17,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/ito3ad0z","slide":5,"text":"A SSW troca pequena perda de acurácia por grande ganho de tempo de treinamento","textPreview":"A SSW troca pequena perda de acurácia por grande ganho de tempo de treinamento","textChars":78,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/hsf2h8ze","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"textbox","id":"sh/gr6l83it","slide":5,"text":"Acurácia","textPreview":"Acurácia","textChars":8,"textLines":1,"bbox":[92,215,250,28]}
+{"kind":"textbox","id":"sh/vqxkfyho","slide":5,"text":"OMD","textPreview":"OMD","textChars":3,"textLines":1,"bbox":[92,266,115,25]}
+{"kind":"shape","id":"sh/up436t03","slide":5,"bbox":[210,269,191.67,18]}
+{"kind":"textbox","id":"sh/t4v2dozi","slide":5,"text":"69.7%  SSW","textPreview":"69.7%  SSW","textChars":10,"textLines":1,"bbox":[425,266,150,22]}
+{"kind":"shape","id":"sh/83ml43ix","slide":5,"bbox":[210,295,197.73,18]}
+{"kind":"textbox","id":"sh/29432hsb","slide":5,"text":"71.9%  S3VM","textPreview":"71.9%  S3VM","textChars":11,"textLines":1,"bbox":[425,292,160,22]}
+{"kind":"textbox","id":"sh/3adkbmtw","slide":5,"text":"STS-Gold","textPreview":"STS-Gold","textChars":8,"textLines":1,"bbox":[92,336,115,25]}
+{"kind":"shape","id":"sh/4bml4rah","slide":5,"bbox":[210,339,209,18]}
+{"kind":"textbox","id":"sh/pwvmdwb2","slide":5,"text":"76%  SSW","textPreview":"76%  SSW","textChars":8,"textLines":1,"bbox":[425,336,150,22]}
+{"kind":"shape","id":"sh/u5k3yhsf","slide":5,"bbox":[210,365,213.95,18]}
+{"kind":"textbox","id":"sh/f6tk72t0","slide":5,"text":"77.8%  S3VM","textPreview":"77.8%  S3VM","textChars":11,"textLines":1,"bbox":[425,362,160,22]}
+{"kind":"textbox","id":"sh/g72l07al","slide":5,"text":"IMDB","textPreview":"IMDB","textChars":4,"textLines":1,"bbox":[92,406,115,25]}
+{"kind":"shape","id":"sh/h8b29cbq","slide":5,"bbox":[210,409,175.18,18]}
+{"kind":"textbox","id":"sh/61k3uxs3","slide":5,"text":"63.7%  SSW","textPreview":"63.7%  SSW","textChars":10,"textLines":1,"bbox":[425,406,150,22]}
+{"kind":"shape","id":"sh/72tk32to","slide":5,"bbox":[210,435,187.55,18]}
+{"kind":"textbox","id":"sh/b6p0by9g","slide":5,"text":"68.2%  S3VM","textPreview":"68.2%  S3VM","textChars":11,"textLines":1,"bbox":[425,432,160,22]}
+{"kind":"shape","id":"sh/algz2t8v","slide":5,"bbox":[700,214,410,280]}
+{"kind":"textbox","id":"sh/x87id8rm","slide":5,"text":"Tempo de ajuste","textPreview":"Tempo de ajuste","textChars":15,"textLines":1,"bbox":[730,245,300,28]}
+{"kind":"textbox","id":"sh/w7yh43q1","slide":5,"text":"IMDB","textPreview":"IMDB","textChars":4,"textLines":1,"bbox":[730,303,130,22]}
+{"kind":"textbox","id":"sh/ja90fi9s","slide":5,"text":"SSW: 0,21 s","textPreview":"SSW: 0,21 s","textChars":11,"textLines":1,"bbox":[730,342,230,32]}
+{"kind":"textbox","id":"sh/i90j6d87","slide":5,"text":"S3VM: 15,13 s\nEM-NB: 66,94 s","textPreview":"S3VM: 15,13 s | EM-NB: 66,94 s","textChars":28,"textLines":2,"bbox":[730,390,250,68]}
+{"kind":"textbox","id":"sh/5crih8ri","slide":5,"text":"Leitura correta: S3VM vence em acurácia, mas SSW é muito mais rápida para treinar.","textPreview":"Leitura correta: S3VM vence em acurácia, mas SSW é muito mais rápida para treinar.","textChars":82,"textLines":1,"bbox":[92,560,1020,30]}
+{"kind":"notes","id":"nt/8qf4mb","slide":5,"text":"Os três conjuntos foram OMD e STS-Gold, de Twitter, e IMDB. Não diga que SSW é a mais acurada: ela não é. A contribuição é acurácia competitiva combinada com treinamento extremamente rápido - especialmente relevante para fluxo de dados.\n\n[Sources]\nRangel, F.; Firmino, F.; Lima, P. M. V.; Oliveira, J. (2016). Semi-Supervised Classification of Social Textual Data Using WiSARD. ESANN 2016, pp. 165-170."}
+{"kind":"slide","id":"sl/y6zwvq","slide":6,"title":"AA 2 | CARNEIRO (2017)","textShapes":15}
+{"kind":"shape","id":"sh/1wbq98rm","slide":6,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/et0ret8b","slide":6,"text":"AA 2 | CARNEIRO (2017)","textPreview":"AA 2 | CARNEIRO (2017)","textChars":22,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/fu987y9g","slide":6,"text":"A tese amplia a discussão: desempenho prático precisa de explicação teórica","textPreview":"A tese amplia a discussão: desempenho prático precisa de explicação teórica","textChars":75,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/sripcjq5","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"textbox","id":"sh/dsrq5orq","slide":6,"text":"Duas frentes","textPreview":"Duas frentes","textChars":12,"textLines":1,"bbox":[90,210,290,38]}
+{"kind":"shape","id":"sh/q507a98z","slide":6,"bbox":[90,280,470,240]}
+{"kind":"textbox","id":"sh/r6983e9k","slide":6,"text":"Linguística computacional","textPreview":"Linguística computacional","textChars":25,"textLines":1,"bbox":[120,315,360,30]}
+{"kind":"textbox","id":"sh/cnm9onq9","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[120,365,24,28]}
+{"kind":"textbox","id":"sh/xovqhsru","slide":6,"text":"mWANN-Tagger para etiquetagem gramatical (POS).","textPreview":"mWANN-Tagger para etiquetagem gramatical (POS).","textChars":47,"textLines":1,"bbox":[148,365,352,54]}
+{"kind":"textbox","id":"sh/18feh0ji","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[120,435,24,28]}
+{"kind":"textbox","id":"sh/g7md8vix","slide":6,"text":"Contexto e sufixos ajudam em ambiguidade e palavras desconhecidas.","textPreview":"Contexto e sufixos ajudam em ambiguidade e palavras desconhecidas.","textChars":66,"textLines":1,"bbox":[148,435,352,54]}
+{"kind":"shape","id":"sh/f6dwfq1c","slide":6,"bbox":[660,280,470,240]}
+{"kind":"textbox","id":"sh/el4v6l0r","slide":6,"text":"Teoria de aprendizado","textPreview":"Teoria de aprendizado","textChars":21,"textLines":1,"bbox":[690,315,360,30]}
+{"kind":"textbox","id":"sh/tkvedgj6","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[690,365,24,28]}
+{"kind":"textbox","id":"sh/sjmd4bil","slide":6,"text":"Analisa WiSARD e bleaching pela dimensão VC.","textPreview":"Analisa WiSARD e bleaching pela dimensão VC.","textChars":44,"textLines":1,"bbox":[718,365,352,54]}
+{"kind":"textbox","id":"sh/ridcb610","slide":6,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[690,435,24,28]}
+{"kind":"textbox","id":"sh/6h4v210v","slide":6,"text":"Investiga a capacidade de generalizar sem perder robustez.","textPreview":"Investiga a capacidade de generalizar sem perder robustez.","textChars":58,"textLines":1,"bbox":[718,435,352,54]}
+{"kind":"textbox","id":"sh/dgzepkja","slide":6,"text":"Ideia central: a mesma arquitetura pode ser eficiente em NLP e, ao mesmo tempo, estudada formalmente.","textPreview":"Ideia central: a mesma arquitetura pode ser eficiente em NLP e, ao mesmo tempo, estudada formalmente.","textChars":101,"textLines":1,"bbox":[90,574,1060,30]}
+{"kind":"notes","id":"nt/y6zwvq","slide":6,"text":"Apresente a tese como uma fonte mais ampla. Ela não é um único experimento de classificação temática: integra uma aplicação concreta de POS tagging e uma análise matemática da capacidade de generalização.\n\n[Sources]\nCarneiro, H. C. C. (2017). Theoretical Results on a Weightless Neural Classifier and Application to Computational Linguistics. Tese de Doutorado, COPPE/UFRJ."}
+{"kind":"slide","id":"sl/vaa8y1","slide":7,"title":"AA 2 | APLICAÇÃO LINGUÍSTICA","textShapes":11}
+{"kind":"shape","id":"sh/cve1cb6d","slide":7,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/rulkj6ps","slide":7,"text":"AA 2 | APLICAÇÃO LINGUÍSTICA","textPreview":"AA 2 | APLICAÇÃO LINGUÍSTICA","textChars":28,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/q9cja1o7","slide":7,"text":"Para etiquetar palavras em vários idiomas, a representação de entrada é decisiva","textPreview":"Para etiquetar palavras em vários idiomas, a representação de entrada é decisiva","textChars":80,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/l0n2907u","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"shape","id":"sh/0ze1gv69","slide":7,"bbox":[100,260,250,150]}
+{"kind":"textbox","id":"sh/zy5knqp4","slide":7,"text":"Palavra","textPreview":"Palavra","textChars":7,"textLines":1,"bbox":[122,300,200,30]}
+{"kind":"textbox","id":"sh/exwjeloj","slide":7,"text":"forma lexical","textPreview":"forma lexical","textChars":13,"textLines":1,"bbox":[122,347,200,24]}
+{"kind":"shape","id":"sh/h43idw7q","slide":7,"bbox":[358,315,54,28]}
+{"kind":"shape","id":"sh/g3a14r65","slide":7,"bbox":[430,260,250,150]}
+{"kind":"textbox","id":"sh/m1gvi1gf","slide":7,"text":"Contexto","textPreview":"Contexto","textChars":8,"textLines":1,"bbox":[452,300,200,30]}
+{"kind":"textbox","id":"sh/n2pcbmh0","slide":7,"text":"vizinhas na frase","textPreview":"vizinhas na frase","textChars":17,"textLines":1,"bbox":[452,347,200,24]}
+{"kind":"shape","id":"sh/8nydkryl","slide":7,"bbox":[688,315,54,28]}
+{"kind":"shape","id":"sh/9o7udwz6","slide":7,"bbox":[760,260,250,150]}
+{"kind":"textbox","id":"sh/apgvm1gr","slide":7,"text":"Sufixos","textPreview":"Sufixos","textChars":7,"textLines":1,"bbox":[782,300,200,30]}
+{"kind":"textbox","id":"sh/vqpcf6hc","slide":7,"text":"pista para OOV","textPreview":"pista para OOV","textChars":14,"textLines":1,"bbox":[782,347,200,24]}
+{"kind":"textbox","id":"sh/wrydobyx","slide":7,"text":"mWANN-Tagger","textPreview":"mWANN-Tagger","textChars":12,"textLines":1,"bbox":[500,470,280,34]}
+{"kind":"textbox","id":"sh/xsrehgz2","slide":7,"text":"Resultado: uma configuração universal de parâmetros mostrou desempenho próximo do melhor ajuste específico por idioma; a extensão com prefixos e etiqueta anterior melhorou as acurácias.","textPreview":"Resultado: uma configuração universal de parâmetros mostrou desempenho próximo do melhor ajuste específico por idioma; a extensão com pre...","textChars":185,"textLines":1,"bbox":[150,545,980,52]}
+{"kind":"notes","id":"nt/vaa8y1","slide":7,"text":"POS tagging é atribuir classe gramatical a cada palavra. Explique OOV como 'palavra que o sistema não viu no treino'. O achado prático importante é que uma representação mais rica - contexto, sufixos e depois prefixos - melhora o resultado.\n\n[Sources]\nCarneiro, H. C. C. (2017). Theoretical Results on a Weightless Neural Classifier and Application to Computational Linguistics. Tese de Doutorado, COPPE/UFRJ."}
+{"kind":"slide","id":"sl/1kvral","slide":8,"title":"AA 2 | BLEACHING E TEORIA","textShapes":10}
+{"kind":"shape","id":"sh/187atory","slide":8,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/elwbi98n","slide":8,"text":"AA 2 | BLEACHING E TEORIA","textPreview":"AA 2 | BLEACHING E TEORIA","textChars":25,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/fm5sre9s","slide":8,"text":"Bleaching combate saturação de memória sem reduzir a capacidade teórica de generalização","textPreview":"Bleaching combate saturação de memória sem reduzir a capacidade teórica de generalização","textChars":88,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/obytojqp","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"shape","id":"sh/pc7uxora","slide":8,"bbox":[120,244,300,190]}
+{"kind":"textbox","id":"sh/29gbm98j","slide":8,"text":"Problema","textPreview":"Problema","textChars":8,"textLines":1,"bbox":[150,280,220,28]}
+{"kind":"textbox","id":"sh/napcve94","slide":8,"text":"Com muitos padrões, memórias podem saturar e deixar de distinguir classes.","textPreview":"Com muitos padrões, memórias podem saturar e deixar de distinguir classes.","textChars":74,"textLines":1,"bbox":[150,330,220,70]}
+{"kind":"shape","id":"sh/cfits3ql","slide":8,"bbox":[440,310,95,35]}
+{"kind":"shape","id":"sh/xgru18r6","slide":8,"bbox":[560,244,300,190]}
+{"kind":"textbox","id":"sh/983ido3u","slide":8,"text":"Bleaching","textPreview":"Bleaching","textChars":9,"textLines":1,"bbox":[590,280,220,28]}
+{"kind":"textbox","id":"sh/o7uh4j29","slide":8,"text":"Eleva limiares para filtrar ativações fracas e desempatar respostas.","textPreview":"Eleva limiares para filtrar ativações fracas e desempatar respostas.","textChars":68,"textLines":1,"bbox":[590,330,220,70]}
+{"kind":"shape","id":"sh/n6l0belo","slide":8,"bbox":[880,310,95,35]}
+{"kind":"shape","id":"sh/m5cz2tkj","slide":8,"bbox":[1000,244,180,190]}
+{"kind":"textbox","id":"sh/xwnih836","slide":8,"text":"Achado","textPreview":"Achado","textChars":6,"textLines":1,"bbox":[1020,280,140,28]}
+{"kind":"textbox","id":"sh/wbeh832l","slide":8,"text":"Mesma dimensão VC nas variantes estudadas.","textPreview":"Mesma dimensão VC nas variantes estudadas.","textChars":42,"textLines":1,"bbox":[1020,330,140,70]}
+{"kind":"textbox","id":"sh/bal0fyl0","slide":8,"text":"Interpretação: mais robustez operacional não implicou perda teórica de generalização.","textPreview":"Interpretação: mais robustez operacional não implicou perda teórica de generalização.","textChars":85,"textLines":1,"bbox":[160,530,980,34]}
+{"kind":"notes","id":"nt/1kvral","slide":8,"text":"Saturação aqui significa que muitas posições de memória são preenchidas e o classificador perde poder discriminativo. A tese obtém valores exatos da dimensão VC para as variantes tradicional e min-max bleaching analisadas, e conclui que os valores são idênticos.\n\n[Sources]\nCarneiro, H. C. C. (2017). Theoretical Results on a Weightless Neural Classifier and Application to Computational Linguistics. Tese de Doutorado, COPPE/UFRJ."}
+{"kind":"slide","id":"sl/90bose","slide":9,"title":"AT | PROBLEMA E CONTRIBUIÇÃO","textShapes":13}
+{"kind":"shape","id":"sh/k3a18vmh","slide":9,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/j21kfq5w","slide":9,"text":"AT | PROBLEMA E CONTRIBUIÇÃO","textPreview":"AT | PROBLEMA E CONTRIBUIÇÃO","textChars":28,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/i1sj6l4b","slide":9,"text":"O AT usa os artigos como base para classificar crimes em notícias institucionais","textPreview":"O AT usa os artigos como base para classificar crimes em notícias institucionais","textChars":80,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/x0zidgnq","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"textbox","id":"sh/wzq14vm5","slide":9,"text":"Pergunta","textPreview":"Pergunta","textChars":8,"textLines":1,"bbox":[90,225,170,30]}
+{"kind":"textbox","id":"sh/vyh0bq5k","slide":9,"text":"Como classificar uma base institucional que cresce, reduzindo chamadas à LLM e preservando auditoria?","textPreview":"Como classificar uma base institucional que cresce, reduzindo chamadas à LLM e preservando auditoria?","textChars":101,"textLines":1,"bbox":[90,273,490,115]}
+{"kind":"shape","id":"sh/ax8j2l4f","slide":9,"bbox":[680,220,440,255]}
+{"kind":"textbox","id":"sh/9wzi9gnu","slide":9,"text":"Proposta","textPreview":"Proposta","textChars":8,"textLines":1,"bbox":[712,255,300,28]}
+{"kind":"textbox","id":"sh/8bq10bm9","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[712,305,24,28]}
+{"kind":"textbox","id":"sh/2xw3ulwn","slide":9,"text":"Fundação temática temporalmente estratificada.","textPreview":"Fundação temática temporalmente estratificada.","textChars":46,"textLines":1,"bbox":[740,305,322,54]}
+{"kind":"textbox","id":"sh/3y54n6d8","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[712,365,24,28]}
+{"kind":"textbox","id":"sh/4zylwbet","slide":9,"text":"Memória lexical binária WNN, versionada e auditável.","textPreview":"Memória lexical binária WNN, versionada e auditável.","textChars":52,"textLines":1,"bbox":[740,365,322,54]}
+{"kind":"textbox","id":"sh/p07mpgve","slide":9,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[712,425,24,28]}
+{"kind":"textbox","id":"sh/u9w3q1wr","slide":9,"text":"LLM apenas para casos residuais ou inéditos.","textPreview":"LLM apenas para casos residuais ou inéditos.","textChars":44,"textLines":1,"bbox":[740,425,322,54]}
+{"kind":"textbox","id":"sh/fu54j6dc","slide":9,"text":"Não é uma reprodução da WiSARD clássica: é uma memória lexical binária inspirada em seus princípios.","textPreview":"Não é uma reprodução da WiSARD clássica: é uma memória lexical binária inspirada em seus princípios.","textChars":100,"textLines":1,"bbox":[90,545,1030,35]}
+{"kind":"notes","id":"nt/90bose","slide":9,"text":"Faça explicitamente a ponte: AA1 inspira treinamento incremental e confiança; AA2 fundamenta que a representação e a robustez importam. O AT não promete uma nova WiSARD clássica; a contribuição é um fluxo operacional auditável.\n\n[Sources]\ndos Anjos, J. S. Classificação Incremental e Auditável de Crimes em Notícias Institucionais com Memória WNN e LLM Residual. Trabalho final (arquivo fornecido)."}
+{"kind":"slide","id":"sl/5jncuk","slide":10,"title":"AT | MÉTODO","textShapes":16}
+{"kind":"shape","id":"sh/6po3698z","slide":10,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/tcfm14rq","slide":10,"text":"AT | MÉTODO","textPreview":"AT | MÉTODO","textChars":11,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/8r6l8zq5","slide":10,"text":"A decisão combina uma camada determinística para o recorrente e revisão contextual para o residual","textPreview":"A decisão combina uma camada determinística para o recorrente e revisão contextual para o residual","textChars":98,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/jmx4vu9o","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"shape","id":"sh/yl432p83","slide":10,"bbox":[64,280,245,178]}
+{"kind":"textbox","id":"sh/lofmx4re","slide":10,"text":"10%","textPreview":"10%","textChars":3,"textLines":1,"bbox":[82,308,205,24]}
+{"kind":"textbox","id":"sh/kn6l4zqt","slide":10,"text":"Fundação temática","textPreview":"Fundação temática","textChars":17,"textLines":1,"bbox":[82,347,205,42]}
+{"kind":"textbox","id":"sh/3ih47yps","slide":10,"text":"crimes canônicos + marcadores","textPreview":"crimes canônicos + marcadores","textChars":29,"textLines":1,"bbox":[82,408,205,40]}
+{"kind":"shape","id":"sh/ih8net87","slide":10,"bbox":[312,350,39,25]}
+{"kind":"shape","id":"sh/ob2pcrax","slide":10,"bbox":[359,280,245,178]}
+{"kind":"textbox","id":"sh/9wv6lwbi","slide":10,"text":"90%","textPreview":"90%","textChars":3,"textLines":1,"bbox":[377,308,205,24]}
+{"kind":"textbox","id":"sh/m9k7ahsr","slide":10,"text":"Reserva incremental","textPreview":"Reserva incremental","textChars":19,"textLines":1,"bbox":[377,347,205,42]}
+{"kind":"textbox","id":"sh/natojmtc","slide":10,"text":"lotes de notícias","textPreview":"lotes de notícias","textChars":17,"textLines":1,"bbox":[377,408,205,40]}
+{"kind":"shape","id":"sh/072p87al","slide":10,"bbox":[607,350,39,25]}
+{"kind":"shape","id":"sh/18b6hcb6","slide":10,"bbox":[654,280,245,178]}
+{"kind":"textbox","id":"sh/e5k76hsv","slide":10,"text":"WNN","textPreview":"WNN","textChars":3,"textLines":1,"bbox":[672,308,205,24]}
+{"kind":"textbox","id":"sh/z6tofmt0","slide":10,"text":"Memória lexical","textPreview":"Memória lexical","textChars":15,"textLines":1,"bbox":[672,347,205,42]}
+{"kind":"textbox","id":"sh/c3i547ap","slide":10,"text":"cobertura, confiança e margem","textPreview":"cobertura, confiança e margem","textChars":29,"textLines":1,"bbox":[672,408,205,40]}
+{"kind":"shape","id":"sh/d4r6dcba","slide":10,"bbox":[902,350,39,25]}
+{"kind":"shape","id":"sh/tojel4zm","slide":10,"bbox":[949,280,245,178]}
+{"kind":"textbox","id":"sh/8nadszy1","slide":10,"text":"LLM","textPreview":"LLM","textChars":3,"textLines":1,"bbox":[967,308,205,24]}
+{"kind":"textbox","id":"sh/7mhwjuhw","slide":10,"text":"Revisão residual","textPreview":"Revisão residual","textChars":16,"textLines":1,"bbox":[967,347,205,42]}
+{"kind":"textbox","id":"sh/6l8vqpgb","slide":10,"text":"ambiguidade, baixa evidência ou novidade","textPreview":"ambiguidade, baixa evidência ou novidade","textChars":40,"textLines":1,"bbox":[967,408,205,40]}
+{"kind":"textbox","id":"sh/lkzuh4zq","slide":10,"text":"Cada decisão preserva: classe, evidência lexical, versão da memória e origem da decisão.","textPreview":"Cada decisão preserva: classe, evidência lexical, versão da memória e origem da decisão.","textChars":88,"textLines":1,"bbox":[100,535,1080,32]}
+{"kind":"notes","id":"nt/5jncuk","slide":10,"text":"A fundação usa 10% da base e a reserva, 90%, é processada em lotes. A WNN aceita só decisão com evidência suficiente; os casos restantes vão à LLM. As decisões de LLM podem gerar marcadores novos, mas a atualização é controlada e registrada.\n\n[Sources]\ndos Anjos, J. S. Classificação Incremental e Auditável de Crimes em Notícias Institucionais com Memória WNN e LLM Residual. Trabalho final (arquivo fornecido)."}
+{"kind":"slide","id":"sl/dv3fsx","slide":11,"title":"AT | DIAGNÓSTICO DA RODADA","textShapes":12}
+{"kind":"shape","id":"sh/ax83i1cf","slide":11,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/xkz2twvq","slide":11,"text":"AT | DIAGNÓSTICO DA RODADA","textPreview":"AT | DIAGNÓSTICO DA RODADA","textChars":26,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/cjqlkbu5","slide":11,"text":"A memória WNN absorveu 83,33% da reserva antes de qualquer revisão por LLM","textPreview":"A memória WNN absorveu 83,33% da reserva antes de qualquer revisão por LLM","textChars":74,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/zmhkv6dw","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"textbox","id":"sh/yl83m1cb","slide":11,"text":"Base total: 8.310 notícias","textPreview":"Base total: 8.310 notícias","textChars":26,"textLines":1,"bbox":[90,215,450,28]}
+{"kind":"textbox","id":"sh/loz2xgv2","slide":11,"text":"Fundação temática","textPreview":"Fundação temática","textChars":17,"textLines":1,"bbox":[90,285,275,24]}
+{"kind":"shape","id":"sh/knqlobuh","slide":11,"bbox":[380,288,79.14,24]}
+{"kind":"textbox","id":"sh/fqxkjmdc","slide":11,"text":"831  |  10%","textPreview":"831  |  10%","textChars":11,"textLines":1,"bbox":[900,285,190,24]}
+{"kind":"textbox","id":"sh/ep4jahc7","slide":11,"text":"WNN direta na reserva","textPreview":"WNN direta na reserva","textChars":21,"textLines":1,"bbox":[90,369,275,24]}
+{"kind":"shape","id":"sh/s7mdo7uh","slide":11,"bbox":[380,372,593.52,24]}
+{"kind":"textbox","id":"sh/t8vehcb2","slide":11,"text":"6.232  |  83,33%","textPreview":"6.232  |  83,33%","textChars":16,"textLines":1,"bbox":[900,369,190,24]}
+{"kind":"textbox","id":"sh/654vmxcb","slide":11,"text":"Residual pós-WNN","textPreview":"Residual pós-WNN","textChars":16,"textLines":1,"bbox":[90,453,275,24]}
+{"kind":"shape","id":"sh/r6dwf2tw","slide":11,"bbox":[380,456,118.76,24]}
+{"kind":"textbox","id":"sh/gbmds7ut","slide":11,"text":"1.247  |  16,66%","textPreview":"1.247  |  16,66%","textChars":16,"textLines":1,"bbox":[900,453,190,24]}
+{"kind":"shape","id":"sh/1wfelcby","slide":11,"bbox":[735,522,370,80]}
+{"kind":"textbox","id":"sh/e94vqhcn","slide":11,"text":"Cuidado: cobertura não é acurácia.","textPreview":"Cuidado: cobertura não é acurácia.","textChars":34,"textLines":1,"bbox":[762,548,325,24]}
+{"kind":"textbox","id":"sh/fadwj2t8","slide":11,"text":"A redução de chamadas à LLM é operacional; qualidade exige validação humana e métricas de precisão, revocação e F1.","textPreview":"A redução de chamadas à LLM é operacional; qualidade exige validação humana e métricas de precisão, revocação e F1.","textChars":115,"textLines":1,"bbox":[90,635,1040,26]}
+{"kind":"notes","id":"nt/dv3fsx","slide":11,"text":"Foram 15 lotes de aproximadamente 500 notícias. 1.246 dos 1.247 residuais demandaram chamadas de LLM. A afirmação correta é que houve cobertura de 83,33% pela WNN, não acurácia de 83,33%, porque ainda não existe uma amostra de referência integralmente validada por especialistas.\n\n[Sources]\ndos Anjos, J. S. Classificação Incremental e Auditável de Crimes em Notícias Institucionais com Memória WNN e LLM Residual. Trabalho final (arquivo fornecido)."}
+{"kind":"slide","id":"sl/4bxjqo","slide":12,"title":"SÍNTESE","textShapes":11}
+{"kind":"shape","id":"sh/qtonex8n","slide":12,"bbox":[72,54,64,6]}
+{"kind":"textbox","id":"sh/dwzm9s7e","slide":12,"text":"SÍNTESE","textPreview":"SÍNTESE","textChars":7,"textLines":1,"bbox":[72,72,300,24]}
+{"kind":"textbox","id":"sh/cvq5gnqt","slide":12,"text":"A contribuição do AT é organizar eficiência, adaptação e auditoria em um único ciclo","textPreview":"A contribuição do AT é organizar eficiência, adaptação e auditoria em um único ciclo","textChars":84,"textLines":1,"bbox":[72,106,1080,56]}
+{"kind":"textbox","id":"sh/zyhob2p4","slide":12,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1150,72,56,28]}
+{"kind":"textbox","id":"sh/yx8nix8z","slide":12,"text":"AA 1","textPreview":"AA 1","textChars":4,"textLines":1,"bbox":[105,220,115,30]}
+{"kind":"textbox","id":"sh/l0z6dc7a","slide":12,"text":"Aproveitar não rotulados com confiança e alta velocidade de ajuste.","textPreview":"Aproveitar não rotulados com confiança e alta velocidade de ajuste.","textChars":67,"textLines":1,"bbox":[250,220,800,50]}
+{"kind":"textbox","id":"sh/0zq5k7qp","slide":12,"text":"AA 2","textPreview":"AA 2","textChars":4,"textLines":1,"bbox":[105,320,115,30]}
+{"kind":"textbox","id":"sh/f2d4zyp0","slide":12,"text":"Usar representação adequada e bleaching para robustez, com suporte teórico.","textPreview":"Usar representação adequada e bleaching para robustez, com suporte teórico.","textChars":75,"textLines":1,"bbox":[250,320,800,50]}
+{"kind":"textbox","id":"sh/e14n6d8f","slide":12,"text":"AT","textPreview":"AT","textChars":2,"textLines":1,"bbox":[105,420,115,30]}
+{"kind":"textbox","id":"sh/o7ah87ql","slide":12,"text":"Aplicar uma memória textual explícita; reservar a LLM para o que exige contexto.","textPreview":"Aplicar uma memória textual explícita; reservar a LLM para o que exige contexto.","textChars":80,"textLines":1,"bbox":[250,420,800,50]}
+{"kind":"textbox","id":"sh/p8jihsr6","slide":12,"text":"Limite honesto do AT: a próxima etapa é medir qualidade com rótulos validados por especialistas.","textPreview":"Limite honesto do AT: a próxima etapa é medir qualidade com rótulos validados por especialistas.","textChars":96,"textLines":1,"bbox":[105,550,1020,32]}
+{"kind":"textbox","id":"sh/25sz6x8v","slide":12,"text":"Referências completas nos PDFs fornecidos e nas notas do apresentador.","textPreview":"Referências completas nos PDFs fornecidos e nas notas do apresentador.","textChars":70,"textLines":1,"bbox":[105,620,700,24]}
+{"kind":"notes","id":"nt/4bxjqo","slide":12,"text":"Feche retomando a pergunta inicial: não se trata de substituir a análise humana por uma regra fixa, mas de encaminhar cada documento para a camada adequada e deixar evidências auditáveis. Convide perguntas sobre a diferença entre cobertura e acurácia, o papel da LLM e como a taxonomia é atualizada.\n\n[Sources]\nRangel, F.; Firmino, F.; Lima, P. M. V.; Oliveira, J. (2016). Semi-Supervised Classification of Social Textual Data Using WiSARD. ESANN 2016, pp. 165-170.\nCarneiro, H. C. C. (2017). Theoretical Results on a Weightless Neural Classifier and Application to Computational Linguistics. Tese de Doutorado, COPPE/UFRJ.\ndos Anjos, J. S. Classificação Incremental e Auditável de Crimes em Notícias Institucionais com Memória WNN e LLM Residual. Trabalho final (arquivo fornecido)."}

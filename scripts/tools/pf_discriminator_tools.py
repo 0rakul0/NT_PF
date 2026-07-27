@@ -22,6 +22,7 @@ try:
         binary_memory_for_text,
         compact_feature_bank,
         parent_theme,
+        reconstruct_reverse_memory_prototype,
         sync_feature_memory,
     )
     from scripts.project_config import PROJECT_ROOT
@@ -32,6 +33,7 @@ except ModuleNotFoundError:
         binary_memory_for_text,
         compact_feature_bank,
         parent_theme,
+        reconstruct_reverse_memory_prototype,
         sync_feature_memory,
     )
     from project_config import PROJECT_ROOT
@@ -325,6 +327,12 @@ def carregar_memoria_wnn(_: str = "") -> str:
             "version": memory.get("version", 0) if isinstance(memory, dict) else 0,
             "size": len(tokens) if isinstance(tokens, list) else 0,
             "padding_policy": memory.get("padding_policy", "") if isinstance(memory, dict) else "",
+            "bloom_filter": {
+                key: memory.get("bloom_filter", {}).get(key)
+                for key in ["algorithm", "bit_size", "hash_count", "item_count", "vocab_version"]
+            }
+            if isinstance(memory, dict) and isinstance(memory.get("bloom_filter"), dict)
+            else {},
             "positions_sample": [
                 {"position": index, "token": token}
                 for index, token in enumerate(tokens[:120] if isinstance(tokens, list) else [])
@@ -354,9 +362,29 @@ def projetar_texto_na_memoria_wnn(texto: str) -> str:
             "active_count": state["active_count"],
             "active_positions": state["active_positions"][:120],
             "active_tokens": state["active_tokens"][:120],
+            "bloom_enabled": state.get("bloom_enabled", False),
+            "bloom_positive_queries": state.get("bloom_positive_queries", 0),
             "binary_preview": str(state["binary"])[:240],
             "truncated": len(str(state["binary"])) > 240,
         },
+        ensure_ascii=False,
+    )
+
+
+class ReconstruirPrototipoDRASiWArgs(BaseModel):
+    label: str = Field(description="Label canonica a reconstruir a partir das posicoes binarias mais ativadas.")
+    limite: int = Field(default=12, ge=1, le=50, description="Quantidade maxima de tokens representativos.")
+
+
+@tool(args_schema=ReconstruirPrototipoDRASiWArgs)
+def reconstruir_prototipo_drasiw(label: str, limite: int = 12) -> str:
+    """Reconstrói o protótipo textual de um tema a partir da memória reversa DRASiW."""
+    payload = read_json(WNN_FEATURE_BANK_PATH)
+    if not isinstance(payload, dict):
+        return json.dumps({"available": False, "reason": "feature_bank_not_found"}, ensure_ascii=False)
+    sync_feature_memory(payload)
+    return json.dumps(
+        reconstruct_reverse_memory_prototype(payload, label, limit=limite),
         ensure_ascii=False,
     )
 
@@ -478,6 +506,7 @@ tools = [
     carregar_banco_discriminadores,
     carregar_memoria_wnn,
     projetar_texto_na_memoria_wnn,
+    reconstruir_prototipo_drasiw,
     diagnosticar_banco_discriminadores,
     sanitizar_banco_discriminadores,
     gerar_amostra_auditoria_wnn,

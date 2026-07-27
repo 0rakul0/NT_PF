@@ -1,0 +1,6 @@
+{
+  "stage": "similaridade_cosseno",
+  "profile_pkl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\perfis_cosseno_temas.pkl",
+  "profile_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\perfis_cosseno_temas.json",
+  "themes_profiled": 17
+}

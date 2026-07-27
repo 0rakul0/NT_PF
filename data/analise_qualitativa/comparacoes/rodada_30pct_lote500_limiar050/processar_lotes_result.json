@@ -1,0 +1,5 @@
+{
+  "stage": "processar_lotes",
+  "metrics_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+  "batches": 15
+}

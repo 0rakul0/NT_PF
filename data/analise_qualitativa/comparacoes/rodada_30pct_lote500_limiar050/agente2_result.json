@@ -1,0 +1,12 @@
+{
+  "stage": "agente2_discriminadores",
+  "wnn_feature_bank": "D:\\github\\NT_PF\\data\\analise_qualitativa\\wnn_feature_bank.json",
+  "wnn_discriminators": 615,
+  "wnn_labels": 40,
+  "wnn_crime_discriminators": 509,
+  "wnn_modus_discriminators": 106,
+  "discriminator_mode": "tokens_only",
+  "generalization_policy": "crime_and_modus_markers_from_body; title_as_secondary_crime_clue",
+  "uses_title_or_tags": true,
+  "tag_policy": "auxiliary_hints_only; tags_do_not_activate_or_create_a_classification"
+}

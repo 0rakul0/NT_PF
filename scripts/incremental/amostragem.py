@@ -40,14 +40,20 @@ def run(config: RunConfig) -> dict[str, object]:
     sample_df.to_csv(SAMPLE_CSV, index=False, encoding="utf-8-sig")
     reserve_df.to_csv(RESERVE_CSV, index=False, encoding="utf-8-sig")
     strata_counts = sample_df["estrato_temporal"].value_counts().sort_index().to_dict() if not sample_df.empty else {}
+    sample_dates = sample_df["data_publicacao"].dropna().astype(str).tolist() if not sample_df.empty else []
+    reserve_dates = reserve_df["data_publicacao"].dropna().astype(str).tolist() if not reserve_df.empty else []
     result = {
         "stage": "amostragem",
         "base_docs": len(docs),
         "sample_docs": len(sample),
         "reserve_docs": len(reserve),
         "sample_fraction": config.sample_fraction,
-        "temporal_strata": config.temporal_strata,
+        "split_strategy": "chronological_cutoff_earliest_foundation",
+        "temporal_granularity": config.temporal_strata,
         "sample_strata_counts": strata_counts,
+        "foundation_first_date": sample_dates[0] if sample_dates else "",
+        "foundation_last_date": sample_dates[-1] if sample_dates else "",
+        "reserve_first_date": reserve_dates[0] if reserve_dates else "",
         "docs_jsonl": str(DOCS_JSONL),
         "linguistic_preprocessing_json": str(LINGUISTIC_PREPROCESSING_JSON),
         "sample_csv": str(SAMPLE_CSV),

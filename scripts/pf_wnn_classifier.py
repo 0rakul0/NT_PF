@@ -21,6 +21,11 @@ DEFAULT_FEATURE_WEIGHT = 1.0
 EVIDENCE_FEATURE_WEIGHT = 0.75
 WEAK_SIGNAL_WEIGHT = 0.20
 MAX_SIGNATURES_PER_LABEL = 250
+# Preserve room for genuinely new patterns learned from verified residuals.
+# Otherwise an initial Agent 2 bank at its cap can discard every new marker.
+INITIAL_DISCRIMINATOR_BASELINE = 35
+BLOOM_BITS_PER_TOKEN = 12
+BLOOM_HASH_COUNT = 7
 WNN_THEME_PARENTS: dict[str, str] = {}
 STRENGTH_WEIGHTS = {
     "strong": 1.15,
@@ -58,6 +63,22 @@ COSINE_SUSPICION_MIN_SCORE = 0.22
 COSINE_ASSISTED_MARGIN_THRESHOLD = 0.04
 CONFIRMED_MEDIUM_THRESHOLD = 2
 CONFIRMED_STRONG_THRESHOLD = 4
+MIN_CONFIRMATIONS_FOR_NEW_LEARNED_MEMORY_TOKEN = 2
+CRIME_CONFIDENCE_THRESHOLDS = {
+    "crime_organizado": 0.72,
+    "corrupcao_desvio_recursos_publicos": 0.62,
+    "contrabando_descaminho": 0.58,
+    "crimes_contra_criancas": 0.58,
+}
+CRIME_MARGIN_THRESHOLDS = {
+    "crime_organizado": 0.28,
+    "corrupcao_desvio_recursos_publicos": 0.20,
+    "contrabando_descaminho": 0.18,
+    "crimes_contra_criancas": 0.18,
+}
+BODY_FALLBACK_CONFIDENCE_BONUS = 0.08
+BODY_FALLBACK_MARGIN_BONUS = 0.06
+TAG_HINT_SCORE_BONUS = 0.15
 BLOCKED_MODUS_LABELS = {
     "atuacao_clandestina",
     "falta_de_fiscalizacao",
@@ -418,6 +439,29 @@ BLOCKED_SENSOR_TERMS = {
     "terca",
     "tarefa",
 }
+NON_SPECIFIC_DOMAIN_ANCHORS = {
+    "acao",
+    "atividade",
+    "ambiental",
+    "ambientais",
+    "apreensao",
+    "armazenamento",
+    "clandestina",
+    "clandestino",
+    "comercio",
+    "comercializacao",
+    "ilegal",
+    "ilegais",
+    "irregular",
+    "irregulares",
+    "posse",
+    "transporte",
+    "uso",
+}
+MASK_MIN_COVERAGE = 0.67
+BLEACHING_COVERAGE_STEPS = (0.75, 0.85, 1.0)
+MASK_GENERIC_TOKEN_WEIGHT = 0.20
+MASK_SPECIFIC_TOKEN_WEIGHT = 1.0
 
 
 @dataclass(frozen=True)
@@ -441,10 +485,14 @@ class WNNClassification:
     memory_active_positions: list[int] | None = None
     memory_version: int = 0
     memory_vocab_size: int = 0
+    guard_rejected_discriminators: list[dict[str, object]] | None = None
+    crime_evidence_source: str = ""
+    modus_evidence_source: str = ""
+    bleaching_coverage_threshold: float = 0.0
 
     @property
     def accepted(self) -> bool:
-        return self.inference is not None and self.status.startswith("accepted_crime")
+        return self.inference is not None and self.status.startswith("accepted_")
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -468,6 +516,10 @@ class WNNClassification:
             "memory_active_count": len(self.memory_active_positions or []),
             "memory_version": self.memory_version,
             "memory_vocab_size": self.memory_vocab_size,
+            "guard_rejected_discriminators": (self.guard_rejected_discriminators or [])[:20],
+            "crime_evidence_source": self.crime_evidence_source,
+            "modus_evidence_source": self.modus_evidence_source,
+            "bleaching_coverage_threshold": self.bleaching_coverage_threshold,
             "inference": self.inference.model_dump() if self.inference else None,
         }
 
@@ -506,7 +558,7 @@ def _active_label(item: dict[str, object]) -> str:
 def _active_tokens(active: list[dict[str, object]]) -> set[str]:
     tokens: set[str] = set()
     for item in active:
-        raw_tokens = item.get("tokens", [])
+        raw_tokens = item.get("matched_tokens", item.get("tokens", []))
         if isinstance(raw_tokens, list):
             tokens.update(canonical_label(str(token)) for token in raw_tokens if str(token).strip())
     return tokens
@@ -530,10 +582,18 @@ def _domain_secondaries(primary: str, ranked: list[str], scores_by_label: dict[s
 
 
 def _preferred_protected_domain(active_labels: set[str], scores_by_label: dict[str, float]) -> str:
+    """Choose a protected domain only when it is competitive with the score leader.
+
+    Domain priority resolves genuine near-ties; it must not override a much
+    stronger class because of one incidental marker.
+    """
+    top_score = max((float(score) for score in scores_by_label.values()), default=0.0)
     candidates = [
         label
         for label in active_labels
-        if label in PROTECTED_DOMAIN_PRIORITY and scores_by_label.get(label, 0.0) >= 0.5
+        if label in PROTECTED_DOMAIN_PRIORITY
+        and scores_by_label.get(label, 0.0) >= 0.5
+        and scores_by_label.get(label, 0.0) >= top_score * 0.85
     ]
     if not candidates:
         return ""
@@ -612,16 +672,18 @@ def _operational_decision(
             relation = "dominio_preferencial_com_organizacao"
         return protected_domain, crimes, [label for label in crimes if label != protected_domain], relation
 
-    if has_organization_bridge and (organized_subthemes or len(active_labels) > 1):
+    if has_organization_bridge and organized_subthemes:
         operational_domains = [
             label
-            for label in sorted(active_labels)
+            for label in active_labels
             if label != "crime_organizado" and scores_by_label.get(label, 0.0) >= 0.75
         ]
-        crimes = _dedupe_labels(["crime_organizado", *operational_domains])
-        secondary = [label for label in crimes if label != "crime_organizado"]
-        relation = "crime_organizado_multidominio" if len(secondary) > 1 else "cadeia_operacional"
-        return "crime_organizado", crimes, secondary, relation
+        if operational_domains:
+            primary = max(operational_domains, key=lambda label: scores_by_label.get(label, 0.0))
+            secondary = [label for label in operational_domains if label != primary]
+            secondary.append("crime_organizado")
+            crimes = _dedupe_labels([primary, *secondary])
+            return primary, crimes, [label for label in crimes if label != primary], "dominio_preferencial_com_organizacao"
 
     top_label = ranked[0]
     secondary = [label for label in ranked[1:] if scores_by_label.get(label, 0.0) >= 0.75]
@@ -685,6 +747,46 @@ def _multi_discriminator_candidate(
     }
 
 
+def _can_resolve_known_cooccurrence(
+    scores_by_label: dict[str, float],
+    active: list[dict[str, object]],
+    top_label: str,
+    secondary: list[str],
+    relation: str,
+) -> bool:
+    """Accept a well-evidenced multi-label case without an LLM tiebreaker.
+
+    This is intentionally stricter than merely registering a composite
+    candidate: every co-active class must have a high-coverage lexical marker.
+    The result keeps one primary class and records the others as secondary,
+    rather than inventing a fused crime label.
+    """
+    if relation != "coocorrencia_sem_fusao" or not secondary:
+        return False
+    decision_labels = _dedupe_labels([top_label, *secondary])
+    if len(decision_labels) < 2:
+        return False
+    ranked_scores = sorted(
+        [float(scores_by_label.get(label, 0.0) or 0.0) for label in decision_labels],
+        reverse=True,
+    )
+    if len(ranked_scores) < 2 or ranked_scores[0] <= 0:
+        return False
+    relative_margin = (ranked_scores[0] - ranked_scores[1]) / ranked_scores[0]
+    if ranked_scores[1] < 1.0 or relative_margin > 0.25:
+        return False
+    for label in decision_labels:
+        high_coverage_marker = any(
+            _active_label(item) == label
+            and float(item.get("mask_coverage", 0.0) or 0.0) >= 0.75
+            and len(item.get("matched_tokens", item.get("tokens", [])) or []) >= 2
+            for item in active
+        )
+        if not high_coverage_marker:
+            return False
+    return True
+
+
 def _compile_pattern(pattern: str) -> re.Pattern[str] | None:
     try:
         return re.compile(pattern, re.IGNORECASE)
@@ -746,9 +848,27 @@ def _normalize_memory_token(token: object) -> str:
     return normalized
 
 
+def _variant_is_memory_approved(variant: dict[str, object], owner: dict[str, object]) -> bool:
+    """Keep one-off residual wording out of the append-only WNN vocabulary.
+
+    Curated and foundation markers are admitted immediately. A lexical variant
+    learned from the residual route needs recurrence before it can allocate a
+    new binary position. It may still be kept as an auditable pending variant.
+    """
+    source = str(variant.get("source", owner.get("source", "")) or "")
+    if "agent3_learned" not in source:
+        return True
+    return int(variant.get("confirmations", 0) or 0) >= MIN_CONFIRMATIONS_FOR_NEW_LEARNED_MEMORY_TOKEN
+
+
 def _memory_tokens_from_discriminator(item: dict[str, object]) -> list[str]:
     output: list[str] = []
-    for tokens in _discriminator_token_variants(item):
+    for variant in _discriminator_variants(item):
+        if not _variant_is_memory_approved(variant, item):
+            continue
+        tokens = variant.get("tokens", [])
+        if not isinstance(tokens, list):
+            continue
         for token in tokens:
             normalized = _normalize_memory_token(token)
             if len(normalized) < 4 or normalized in BLOCKED_SENSOR_TERMS:
@@ -756,6 +876,67 @@ def _memory_tokens_from_discriminator(item: dict[str, object]) -> list[str]:
             if normalized not in output:
                 output.append(normalized)
     return output
+
+
+def _bloom_indexes(token: str, bit_size: int, hash_count: int) -> list[int]:
+    """Return deterministic Bloom-filter positions without relying on Python's salted hash."""
+    if bit_size <= 0 or hash_count <= 0:
+        return []
+    encoded = token.encode("utf-8")
+    return [
+        int.from_bytes(hashlib.blake2b(encoded, digest_size=8, person=index.to_bytes(8)).digest(), "big") % bit_size
+        for index in range(hash_count)
+    ]
+
+
+def _build_bloom_filter(tokens: Iterable[str], *, vocab_version: int) -> dict[str, object]:
+    unique_tokens = sorted({str(token) for token in tokens if str(token)})
+    bit_size = max(64, len(unique_tokens) * BLOOM_BITS_PER_TOKEN)
+    bits = bytearray((bit_size + 7) // 8)
+    for token in unique_tokens:
+        for index in _bloom_indexes(token, bit_size, BLOOM_HASH_COUNT):
+            bits[index // 8] |= 1 << (index % 8)
+    return {
+        "algorithm": "blake2b_double_hash",
+        "bit_size": bit_size,
+        "hash_count": BLOOM_HASH_COUNT,
+        "item_count": len(unique_tokens),
+        "vocab_version": vocab_version,
+        "bits_hex": bytes(bits).hex(),
+    }
+
+
+def _valid_bloom_filter(bloom: object, *, item_count: int, vocab_version: int) -> bool:
+    if not isinstance(bloom, dict):
+        return False
+    try:
+        bit_size = int(bloom.get("bit_size", 0) or 0)
+        hash_count = int(bloom.get("hash_count", 0) or 0)
+        encoded = str(bloom.get("bits_hex", ""))
+        return (
+            bloom.get("algorithm") == "blake2b_double_hash"
+            and bit_size > 0
+            and hash_count > 0
+            and int(bloom.get("item_count", -1)) == item_count
+            and int(bloom.get("vocab_version", -1)) == vocab_version
+            and len(bytes.fromhex(encoded)) >= (bit_size + 7) // 8
+        )
+    except (TypeError, ValueError):
+        return False
+
+
+def _bloom_might_contain(token: str, bloom: object) -> bool:
+    if not isinstance(bloom, dict):
+        return True
+    try:
+        bit_size = int(bloom.get("bit_size", 0) or 0)
+        hash_count = int(bloom.get("hash_count", 0) or 0)
+        bits = bytes.fromhex(str(bloom.get("bits_hex", "")))
+    except (TypeError, ValueError):
+        return True
+    if bit_size <= 0 or hash_count <= 0 or len(bits) < (bit_size + 7) // 8:
+        return True
+    return all(bits[index // 8] & (1 << (index % 8)) for index in _bloom_indexes(token, bit_size, hash_count))
 
 
 def _variant_signature(tokens: Iterable[object]) -> str:
@@ -903,6 +1084,7 @@ def _append_marker_variant(owner: dict[str, object], candidate: dict[str, object
 
 def sync_feature_memory(payload: dict[str, object]) -> dict[str, object]:
     """Keep a versioned WNN vocabulary where each token has a stable binary position."""
+    sync_discriminator_masks(payload)
     memory = payload.get("memory_vocab", {})
     if not isinstance(memory, dict):
         memory = {}
@@ -942,17 +1124,28 @@ def sync_feature_memory(payload: dict[str, object]) -> dict[str, object]:
     version = old_version if old_version and not changed and len(vocab) == len(previous_tokens or []) else old_version + 1
     if version <= 0:
         version = 1
+    existing_bloom = memory.get("bloom_filter") if isinstance(memory, dict) else None
+    bloom_filter = (
+        existing_bloom
+        if _valid_bloom_filter(existing_bloom, item_count=len(vocab), vocab_version=version)
+        else _build_bloom_filter(vocab, vocab_version=version)
+    )
     payload["memory_vocab"] = {
         "version": version,
         "size": len(vocab),
         "tokens": vocab,
         "token_to_position": token_to_position,
         "padding_policy": "right_zero_fill_for_previous_documents",
+        "bloom_filter": bloom_filter,
     }
     payload["memory_model"] = {
         "kind": "binary_keyword_matrix",
         "unit": "sanitized_discriminator_token",
         "description": "Cada posicao representa uma palavra-chave discriminativa; a noticia vira um vetor binario 1/0.",
+        "position_policy": "posicoes imutaveis; novos tokens aprovados sao acrescentados ao final; variantes residuais exigem recorrencia",
+        "new_learned_token_min_confirmations": MIN_CONFIRMATIONS_FOR_NEW_LEARNED_MEMORY_TOKEN,
+        "reverse_memory": "textual_drasiw_position_counters_by_label",
+        "bloom_filter": "prefiltro probabilistico seguido de consulta exata token_para_posicao",
     }
     return payload
 
@@ -964,18 +1157,25 @@ def binary_memory_for_text(text: str, feature_bank: dict[str, object]) -> dict[s
     tokens = memory.get("tokens", [])
     if not isinstance(tokens, list):
         tokens = []
-    normalized_tokens = [
-        canonical_label(str(token))
-        for token in tokens
-        if len(canonical_label(str(token))) >= 4 and canonical_label(str(token)) not in BLOCKED_SENSOR_TERMS
-    ]
-    words = _token_set_from_text(text)
-    active_positions = [
-        index
-        for index, token in enumerate(normalized_tokens)
-        if _token_present_in_words(token, words)
-    ]
-    active_set = set(active_positions)
+    normalized_tokens = [canonical_label(str(token)) for token in tokens]
+    token_to_position = memory.get("token_to_position", {})
+    if not isinstance(token_to_position, dict) or not token_to_position:
+        token_to_position = {token: index for index, token in enumerate(normalized_tokens)}
+    bloom_filter = memory.get("bloom_filter")
+    active_set: set[int] = set()
+    bloom_positive_queries = 0
+    for word in _token_set_from_text(text):
+        candidates = {canonical_label(word), _normalize_memory_token(word)}
+        for candidate in candidates:
+            if len(candidate) < 4 or candidate in BLOCKED_SENSOR_TERMS:
+                continue
+            if not _bloom_might_contain(candidate, bloom_filter):
+                continue
+            bloom_positive_queries += 1
+            position = token_to_position.get(candidate)
+            if isinstance(position, int) and 0 <= position < len(normalized_tokens):
+                active_set.add(position)
+    active_positions = sorted(active_set)
     return {
         "version": int(memory.get("version", 0) or 0),
         "vocab_size": len(normalized_tokens),
@@ -983,6 +1183,130 @@ def binary_memory_for_text(text: str, feature_bank: dict[str, object]) -> dict[s
         "active_positions": active_positions,
         "binary": "".join("1" if index in active_set else "0" for index in range(len(normalized_tokens))),
         "active_tokens": [normalized_tokens[index] for index in active_positions[:120]],
+        "bloom_enabled": isinstance(bloom_filter, dict),
+        "bloom_positive_queries": bloom_positive_queries,
+    }
+
+
+def _record_reverse_memory_observation(
+    payload: dict[str, object],
+    label: str,
+    text: str,
+    *,
+    source: str,
+) -> dict[str, object]:
+    """Record a labelled binary input so it can be reconstructed as a class prototype.
+
+    This is the textual DRASiW layer: positions are the stable positions of the
+    WNN vocabulary, rather than word offsets in the original document.
+    """
+    normalized_label = parent_theme(label)
+    if not normalized_label:
+        return {"recorded": False, "reason": "empty_label"}
+    sync_feature_memory(payload)
+    state = binary_memory_for_text(text, payload)
+    positions = [int(position) for position in state.get("active_positions", [])]
+    if not positions:
+        return {"recorded": False, "reason": "no_active_positions", "label": normalized_label}
+
+    reverse_memories = payload.setdefault("reverse_memories", {})
+    if not isinstance(reverse_memories, dict):
+        reverse_memories = {}
+        payload["reverse_memories"] = reverse_memories
+    memory = reverse_memories.setdefault(
+        normalized_label,
+        {"sample_count": 0, "active_position_counts": {}, "signatures": [], "source_counts": {}},
+    )
+    if not isinstance(memory, dict):
+        memory = {"sample_count": 0, "active_position_counts": {}, "signatures": [], "source_counts": {}}
+        reverse_memories[normalized_label] = memory
+    memory["sample_count"] = int(memory.get("sample_count", 0) or 0) + 1
+    counts = memory.setdefault("active_position_counts", {})
+    if not isinstance(counts, dict):
+        counts = {}
+        memory["active_position_counts"] = counts
+    for position in positions:
+        key = str(position)
+        counts[key] = int(counts.get(key, 0) or 0) + 1
+    signatures = memory.setdefault("signatures", [])
+    signature = " ".join(str(position) for position in positions)
+    if isinstance(signatures, list) and signature not in signatures and len(signatures) < MAX_SIGNATURES_PER_LABEL:
+        signatures.append(signature)
+    source_counts = memory.setdefault("source_counts", {})
+    if isinstance(source_counts, dict):
+        source_counts[source] = int(source_counts.get(source, 0) or 0) + 1
+    return {
+        "recorded": True,
+        "label": normalized_label,
+        "active_positions": positions,
+        "memory_version": int(state.get("version", 0) or 0),
+    }
+
+
+def record_reverse_memory_observation(
+    feature_bank_path: Path | str,
+    label: str,
+    text: str,
+    *,
+    source: str = "verified_residual",
+) -> dict[str, object]:
+    """Persist a verified document as a DRASiW-style textual memory observation."""
+    payload = load_feature_bank(feature_bank_path)
+    if not payload:
+        return {"recorded": False, "reason": "feature_bank_not_found"}
+    result = _record_reverse_memory_observation(payload, label, text, source=source)
+    if not result.get("recorded"):
+        return result
+    resolved = Path(feature_bank_path)
+    resolved.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return result
+
+
+def reconstruct_reverse_memory_prototype(
+    feature_bank: dict[str, object],
+    label: str,
+    *,
+    limit: int = 12,
+) -> dict[str, object]:
+    """Reverse stable binary positions into the most representative tokens of a label."""
+    normalized_label = parent_theme(label)
+    reverse_memories = feature_bank.get("reverse_memories", {})
+    if not isinstance(reverse_memories, dict):
+        return {"label": normalized_label, "available": False, "reason": "no_reverse_memory"}
+    memory = reverse_memories.get(normalized_label, {})
+    if not isinstance(memory, dict):
+        return {"label": normalized_label, "available": False, "reason": "label_not_observed"}
+    vocab = feature_bank.get("memory_vocab", {})
+    tokens = vocab.get("tokens", []) if isinstance(vocab, dict) else []
+    counts = memory.get("active_position_counts", {})
+    if not isinstance(tokens, list) or not isinstance(counts, dict):
+        return {"label": normalized_label, "available": False, "reason": "invalid_reverse_memory"}
+    sample_count = max(1, int(memory.get("sample_count", 0) or 0))
+    ranked: list[dict[str, object]] = []
+    for raw_position, raw_count in counts.items():
+        try:
+            position = int(raw_position)
+            count = int(raw_count)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= position < len(tokens) and count > 0:
+            ranked.append(
+                {
+                    "position": position,
+                    "token": str(tokens[position]),
+                    "count": count,
+                    "support": round(count / sample_count, 4),
+                }
+            )
+    ranked.sort(key=lambda item: (-int(item["count"]), int(item["position"])))
+    return {
+        "label": normalized_label,
+        "available": bool(ranked),
+        "sample_count": sample_count,
+        "memory_version": int(vocab.get("version", 0) or 0) if isinstance(vocab, dict) else 0,
+        "prototype": ranked[: max(1, limit)],
+        "token_sequence": [str(item["token"]) for item in ranked[: max(1, limit)]],
+        "source_counts": memory.get("source_counts", {}),
     }
 
 
@@ -1053,6 +1377,8 @@ def _marker_matches_micro_world(label: str, tokens: Iterable[object]) -> tuple[b
     }
     if len(clean_tokens) < 2:
         return False, "menos de dois tokens substantivos"
+    if normalized_label not in THEME_MICRO_WORLD_ANCHORS:
+        return True, "sem vocabulario de guarda para o tema"
     anchors = _theme_anchor_tokens(normalized_label)
     if not anchors:
         return True, "sem vocabulario de guarda para o tema"
@@ -1062,12 +1388,13 @@ def _marker_matches_micro_world(label: str, tokens: Iterable[object]) -> tuple[b
         if other_label == normalized_label:
             continue
         foreign_hits.update(clean_tokens.intersection(other_anchors - anchors))
-    label_terms = set(_label_tokens(normalized_label))
-    strong_anchor_hits = anchor_hits - label_terms - {"contra", "crime", "crimes"}
-    if foreign_hits and not strong_anchor_hits:
+    specific_anchor_hits = anchor_hits - NON_SPECIFIC_DOMAIN_ANCHORS - {"contra", "crime", "crimes"}
+    if foreign_hits and not specific_anchor_hits:
         return False, f"contaminacao cruzada: {', '.join(sorted(foreign_hits)[:4])}"
+    if specific_anchor_hits:
+        return True, f"ancoras especificas do tema: {', '.join(sorted(specific_anchor_hits)[:4])}"
     if anchor_hits:
-        return True, f"ancoras do tema: {', '.join(sorted(anchor_hits)[:4])}"
+        return False, f"somente ancoras genericas: {', '.join(sorted(anchor_hits)[:4])}"
     return False, f"sem ancora do micromundo {normalized_label}"
 
 
@@ -1102,6 +1429,68 @@ def _marker_strength(
     if source in {"agent2_generalized_micro_world", "agent1_evidence_term"} and anchor_hits:
         return "medium"
     return "weak"
+
+
+def _default_mask_entry(label: str, token: str, confirmations: int = 0) -> dict[str, object]:
+    """Create an interpretable weight and role for a word in a discriminator mask."""
+    normalized = canonical_label(token)
+    if normalized in NON_SPECIFIC_DOMAIN_ANCHORS:
+        role, weight = "context", MASK_GENERIC_TOKEN_WEIGHT
+    elif normalized in _theme_anchor_tokens(label):
+        role, weight = "core", MASK_SPECIFIC_TOKEN_WEIGHT
+    else:
+        role, weight = "support", 0.55
+    reinforcement = min(0.25, max(0, confirmations) * 0.05)
+    return {"weight": round(min(1.25, weight + reinforcement), 4), "role": role}
+
+
+def sync_discriminator_masks(payload: dict[str, object]) -> dict[str, int]:
+    """Migrate legacy token lists into persistent, weighted lexical masks."""
+    discriminators = payload.get("discriminators", [])
+    if not isinstance(discriminators, list):
+        return {"discriminators": 0, "words": 0}
+    word_count = 0
+    for item in discriminators:
+        if not isinstance(item, dict):
+            continue
+        label = parent_theme(str(item.get("label", ""))) if _rule_kind(item.get("kind", "crime")) == "crime" else normalize_modus_label(item.get("label", ""))
+        tokens = item.get("tokens", [])
+        if not isinstance(tokens, list):
+            continue
+        existing = item.get("mask", {})
+        if not isinstance(existing, dict):
+            existing = {}
+        try:
+            confirmations = int(item.get("confirmations", 0) or 0)
+        except (TypeError, ValueError):
+            confirmations = 0
+        mask: dict[str, dict[str, object]] = {}
+        for raw_token in tokens:
+            token = canonical_label(str(raw_token))
+            if len(token) < 4 or token in BLOCKED_SENSOR_TERMS:
+                continue
+            previous = existing.get(token)
+            default = _default_mask_entry(label, token, confirmations)
+            if isinstance(previous, dict):
+                try:
+                    weight = float(previous.get("weight", default["weight"]) or default["weight"])
+                except (TypeError, ValueError):
+                    weight = float(default["weight"])
+                role = str(previous.get("role", default["role"]) or default["role"])
+                mask[token] = {"weight": round(max(0.05, min(1.25, weight)), 4), "role": role}
+            elif isinstance(previous, (int, float)):
+                mask[token] = {"weight": round(max(0.05, min(1.25, float(previous))), 4), "role": str(default["role"])}
+            else:
+                mask[token] = default
+        if mask:
+            item["mask"] = mask
+            word_count += len(mask)
+    payload["mask_model"] = {
+        "kind": "weighted_lexical_mask",
+        "roles": {"core": "sinal substantivo", "support": "reforco", "context": "contexto de baixo peso"},
+        "score": "cobertura_ponderada_da_mascara",
+    }
+    return {"discriminators": len([item for item in discriminators if isinstance(item, dict)]), "words": word_count}
 
 
 def _apply_strength_metadata(item: dict[str, object]) -> dict[str, object]:
@@ -1314,15 +1703,20 @@ def learned_rule_to_discriminator(rule: dict[str, object]) -> dict[str, object] 
 
 def suggest_discriminator_rules_from_review(doc: dict[str, Any], review: Any) -> list[dict[str, object]]:
     label = canonical_label(str(getattr(review, "canonical_label", "") or ""))
-    review_modus = getattr(review, "modus_operandi", []) or []
-    if not label and not review_modus:
+    if not label:
         return []
     parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
-    evidence = str(
-        getattr(review, "evidence_text", "")
-        or doc.get("body_text", "")
-        or parsed.get("corpo", "")
-        or doc.get("context", "")
+    # The LLM explanation identifies the class, while the document brings the
+    # contextual vocabulary that must activate the WNN on a future case.
+    evidence = " ".join(
+        str(value)
+        for value in (
+            getattr(review, "evidence_text", ""),
+            doc.get("body_text", ""),
+            parsed.get("corpo", ""),
+            doc.get("context", ""),
+        )
+        if str(value or "").strip()
     )
     label_terms = _label_tokens(label)
     hint_terms = _label_hint_tokens(label)
@@ -1337,13 +1731,20 @@ def suggest_discriminator_rules_from_review(doc: dict[str, Any], review: Any) ->
     output: list[dict[str, object]] = []
     if label:
         selected: list[str] = []
-        prioritized_tokens = [
+        anchors = [
             *label_terms,
             *[token for token in evidence_tokens if token in hint_terms],
             *[token for token in evidence_tokens if token in label_terms],
         ]
-        for token in prioritized_tokens:
+        for token in anchors:
             if token not in selected:
+                selected.append(token)
+            if len(selected) >= 2:
+                break
+        # Add document-specific context so a learned marker is not merely a
+        # duplicate of the canonical class name.
+        for token in evidence_tokens:
+            if token not in selected and len(token) >= 4:
                 selected.append(token)
             if len(selected) >= 5:
                 break
@@ -1359,33 +1760,6 @@ def suggest_discriminator_rules_from_review(doc: dict[str, Any], review: Any) ->
                 }
             )
 
-    for raw_modus in review_modus:
-        modus_label = normalize_modus_label(raw_modus)
-        if not modus_label:
-            continue
-        modus_terms = [token for token in modus_label.split("_") if len(token) >= 4]
-        selected_modus: list[str] = []
-        prioritized_modus = [
-            *modus_terms,
-            *[token for token in evidence_tokens if token in modus_terms],
-        ]
-        for token in prioritized_modus:
-            if token not in selected_modus:
-                selected_modus.append(token)
-            if len(selected_modus) >= 5:
-                break
-        if len(selected_modus) < 2 or not set(selected_modus).intersection(modus_terms):
-            continue
-        output.append(
-            {
-                "kind": "modus",
-                "label": modus_label,
-                "name": "_".join(selected_modus[:4]),
-                "tokens": selected_modus,
-                "source": "agent3_learned_modus_discriminator",
-                "rationale": "marcador WNN de modus operandi aprendido a partir da classificacao residual do Agente 3",
-            }
-        )
     return output
 
 
@@ -1396,6 +1770,28 @@ def _discriminator_priority(item: dict[str, object]) -> tuple[int, int, float, s
     variant_count = int(item.get("variant_count", 1) or 1)
     weight = float(item.get("weight", DEFAULT_FEATURE_WEIGHT) or DEFAULT_FEATURE_WEIGHT)
     return (curated, variant_count, confirmations, weight, source)
+
+
+def _is_direct_agent3_discriminator(item: dict[str, object]) -> bool:
+    """True when a distinct discriminator, not only a variant, came from Agent 3."""
+    return "agent3_learned_discriminator" in str(item.get("source", "") or "")
+
+
+def _adaptive_label_capacity(items: list[dict[str, object]], max_per_label: int) -> int:
+    """Grow a class only as its learned patterns are confirmed and reused."""
+    if max_per_label <= INITIAL_DISCRIMINATOR_BASELINE:
+        return max_per_label
+    learned_evidence = 0
+    for item in items:
+        if _is_direct_agent3_discriminator(item):
+            learned_evidence += 1
+        for variant in item.get("marker_variants", []):
+            if isinstance(variant, dict) and "agent3_learned_discriminator" in str(variant.get("source", "") or ""):
+                learned_evidence += max(1, int(variant.get("confirmations", 1) or 1))
+    # Five additional slots per verified/reused online pattern lets frequent
+    # crimes expand quickly, while unseen or rare classes stay at the compact
+    # foundation size.
+    return min(max_per_label, INITIAL_DISCRIMINATOR_BASELINE + learned_evidence * 5)
 
 
 def _cap_discriminators_per_label(
@@ -1414,8 +1810,64 @@ def _cap_discriminators_per_label(
     limited: list[dict[str, object]] = []
     for key in sorted(grouped):
         items = sorted(grouped[key], key=_discriminator_priority, reverse=True)
-        limited.extend(items[:max_per_label])
+        capacity = _adaptive_label_capacity(items, max_per_label)
+        learned = [item for item in items if _is_direct_agent3_discriminator(item)]
+        initial = [item for item in items if not _is_direct_agent3_discriminator(item)]
+        # Variants enrich their existing owner without using a new slot.  For
+        # distinct online patterns, give learned rules priority; the adaptive
+        # capacity grows with their confirmations up to the global ceiling.
+        learned_limit = capacity
+        kept_learned = learned[:learned_limit]
+        limited.extend([*kept_learned, *initial[: capacity - len(kept_learned)]])
     return limited
+
+
+def _prune_marker_variants_per_label(
+    discriminators: list[dict[str, object]],
+    max_per_label: int,
+) -> int:
+    """Keep the most confirmed learned variants within each adaptive class budget."""
+    grouped: dict[tuple[str, str], list[dict[str, object]]] = {}
+    for item in discriminators:
+        key = (_rule_kind(item.get("kind", "crime")), canonical_label(str(item.get("label", ""))))
+        grouped.setdefault(key, []).append(item)
+
+    removed = 0
+    for items in grouped.values():
+        capacity = _adaptive_label_capacity(items, max_per_label)
+        variant_slots = max(0, capacity - len(items))
+        candidates: list[tuple[dict[str, object], dict[str, object]]] = []
+        for owner in items:
+            variants = owner.get("marker_variants", [])
+            if not isinstance(variants, list):
+                continue
+            for variant in variants:
+                if isinstance(variant, dict):
+                    candidates.append((owner, variant))
+        ranked = sorted(
+            candidates,
+            key=lambda pair: (
+                1 if "agent3_learned_discriminator" in str(pair[1].get("source", "") or "") else 0,
+                int(pair[1].get("confirmations", 0) or 0),
+                str(pair[1].get("variant_signature", "")),
+            ),
+            reverse=True,
+        )
+        selected_ids = {id(variant) for _, variant in ranked[:variant_slots]}
+        for owner in items:
+            variants = owner.get("marker_variants", [])
+            if not isinstance(variants, list):
+                continue
+            kept = [variant for variant in variants if isinstance(variant, dict) and id(variant) in selected_ids]
+            removed += len(variants) - len(kept)
+            if kept:
+                owner["marker_variants"] = kept
+                owner["variant_count"] = len(kept) + 1
+            else:
+                owner.pop("marker_variants", None)
+                owner["variant_count"] = 1
+            _apply_strength_metadata(owner)
+    return removed
 
 
 def append_discriminators_from_learned_rules(
@@ -1517,10 +1969,16 @@ def append_discriminators_from_learned_rules(
     resolved = Path(feature_bank_path)
     resolved.parent.mkdir(parents=True, exist_ok=True)
     resolved.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return added
+    retained_ids = {id(item) for item in discriminators}
+    # Report only rules that survived the per-class cap.  A proposal generated
+    # by Agent 3 is not learning unless it remains in the feature bank.
+    return [item for item in added if id(item) in retained_ids]
 
 
-def compact_feature_bank(feature_bank_path: Path | str) -> dict[str, int]:
+def compact_feature_bank(
+    feature_bank_path: Path | str,
+    max_discriminators_per_label: int = 200,
+) -> dict[str, int]:
     payload = load_feature_bank(feature_bank_path)
     discriminators = payload.get("discriminators", []) if isinstance(payload, dict) else []
     if not isinstance(discriminators, list):
@@ -1627,7 +2085,11 @@ def compact_feature_bank(feature_bank_path: Path | str) -> dict[str, int]:
             "discriminators": theme_discriminators,
         }
 
-    compacted = _cap_discriminators_per_label(compacted, max_per_label=35)
+    compacted = _cap_discriminators_per_label(compacted, max_per_label=max_discriminators_per_label)
+    variants_removed = _prune_marker_variants_per_label(
+        compacted,
+        max_per_label=max_discriminators_per_label,
+    )
     labels = sorted(
         {
             canonical_label(str(item.get("label", "")))
@@ -1666,6 +2128,7 @@ def compact_feature_bank(feature_bank_path: Path | str) -> dict[str, int]:
         "removed": len(discriminators) - len(compacted),
         "weak_signals": len(weak_signals),
         "guard_rejected": len(rejected_by_guard),
+        "variants_removed": variants_removed,
     }
 
 
@@ -1838,30 +2301,6 @@ def build_feature_bank(
                 }
             discriminators_by_label.setdefault(label, []).append(_with_parent_theme(_apply_strength_metadata(discriminator), original_label))
 
-        for modus_label, tokens in _agent2_modus_marker_sets(theme_terms).items():
-            discriminator = _curated_modus_discriminator(
-                modus_label,
-                {"name": modus_label, "tokens": tokens, "weight": EVIDENCE_FEATURE_WEIGHT},
-            )
-            if discriminator is None:
-                continue
-            key = str(discriminator.get("marker_signature") or _marker_signature_from_discriminator(discriminator))
-            if key in seen:
-                continue
-            seen.add(key)
-            discriminators_by_label.setdefault(modus_label, []).append(discriminator)
-
-    for modus_label, items in sorted(CURATED_MODUS_DISCRIMINATORS.items()):
-        for curated in items:
-            discriminator = _curated_modus_discriminator(modus_label, curated)
-            if discriminator is None:
-                continue
-            key = str(discriminator.get("marker_signature") or _marker_signature_from_discriminator(discriminator))
-            if key in seen:
-                continue
-            seen.add(key)
-            discriminators_by_label.setdefault(modus_label, []).append(discriminator)
-
     discriminators: list[dict[str, object]] = []
     for label, items in sorted(discriminators_by_label.items()):
         discriminators.extend(items[:max_discriminators_per_theme])
@@ -1886,7 +2325,9 @@ def build_feature_bank(
         if not doc:
             continue
         parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
-        text = str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", ""))
+        # Crimes are extracted primarily from the body, where institutional
+        # news normally states the legal fact beyond the generic headline.
+        text = str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "") or doc.get("titulo", "") or parsed.get("titulo", ""))
         words = _token_set_from_text(text)
         active_ids = sorted(
             str(item["id"])
@@ -1924,6 +2365,13 @@ def build_feature_bank(
         "theme_parents": WNN_THEME_PARENTS,
     }
     sync_feature_memory(payload)
+    for name, label in label_by_doc.items():
+        doc = docs_by_name.get(name)
+        if not doc:
+            continue
+        parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
+        text = str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "") or doc.get("titulo", "") or parsed.get("titulo", ""))
+        _record_reverse_memory_observation(payload, label, text, source="foundation_sample_body")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return payload
@@ -1959,6 +2407,18 @@ def load_feature_bank(path: Path | str) -> dict[str, object]:
             cleaned.append(item)
         payload["discriminators"] = cleaned
     return payload
+
+
+def migrate_feature_bank_to_weighted_masks(feature_bank_path: Path | str) -> dict[str, object]:
+    """Persist weighted lexical masks for a legacy WNN feature bank."""
+    payload = load_feature_bank(feature_bank_path)
+    if not payload:
+        return {"migrated": False, "reason": "feature_bank_not_found"}
+    summary = sync_discriminator_masks(payload)
+    sync_feature_memory(payload)
+    resolved = Path(feature_bank_path)
+    resolved.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {"migrated": True, "feature_bank": str(resolved), **summary}
 
 
 def active_discriminators(text: str, feature_bank: dict[str, object]) -> list[dict[str, object]]:
@@ -1997,6 +2457,101 @@ def active_discriminators(text: str, feature_bank: dict[str, object]) -> list[di
     return active
 
 
+def mask_discriminators(text: str, feature_bank: dict[str, object]) -> list[dict[str, object]]:
+    """Score every discriminator as a binary token mask against the input text."""
+    words = _token_set_from_text(text)
+    candidates: list[dict[str, object]] = []
+    for item in feature_bank.get("discriminators", []):
+        if not isinstance(item, dict):
+            continue
+        best: dict[str, object] | None = None
+        for variant in _discriminator_variants(item):
+            raw_tokens = variant.get("tokens", [])
+            if not isinstance(raw_tokens, list):
+                continue
+            tokens = [canonical_label(str(token)) for token in raw_tokens if canonical_label(str(token))]
+            if not tokens:
+                continue
+            matched_tokens = [token for token in tokens if _token_present_in_words(token, words)]
+            if not matched_tokens:
+                continue
+            persisted_mask = item.get("mask", {}) if bool(variant.get("is_primary")) else {}
+            if not isinstance(persisted_mask, dict):
+                persisted_mask = {}
+            label = (
+                parent_theme(str(item.get("label", "")))
+                if _rule_kind(item.get("kind", "crime")) == "crime"
+                else normalize_modus_label(item.get("label", ""))
+            )
+            mask = {
+                token: (
+                    persisted_mask.get(token)
+                    if isinstance(persisted_mask.get(token), dict)
+                    else _default_mask_entry(label, token, int(item.get("confirmations", 0) or 0))
+                )
+                for token in tokens
+            }
+            weights = [float(mask[token].get("weight", MASK_SPECIFIC_TOKEN_WEIGHT) or MASK_SPECIFIC_TOKEN_WEIGHT) for token in tokens]
+            matched_weight = sum(float(mask[token].get("weight", MASK_SPECIFIC_TOKEN_WEIGHT) or MASK_SPECIFIC_TOKEN_WEIGHT) for token in matched_tokens)
+            coverage = matched_weight / sum(weights) if weights else 0.0
+            candidate = {
+                "id": str(item.get("id", "")),
+                "kind": _rule_kind(item.get("kind", "crime")),
+                "label": label,
+                "subtheme": canonical_label(str(item.get("subtheme", ""))),
+                "tokens": tokens,
+                "matched_tokens": matched_tokens,
+                "mask": mask,
+                "mask_coverage": round(coverage, 6),
+                "matched_variant_name": str(variant.get("name", "")),
+                "variant_count": len(_discriminator_variants(item)),
+                "weight": float(item.get("weight", DEFAULT_FEATURE_WEIGHT) or DEFAULT_FEATURE_WEIGHT),
+                "strength": str(item.get("strength", "medium") or "medium"),
+                "confirmations": int(item.get("confirmations", 0) or 0),
+                "source": str(item.get("source", "")),
+            }
+            if best is None or float(candidate["mask_coverage"]) > float(best["mask_coverage"]):
+                best = candidate
+        if best is not None:
+            candidates.append(best)
+    return candidates
+
+
+def apply_domain_guard(active: list[dict[str, object]]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Discard crime discriminators that lack a specific anchor for their own domain.
+
+    The feature bank is intentionally left unchanged here: rejected rules remain
+    visible for audit and can later be quarantined by bank compaction.
+    """
+    accepted: list[dict[str, object]] = []
+    rejected: list[dict[str, object]] = []
+    for item in active:
+        if _rule_kind(item.get("kind", "crime")) != "crime":
+            accepted.append(item)
+            continue
+        if canonical_label(str(item.get("label", ""))) not in THEME_MICRO_WORLD_ANCHORS:
+            accepted.append(item)
+            continue
+        tokens = item.get("tokens", [])
+        valid, reason = _marker_matches_micro_world(
+            str(item.get("label", "")),
+            tokens if isinstance(tokens, list) else [],
+        )
+        if valid:
+            accepted.append(item)
+            continue
+        rejected.append(
+            {
+                "id": str(item.get("id", "")),
+                "label": str(item.get("label", "")),
+                "tokens": tokens if isinstance(tokens, list) else [],
+                "source": str(item.get("source", "")),
+                "reason": reason,
+            }
+        )
+    return accepted, rejected
+
+
 def _modus_scores(active: list[dict[str, object]]) -> dict[str, float]:
     scores: dict[str, float] = {}
     for item in active:
@@ -2029,6 +2584,11 @@ def _modus_axis_summary(active: list[dict[str, object]], limit: int = 6) -> tupl
     return labels, confidence, len(ranked)
 
 
+def _with_evidence_source(active: list[dict[str, object]], source: str) -> list[dict[str, object]]:
+    """Attach the document field that activated each discriminator for audit."""
+    return [{**item, "evidence_source": source} for item in active]
+
+
 def _label_evidence_counts(active: list[dict[str, object]]) -> dict[str, dict[str, int]]:
     counts: dict[str, dict[str, int]] = {}
     for item in active:
@@ -2050,12 +2610,32 @@ def _has_enough_marker_evidence(
     cosine_supported: bool,
     memory_supported: bool,
 ) -> bool:
+    if top_label == "crime_organizado":
+        organization_anchors = set()
+        for item in active:
+            if _active_label(item) != "crime_organizado":
+                continue
+            matched = item.get("matched_tokens", item.get("tokens", []))
+            if isinstance(matched, list):
+                organization_anchors.update(matched)
+        explicit_crime_organized = {"crime", "organizado"}.issubset(organization_anchors)
+        if (
+            len(organization_anchors.intersection(STRONG_ORGANIZED_CRIME_BRIDGE_TOKENS)) < 2
+            and not explicit_crime_organized
+        ):
+            return False
     counts = _label_evidence_counts(active)
     labels = [top_label, *secondary]
     total = {"strong": 0, "medium": 0, "weak": 0, "confirmed": 0}
     for label in labels:
         for key, value in counts.get(label, {}).items():
             total[key] = total.get(key, 0) + value
+    if any(
+        _active_label(item) in labels
+        and float(item.get("mask_coverage", 0.0) or 0.0) >= 0.999
+        for item in active
+    ):
+        return True
     if total["strong"] >= 1:
         return True
     if total["medium"] >= 2:
@@ -2065,6 +2645,46 @@ def _has_enough_marker_evidence(
     return False
 
 
+def _bleach_ambiguous_discriminators(
+    active: list[dict[str, object]],
+    scores_by_label: dict[str, float],
+    required_margin: float,
+) -> tuple[list[dict[str, object]], dict[str, float], float]:
+    """Raise the evidence-coverage threshold to resolve a genuine near-tie.
+
+    This is the WNN analogue of bleaching: weak discriminator activations are
+    progressively ignored and the class scores are recomputed.  It never invents
+    evidence; when no level produces a clear winner, the original ambiguous state
+    is preserved for residual review by Agent 3.
+    """
+    ranked = sorted(scores_by_label.items(), key=lambda item: item[1], reverse=True)
+    if len(ranked) < 2 or ranked[0][1] <= 0:
+        return active, scores_by_label, 0.0
+    baseline_margin = (ranked[0][1] - ranked[1][1]) / ranked[0][1]
+    if baseline_margin >= required_margin:
+        return active, scores_by_label, 0.0
+
+    for coverage_threshold in BLEACHING_COVERAGE_STEPS:
+        filtered = [
+            item for item in active if float(item.get("mask_coverage", 0.0) or 0.0) >= coverage_threshold
+        ]
+        if len(filtered) == len(active) or not filtered:
+            continue
+        filtered_scores: dict[str, float] = {}
+        for item in filtered:
+            label = _active_label(item)
+            score = float(item["weight"]) * float(item.get("mask_coverage", 0.0) or 0.0)
+            filtered_scores[label] = max(filtered_scores.get(label, 0.0), score)
+        filtered_ranked = sorted(filtered_scores.items(), key=lambda item: item[1], reverse=True)
+        if not filtered_ranked or filtered_ranked[0][1] <= 0:
+            continue
+        runner_up = filtered_ranked[1][1] if len(filtered_ranked) > 1 else 0.0
+        margin = (filtered_ranked[0][1] - runner_up) / filtered_ranked[0][1]
+        if margin >= required_margin:
+            return filtered, filtered_scores, coverage_threshold
+    return active, scores_by_label, 0.0
+
+
 def classify_with_wnn(
     text: str,
     feature_bank_path: Path | str,
@@ -2072,12 +2692,58 @@ def classify_with_wnn(
     margin_threshold: float = 0.12,
     min_active_discriminators: int = 2,
     cosine_candidates: list[dict[str, object]] | None = None,
+    crime_text: str | None = None,
+    modus_text: str | None = None,
+    feature_bank_payload: dict[str, object] | None = None,
+    sync_memory: bool = True,
+    crime_tag_hints: list[str] | None = None,
 ) -> WNNClassification:
-    feature_bank = load_feature_bank(feature_bank_path)
-    sync_feature_memory(feature_bank)
-    memory_state = binary_memory_for_text(text, feature_bank)
-    active = active_discriminators(text, feature_bank)
-    modus_operandi, modus_confidence, modus_evidence_count = _modus_axis_summary(active)
+    """Classify the canonical crime from the document body.
+
+    ``text`` preserves the former single-text API. When the optional field-specific
+    inputs are provided, crime is first inferred from ``crime_text`` (the body).
+    The legacy ``text`` acts as a title fallback only when the body has no qualified
+    crime discriminator. ``modus_text`` is kept only for backwards-compatible
+    callers and is not classified in the crime-only methodology.
+    Tag hints can support a text-activated crime discriminator, but cannot create
+    a classification by themselves.
+    """
+    feature_bank = feature_bank_payload if feature_bank_payload is not None else load_feature_bank(feature_bank_path)
+    if sync_memory:
+        sync_feature_memory(feature_bank)
+    crime_input = str(crime_text or text or "")
+    fallback_input = str(text or "")
+    memory_state = binary_memory_for_text(crime_input, feature_bank)
+    crime_full_active = _with_evidence_source(active_discriminators(crime_input, feature_bank), "body")
+    masked, guard_rejected = apply_domain_guard(mask_discriminators(crime_input, feature_bank))
+    crime_active = [
+        {**item, "evidence_source": "body"}
+        for item in masked
+        if _rule_kind(item.get("kind", "crime")) == "crime"
+        and float(item.get("mask_coverage", 0.0) or 0.0) >= MASK_MIN_COVERAGE
+    ]
+    crime_evidence_source = "body"
+    if not crime_active and crime_text is not None and fallback_input and fallback_input != crime_input:
+        memory_state = binary_memory_for_text(fallback_input, feature_bank)
+        crime_full_active = _with_evidence_source(active_discriminators(fallback_input, feature_bank), "title_fallback")
+        fallback_masked, fallback_rejected = apply_domain_guard(mask_discriminators(fallback_input, feature_bank))
+        guard_rejected = [*guard_rejected, *fallback_rejected]
+        crime_active = [
+            {**item, "evidence_source": "title_fallback"}
+            for item in fallback_masked
+            if _rule_kind(item.get("kind", "crime")) == "crime"
+            # Organization is contextual unless the title itself establishes it.
+            and _active_label(item) != "crime_organizado"
+            and float(item.get("mask_coverage", 0.0) or 0.0) >= MASK_MIN_COVERAGE
+        ]
+        crime_evidence_source = "title_fallback"
+    # The article evaluates a single axis: the canonical crime.  Modus
+    # discriminators are deliberately ignored to prevent a second, unvalidated
+    # classification task from affecting the incremental decision.
+    active = crime_active
+    modus_operandi: list[str] = []
+    modus_confidence = 0.0
+    modus_evidence_count = 0
     if not active:
         return WNNClassification(
             None,
@@ -2098,11 +2764,13 @@ def classify_with_wnn(
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
             memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+            guard_rejected_discriminators=guard_rejected,
+            crime_evidence_source=crime_evidence_source,
+            modus_evidence_source="body",
         )
 
-    crime_active = [item for item in active if _rule_kind(item.get("kind", "crime")) == "crime"]
     if not crime_active:
-        status = "abstain_only_modus" if modus_operandi else "abstain_insufficient_crime_discriminators"
+        status = "abstain_insufficient_crime_discriminators"
         return WNNClassification(
             None,
             status,
@@ -2122,27 +2790,33 @@ def classify_with_wnn(
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
             memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+            guard_rejected_discriminators=guard_rejected,
+            crime_evidence_source=crime_evidence_source,
+            modus_evidence_source="body",
         )
-    active_ids = {str(item["id"]) for item in active}
+    active_ids = {str(item["id"]) for item in crime_full_active}
 
     scores_by_label: dict[str, float] = {}
     for item in crime_active:
         label = _active_label(item)
-        scores_by_label[label] = scores_by_label.get(label, 0.0) + float(item["weight"])
+        mask_score = float(item["weight"]) * float(item.get("mask_coverage", 0.0) or 0.0)
+        scores_by_label[label] = max(scores_by_label.get(label, 0.0), mask_score)
+    normalized_tag_hints = {
+        canonical_label(str(label))
+        for label in (crime_tag_hints or [])
+        if canonical_label(str(label))
+    }
+    for label in normalized_tag_hints.intersection(scores_by_label):
+        scores_by_label[label] += TAG_HINT_SCORE_BONUS
+
+    crime_active, scores_by_label, bleaching_coverage_threshold = _bleach_ambiguous_discriminators(
+        crime_active,
+        scores_by_label,
+        margin_threshold,
+    )
+    active = crime_active
 
     memory_scores_by_label: dict[str, float] = {}
-    for candidate in cosine_candidates or []:
-        if not isinstance(candidate, dict):
-            continue
-        label = canonical_label(str(candidate.get("label", "")))
-        try:
-            cosine_score = float(candidate.get("score", 0.0) or 0.0)
-        except (TypeError, ValueError):
-            cosine_score = 0.0
-        if not label or cosine_score < 0.08:
-            continue
-        scores_by_label[label] = scores_by_label.get(label, 0.0) + min(0.9, cosine_score * 1.4)
-
     memories = feature_bank.get("memories", {})
     if isinstance(memories, dict):
         for label, memory in memories.items():
@@ -2157,7 +2831,6 @@ def classify_with_wnn(
                 memory_score += min(1.0, float(active_counts.get(feature_id, 0) or 0) / sample_count)
             if memory_score:
                 normalized_label = parent_theme(str(label))
-                scores_by_label[normalized_label] = scores_by_label.get(normalized_label, 0.0) + memory_score
                 memory_scores_by_label[normalized_label] = memory_scores_by_label.get(normalized_label, 0.0) + memory_score
 
     scores = [
@@ -2185,6 +2858,9 @@ def classify_with_wnn(
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
             memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+            guard_rejected_discriminators=guard_rejected,
+            crime_evidence_source=crime_evidence_source,
+            modus_evidence_source="body",
         )
 
     top = scores[0]
@@ -2192,10 +2868,10 @@ def classify_with_wnn(
     total_score = sum(float(item["score"]) for item in scores)
     top_score = float(top["score"])
     top_label = canonical_label(str(top["label"]))
-    operational_label, crimes, secondary, relation = _operational_decision(scores_by_label, active)
+    operational_label, crimes, secondary, relation = _operational_decision(scores_by_label, crime_active)
     if operational_label and operational_label != top_label:
         top_label = operational_label
-    theme_candidate = _multi_discriminator_candidate(scores_by_label, active, relation)
+    theme_candidate = _multi_discriminator_candidate(scores_by_label, crime_active, relation)
 
     if relation in {"cadeia_operacional", "crime_organizado_multidominio"} and top_label == "crime_organizado":
         operational_set = set(crimes)
@@ -2225,6 +2901,15 @@ def classify_with_wnn(
         if cosine_supported
         else margin_threshold
     )
+    effective_confidence_threshold = max(confidence_threshold, CRIME_CONFIDENCE_THRESHOLDS.get(top_label, 0.0))
+    effective_margin_threshold = max(effective_margin_threshold, CRIME_MARGIN_THRESHOLDS.get(top_label, 0.0))
+    known_cooccurrence = _can_resolve_known_cooccurrence(
+        scores_by_label,
+        crime_active,
+        top_label,
+        secondary,
+        relation,
+    )
 
     if cosine_suspect:
         return WNNClassification(
@@ -2247,9 +2932,12 @@ def classify_with_wnn(
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
             memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+            guard_rejected_discriminators=guard_rejected,
+            crime_evidence_source=crime_evidence_source,
+            modus_evidence_source="body",
         )
 
-    if not _has_enough_marker_evidence(top_label, secondary, active, cosine_supported, memory_supported):
+    if not _has_enough_marker_evidence(top_label, secondary, crime_active, cosine_supported, memory_supported):
         return WNNClassification(
             None,
             "abstain_weak_marker_evidence",
@@ -2270,9 +2958,12 @@ def classify_with_wnn(
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
             memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+            guard_rejected_discriminators=guard_rejected,
+            crime_evidence_source=crime_evidence_source,
+            modus_evidence_source="body",
         )
 
-    if confidence < confidence_threshold or margin < effective_margin_threshold:
+    if (confidence < effective_confidence_threshold or margin < effective_margin_threshold) and not known_cooccurrence:
         return WNNClassification(
             None,
             "abstain_ambiguous" if not cosine_supported else "abstain_cosine_supported_but_low_confidence",
@@ -2293,6 +2984,10 @@ def classify_with_wnn(
             memory_active_positions=list(memory_state.get("active_positions", [])),
             memory_version=int(memory_state.get("version", 0) or 0),
             memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+            guard_rejected_discriminators=guard_rejected,
+            crime_evidence_source=crime_evidence_source,
+            modus_evidence_source="body",
+            bleaching_coverage_threshold=bleaching_coverage_threshold,
         )
 
     identity = top_label if top_label.startswith(("crime_", "crimes_")) else f"crime_{top_label}"
@@ -2309,7 +3004,7 @@ def classify_with_wnn(
     )
     return WNNClassification(
         inference,
-        "accepted_crime_with_modus" if modus_operandi else "accepted_crime_without_modus",
+        "accepted_known_cooccurrence" if known_cooccurrence else "accepted_crime",
         confidence,
         margin,
         top_label,
@@ -2327,4 +3022,8 @@ def classify_with_wnn(
         memory_active_positions=list(memory_state.get("active_positions", [])),
         memory_version=int(memory_state.get("version", 0) or 0),
         memory_vocab_size=int(memory_state.get("vocab_size", 0) or 0),
+        guard_rejected_discriminators=guard_rejected,
+        crime_evidence_source=crime_evidence_source,
+        modus_evidence_source="body",
+        bleaching_coverage_threshold=bleaching_coverage_threshold,
     )

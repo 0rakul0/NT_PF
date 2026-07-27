@@ -1,0 +1,28 @@
+{
+  "stage": "clusterizacao_inicial",
+  "algorithm": "minibatch_kmeans_fallback",
+  "sample_docs": 831,
+  "clusters_total": 25,
+  "raw_clusters_total": 28,
+  "noise_clusters": 0,
+  "silhouette_score": 0.263995,
+  "vocabulary_size": 11764,
+  "tfidf_nonzero": 95998,
+  "tfidf_density": 0.00981988,
+  "cosine_merge_groups": 1,
+  "cosine_merges": [
+    {
+      "cosine_group_id": 4,
+      "merged_raw_cluster_ids": [
+        4,
+        6,
+        10,
+        27
+      ],
+      "dominant_family": "crimes_contra_criancas",
+      "size": 127
+    }
+  ],
+  "cluster_assignments_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\cluster_assignments_amostra.csv",
+  "cluster_summary_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\resumo_clusters_amostra.csv"
+}

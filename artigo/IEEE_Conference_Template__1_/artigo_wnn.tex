@@ -1,0 +1,47 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazilian]{babel}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning,calc}
+
+% Mantém a composição justificada, sem hifenização automática.
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\pretolerance=10000
+\tolerance=2000
+\emergencystretch=1em
+
+\title{Classificação Incremental e Auditável de Crimes em Notícias Institucionais com Memória WNN e LLM Residual}
+
+\author{
+\IEEEauthorblockN{Jefferson S. dos Anjos}
+\IEEEauthorblockA{
+\textit{Centro Federal de Educação Tecnológica Celso Suckow da Fonseca (CEFET/RJ)}\\
+Rio de Janeiro, RJ, Brasil\\
+jefferson.anjos.1@aluno.cefet-rj.br}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Bases textuais institucionais crescem continuamente e tornam custosa a classificação temática, a revisão humana e o uso indiscriminado de modelos de linguagem. Este trabalho propõe uma metodologia incremental e auditável para classificar o crime canônico principal em notícias públicas da Polícia Federal. A abordagem combina uma fundação temporal formada pelos 10\% mais antigos da base, memória lexical binária inspirada em WNN/WiSARD e revisão residual por modelo de linguagem. Na rodada concluída, a memória classificou diretamente 80,64\% da reserva incremental, restringindo a LLM aos 19,36\% de casos residuais. Os resultados são apresentados como diagnósticos operacionais, preservando evidências lexicais, versões da memória e decisões residuais para auditoria.
+\end{abstract}
+
+\begin{IEEEkeywords}
+classificação textual, aprendizado incremental, redes neurais sem pesos, WiSARD, auditoria, modelo de linguagem
+\end{IEEEkeywords}
+
+\input{../trabalho_wnn/metodologia_crime_unico.tex}
+
+\bibliographystyle{IEEEtran}
+\bibliography{../trabalho_wnn/referencias}
+
+\end{document}

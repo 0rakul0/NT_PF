@@ -12,7 +12,7 @@ Esse processo é difícil porque grandes bases textuais são heterogêneas, cres
 
 Modelos de linguagem ampliam a capacidade de interpretar textos e podem apoiar tarefas de classificação, extração de evidências e nomeação de temas. No entanto, usar LLM em toda a base pode ser caro, pouco previsível e menos reprodutível quando não há uma camada determinística de verificação. A proposta deste trabalho parte dessa tensão: usar LLM onde ela agrega mais valor, isto é, nos resíduos, ambiguidades e exceções, e converter parte desse aprendizado em marcadores auditáveis que passam a compor uma memória WNN. Com isso, busca-se um ciclo de aprendizado contínuo que contribua para diminuir custos operacionais ao longo do tempo.
 
-Este Texto para Discussão tem como objetivo propor uma metodologia incremental, autônoma e transparente para clusterizar, classificar e aprender continuamente a partir de grandes bases textuais. A proposta busca responder a um problema operacional comum a instituições que lidam com dados textuais em larga escala: como organizar temas recorrentes, reconhecer exceções, reduzir custo de inferência e preservar rastreabilidade ao longo de sucessivas rodadas de dados. A metodologia é aplicada empiricamente a notícias públicas da Polícia Federal, por constituírem uma base real, volumosa, heterogênea e marcada por termos especializados; nessa aplicação, o sistema busca identificar simultaneamente o tema criminal principal da notícia e, quando houver evidência suficiente, o respectivo modus operandi. Na amostra de fundação, a clusterização gerou folhas temáticas exploratórias que precisaram ser interpretadas e refinadas antes de se tornarem categorias operacionais. O texto está organizado da seguinte forma: a seção 2 apresenta o referencial teórico; a seção 3 discute trabalhos relacionados; a seção 4 detalha a metodologia; a seção 5 apresenta a avaliação experimental; a seção 6 apresenta a conclusão, os critérios de qualidade e as limitações observadas; e o Apêndice registra métricas por lote.
+Este Texto para Discussão tem como objetivo propor uma metodologia incremental, autônoma e transparente para clusterizar, classificar e aprender continuamente a partir de grandes bases textuais. A proposta busca responder a um problema operacional comum a instituições que lidam com dados textuais em larga escala: como organizar temas recorrentes, reconhecer exceções, reduzir custo de inferência e preservar rastreabilidade ao longo de sucessivas rodadas de dados. A metodologia é aplicada empiricamente a notícias públicas da Polícia Federal, por constituírem uma base real, volumosa, heterogênea e marcada por termos especializados; nessa aplicação, o sistema identifica o crime canônico principal de cada notícia. Na amostra de fundação, a clusterização gerou folhas temáticas exploratórias que precisaram ser interpretadas e refinadas antes de se tornarem categorias operacionais. O texto está organizado da seguinte forma: a seção 2 apresenta o referencial teórico; a seção 3 discute trabalhos relacionados; a seção 4 detalha a metodologia; a seção 5 apresenta a avaliação experimental; a seção 6 apresenta a conclusão, os critérios de qualidade e as limitações observadas; e o Apêndice registra métricas por lote.
 
 Assim, o resultado esperado não se limita à classificação pontual da base usada como aplicação, mas consiste em um procedimento transferível de clusterização, classificação e treinamento incremental autônomo, com rastreabilidade e menor dependência de intervenção humana no ciclo operacional.
 
@@ -82,9 +82,9 @@ O ciclo é executado por transferência explícita de artefatos entre componente
 
 ### 4.2 Unidade documental, alvo de classificação e controles de domínio
 
-A unidade classificada pela metodologia é o documento textual individual. Na aplicação empírica, essa unidade é uma notícia pública da Polícia Federal, tratada como um registro composto por campos como título, subtítulo, data, tags, corpo, fonte e link. O objetivo não é classificar todos os elementos mencionados no texto, mas atribuir ao documento um crime canônico principal, complementado, quando possível, por um `modus_operandi` auditável.
+A unidade classificada pela metodologia é o documento textual individual. Na aplicação empírica, essa unidade é uma notícia pública da Polícia Federal, tratada como um registro composto por campos como título, subtítulo, data, tags, corpo, fonte e link. O objetivo é atribuir ao documento um crime canônico principal, não classificar todos os elementos ou modos de execução mencionados no texto.
 
-A primeira decisão metodológica é, portanto, definir esse atributo. Em uma base jurídica, ele pode ser tipo de ação; em uma base de saúde, agravo ou procedimento; em uma base de segurança, natureza criminal ou modus operandi. Na aplicação com notícias da Polícia Federal, o alvo é o domínio criminal ou o modus operandi principal. Por isso, categorias como `trafico_drogas`, `crimes_contra_criancas`, `crime_organizado`, `corrupcao_desvio_recursos_publicos`, `crimes_ambientais`, `armas_municoes`, `falsificacao_documental` e `moeda_falsa` são temas substantivos.
+A primeira decisão metodológica é, portanto, definir esse atributo. Em uma base jurídica, ele pode ser tipo de ação; em uma base de saúde, agravo ou procedimento; em uma base de segurança, natureza criminal. Na aplicação com notícias da Polícia Federal, o alvo é o domínio criminal principal. Por isso, categorias como `trafico_drogas`, `crimes_contra_criancas`, `crime_organizado`, `corrupcao_desvio_recursos_publicos`, `crimes_ambientais`, `armas_municoes`, `falsificacao_documental` e `moeda_falsa` são temas substantivos.
 
 Localidades, unidades da federação, nomes de operação, órgãos parceiros e entidades ocasionais são preservados para auditoria, mas não entram como temas canônicos principais. Essa separação evita que a clusterização transforme metadados frequentes em classes finais. A arquitetura, contudo, permite criar camadas analíticas complementares para extrair localidade, órgão, entidade ou nome de operação sem contaminar a taxonomia temática principal. A tabela a seguir resume o papel dos principais campos da notícia na construção do texto de domínio.
 
@@ -95,7 +95,7 @@ Localidades, unidades da federação, nomes de operação, órgãos parceiros e 
 | Título | Sinal forte sobre o evento principal |
 | Subtítulo | Complementa a conduta ou o objeto investigado |
 | Tags | Indicam pistas temáticas, mas não definem sozinhas a classe |
-| Corpo | Fornece evidências, contexto, modo de execução e objetos relacionados |
+| Corpo | Fornece evidências do crime, contexto e objetos relacionados |
 | Localidade, órgãos e nomes de operação | Preservados para auditoria, mas controlados para não virarem tema principal |
 
 Um exemplo ilustra essa separação. Na notícia [A FICCO/RJ deflagra operação em combate a aquisição ilegal de armas de fogo](https://www.gov.br/pf/pt-br/assuntos/noticias/2024/08/a-ficco-rj-deflagra-operacao-em-combate-a-aquisicao-ilegal-de-armas-de-fogo), publicada em 27/08/2024, a label esperada é `armas_municoes`. A classificação não decorre de Rio de Janeiro, Bom Jardim/RJ, FICCO/RJ ou do nome da operação, mas dos sinais substantivos ligados a aquisição ilegal de arma de fogo, certificado de registro falso e posse ilegal de arma de fogo de uso restrito.
@@ -149,9 +149,9 @@ A Figura 2 apresenta um recorte ilustrativo dessa mediação entre clusters e te
 
 Na versão atual da metodologia, a camada determinística deixa de ser baseada prioritariamente em regex e passa a operar por uma memória WNN construída a partir de discriminadores canônicos. Antes da classificação, o texto enviado à WNN passa por pré-processamento linguístico: remoção de stopwords, normalização lexical e seleção preferencial de substantivos, verbos e adjetivos. Na execução incremental, o classificador trabalha sobretudo com o corpo textual reduzido a sinais substantivos; título, tags, nomes de operação e metadados externos podem ser preservados para auditoria, mas não devem definir sozinhos a classe nem a revisão residual.
 
-O Agente 2 recebe os temas canônicos produzidos pelo Agente 1, as folhas de clusters, os termos de domínio e exemplos por tema. Sua tarefa é construir discriminadores: conjuntos pequenos de palavras-chave não ordenadas que caracterizam um micromundo temático. Na proposta atual, esses discriminadores alimentam dois eixos complementares: o eixo principal de `canonical_label`, que identifica o crime canônico principal da notícia, e o eixo de `modus_operandi`, que registra como a ação foi executada. Por exemplo, o tema `crimes_contra_criancas` pode conter marcadores como `abuso_sexual`, `pornografia_infantil`, `exploracao_sexual`, `estupro_vulneravel` e `abuso_sexual_infantojuvenil`; em paralelo, marcadores como `compartilhamento_online` ou `armazenamento_digital` podem alimentar discriminadores de modo de execução. Diferentemente de uma regex, o discriminador não exige que as palavras apareçam em uma ordem fixa.
+O Agente 2 recebe os temas canônicos produzidos pelo Agente 1, as folhas de clusters, os termos de domínio e exemplos por tema. Sua tarefa é construir discriminadores: conjuntos pequenos de palavras-chave não ordenadas que caracterizam um micromundo temático criminal. Esses discriminadores sustentam `canonical_label`, que identifica o crime canônico principal da notícia. Por exemplo, `crimes_contra_criancas` pode conter marcadores como `abuso_sexual`, `pornografia_infantil`, `exploracao_sexual`, `estupro_vulneravel` e `abuso_sexual_infantojuvenil`. Diferentemente de uma regex, o discriminador não exige que as palavras apareçam em uma ordem fixa.
 
-A memória WNN é representada por uma matriz de vocabulário discriminativo. Cada palavra-chave sanitizada ocupa uma posição fixa. Quando uma notícia é processada, o texto aciona as posições correspondentes e produz um vetor binário: `1` para posições encontradas na notícia e `0` para posições ausentes. No artigo, esse vetor é mostrado como uma grade visual 0/1 apenas para facilitar a inspeção humana; portanto, a expressão "imagem binária" refere-se à visualização de um dado binário indexado pela memória, e não a uma imagem fotográfica ou a um bitmap de entrada. Na operação proposta, os discriminadores de `canonical_label` sustentam a decisão autônoma principal da WNN, enquanto os discriminadores de `modus_operandi` funcionam como eixo complementar: podem enriquecer a saída final quando houver evidência suficiente, mas não devem derrubar sozinhos um crime canônico já aceito com confiança e margem adequadas. Quando o Agente 3 identifica um padrão novo, o conjunto de palavras retorna ao Agente 2, que sanitiza, generaliza e injeta os novos marcadores na memória. Se uma palavra já existe, sua posição é reaproveitada; se não existe, ela entra no final da matriz. Assim, vetores antigos permanecem comparáveis por preenchimento de zeros à direita.
+A memória WNN é representada por uma matriz de vocabulário discriminativo. Cada palavra-chave sanitizada ocupa uma posição fixa. Quando uma notícia é processada, o texto aciona as posições correspondentes e produz um vetor binário: `1` para posições encontradas na notícia e `0` para posições ausentes. No artigo, esse vetor é mostrado como uma grade visual 0/1 apenas para facilitar a inspeção humana; portanto, a expressão "imagem binária" refere-se à visualização de um dado binário indexado pela memória, e não a uma imagem fotográfica ou a um bitmap de entrada. Na operação proposta, os discriminadores de `canonical_label` sustentam a decisão autônoma da WNN. Quando o Agente 3 identifica um padrão novo, o conjunto de palavras retorna ao Agente 2, que sanitiza, generaliza e injeta novos marcadores de crime na memória. Se uma palavra já existe, sua posição é reaproveitada; se não existe, ela entra no final da matriz. Assim, vetores antigos permanecem comparáveis por preenchimento de zeros à direita.
 
 ![Memória WNN e visualização do vetor binário 0/1](media/dashboard_wnn_memoria_binaria_linkedin.png)
 
@@ -159,7 +159,7 @@ A memória WNN é representada por uma matriz de vocabulário discriminativo. Ca
 
 ### 4.6 Execução incremental em lotes
 
-Na execução incremental, a reserva é processada em lotes. Cada documento passa primeiro pelo parser e pelo pré-processamento linguístico. Em seguida, o texto semântico é projetado na memória WNN, produzindo um vetor binário e uma lista de posições acionadas. Se os discriminadores ativos do eixo de crime sustentam uma decisão com confiança e margem suficientes, a saída é registrada como classificação determinística por WNN. Essa saída inclui ao menos um `canonical_label` principal, pode incluir `marcadores_secundarios` quando houver coocorrência relevante entre eixos temáticos e também pode registrar zero ou mais labels de `modus_operandi` como complemento, além da identificação dos marcadores, pontuação por tema, versão da memória e evidência textual.
+Na execução incremental, a reserva é processada em lotes. Cada documento passa primeiro pelo parser e pelo pré-processamento linguístico. Em seguida, o texto semântico é projetado na memória WNN, produzindo um vetor binário e uma lista de posições acionadas. Se os discriminadores de crime sustentam uma decisão com confiança e margem suficientes, a saída é registrada como classificação determinística por WNN. Essa saída inclui um `canonical_label` principal e pode incluir `marcadores_secundarios` quando houver coocorrência temática relevante, além da identificação dos marcadores, pontuação por tema, versão da memória e evidência textual.
 
 A similaridade do cosseno atua como evidência auxiliar, não como classificador autônomo. Ela pode reforçar uma decisão quando a notícia está próxima do perfil semântico do tema acionado, ou pode bloquear uma aceitação quando há ambiguidade. Por exemplo, se marcadores de `crime_organizado` aparecem em uma notícia semanticamente muito próxima de `crimes_contra_criancas`, o documento pode ser enviado ao Agente 3 como suspeita, em vez de ser aceito automaticamente pela WNN.
 
@@ -186,7 +186,7 @@ O documento residual é transformado em um pacote de revisão. Esse pacote cont�
 
 ### 4.7 Revisão residual por LLM e aprendizado de discriminadores
 
-O Agente 3 atua apenas nos documentos residuais, ambíguos ou suspeitos. Ele recebe o pacote de revisão e produz uma decisão estruturada. Essa decisão pode classificar o documento em tema canônico existente, propor novo tema candidato ou registrar o caso como notícia rara. Na proposta atual, a saída residual separa explicitamente dois eixos: `canonical_label`, que registra o crime canônico principal do documento, e `modus_operandi`, que registra a forma de execução quando houver evidência suficiente. A LLM deve indicar as evidências textuais usadas, justificar a decisão e informar se há marcadores reutilizáveis para a memória WNN.
+O Agente 3 atua apenas nos documentos residuais, ambíguos ou suspeitos. Ele recebe o pacote de revisão e produz uma decisão estruturada. Essa decisão pode classificar o documento em tema canônico existente, propor novo tema candidato ou registrar o caso como notícia rara. A saída residual registra o `canonical_label` do crime principal. A LLM deve indicar as evidências textuais usadas, justificar a decisão e informar se há marcadores reutilizáveis para a memória WNN.
 
 Para ilustrar, considere a notícia [PF deflagra operação contra crimes de mineração ilegal](https://www.gov.br/pf/pt-br/assuntos/noticias/2024/01/pf-deflagra-operacao-contra-crimes-de-mineracao-ilegal), publicada em 17/01/2024. Se a memória ainda não tiver marcadores suficientes para aceitar `crimes_ambientais`, o documento segue ao Agente 3 como residual. Uma decisão possível é:
 
@@ -200,12 +200,11 @@ Para ilustrar, considere a notícia [PF deflagra operação contra crimes de min
   "resumo_curto": "Mineracao ilegal com extracao sem licenca ambiental.",
   "tema_principal": "crimes_ambientais",
   "marcadores_secundarios": [],
-  "modus_operandi": ["extracao_ilegal"],
   "relacao_operacional": "tema_unico"
 }
 ```
 
-O Agente 2 recebe essa decisão residual e não reclassifica o documento. Sua função é converter evidências substantivas em discriminadores generalizáveis. No exemplo, localidades, datas, nomes de operação e órgãos são descartados como sinais acidentais, enquanto mineração ilegal, garimpo, extração mineral, ausência de autorização e licença ambiental são mantidos como sinais classificatórios para o `canonical_label`; em paralelo, sinais de forma de execução podem alimentar discriminadores de `modus_operandi`. O aprendizado resultante poderia ser:
+O Agente 2 recebe essa decisão residual e não reclassifica o documento. Sua função é converter evidências substantivas em discriminadores generalizáveis. No exemplo, localidades, datas, nomes de operação e órgãos são descartados como sinais acidentais, enquanto mineração ilegal, garimpo, extração mineral, ausência de autorização e licença ambiental são mantidos como sinais classificatórios para o `canonical_label`. O aprendizado resultante poderia ser:
 
 ```text
 canonical_label: crimes_ambientais
@@ -213,14 +212,13 @@ marcador 1: mineracao_ilegal
 marcador 2: extracao_mineral
 marcador 3: garimpo_ilegal
 marcador 4: sem_licenca_ambiental
-modus_operandi: extracao_ilegal
 ```
 
 Esses marcadores só entram na memória depois de sanitizados contra o micromundo do tema. Se aprovados, passam a acionar a WNN em lotes futuros sem nova chamada de LLM. Se rejeitados, a decisão residual permanece registrada, mas não altera a memória operacional.
 
 ### 4.8 Fechamento do ciclo e reorganização da árvore
 
-O aprendizado residual fecha o ciclo incremental. Um residual pode gerar três tipos de saída: novos marcadores para discriminadores existentes, tema candidato ou documento raro. Quando aprovados, os marcadores podem reforçar tanto o eixo de `canonical_label` quanto o eixo de `modus_operandi` da memória WNN; o tema candidato vai para a fila de revisão da árvore; o documento raro entra em memória específica para que recorrências futuras sejam detectadas.
+O aprendizado residual fecha o ciclo incremental. Um residual pode gerar três tipos de saída: novos marcadores para crimes existentes, tema candidato ou documento raro. Quando aprovados, os marcadores reforçam `canonical_label` na memória WNN; o tema candidato vai para a fila de revisão da árvore; o documento raro entra em memória específica para que recorrências futuras sejam detectadas.
 
 O Agente Organizador da Árvore recebe, ao fim de cada lote ou rodada definida, a árvore temática atual, temas candidatos, documentos raros, discriminadores aprendidos, métricas de cobertura e sugestões por similaridade. Sua função é evitar crescimento desordenado da taxonomia e contaminação entre micromundos temáticos. Ele decide se candidatos devem ser absorvidos por temas existentes, promovidos a novos temas, fundidos em macrotemas, mantidos como raros ou descartados como ruído.
 
@@ -304,7 +302,7 @@ O foco desta avaliação é a rodada WNN já saneada, sem dependência operacion
 | Elemento experimental | Definição na aplicação |
 |---|---|
 | Unidade experimental | Notícia pública da Polícia Federal |
-| Tarefa avaliada | Atribuição de um crime canônico principal em `canonical_label` e extração complementar de `modus_operandi` |
+| Tarefa avaliada | Atribuição de um crime canônico principal em `canonical_label` |
 | Fator principal | Arquitetura incremental com memória WNN e LLM apenas residual |
 | Parâmetros fixados | Amostra estratificada, lotes de aproximadamente 500 notícias e revisão global da árvore ao fim da rodada |
 | Variáveis de resposta | Cobertura WNN, taxa residual, chamadas LLM, marcadores aprendidos, candidatos compostos, notícias raras e custo em tokens |
@@ -444,11 +442,7 @@ Esses resultados indicam que o residual funcionou como mecanismo de aprendizado 
 
 *Figura 7 - Top 10 temas consolidados após classificação WNN e revisão residual.*
 
-Como a proposta atual produz dois eixos de saída, não basta observar apenas a distribuição final dos crimes canônicos. Também é importante visualizar a estrutura que a classificação efetivamente gera ao final da rodada: a raiz da memória WNN, os crimes canônicos principais aceitos como `canonical_label` e, abaixo de cada um deles, os respectivos `modus_operandi` associados. A figura seguinte mostra exatamente essa estrutura produzida pela execução. Para manter legibilidade no artigo, a imagem apresenta um recorte dos crimes mais frequentes e de seus principais modos, enquanto a árvore completa permanece registrada nos artefatos da rodada.
-
-![Árvore produzida pela classificação final WNN](media/figura-8-arvore-wnn-crime-modus.png)
-
-*Figura 8 - Estrutura de saída produzida pela classificação final WNN: `WNN -> crime canônico -> modus operandi`.*
+Como a proposta atual produz um único eixo de saída, a distribuição dos crimes canônicos aceitos pela WNN é suficiente para caracterizar a estrutura resultante da classificação. A árvore temática e os discriminadores associados a cada crime permanecem registrados como artefatos auditáveis da rodada.
 
 ### 5.7 Interpretação e ameaças à validade
 

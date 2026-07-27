@@ -155,12 +155,10 @@ Tarefa:
   * se houver dominios distintos sem ponte operacional clara, escolha o tema dominante em canonical_label, preencha marcadores_secundarios e use relacao_operacional="coocorrencia_sem_fusao";
   * exemplo: mineracao ilegal + trafico de drogas sem grupo organizado explicito nao deve virar crime_organizado automaticamente;
   * exemplo: trafico de drogas + lavagem de dinheiro + organizacao criminosa deve virar crime_organizado com marcadores_secundarios=["trafico_drogas","lavagem_dinheiro"];
-- analise somente o corpo da noticia informado em Texto; ignore titulo, tags, slug do arquivo e metadados externos;
+- use o Titulo como indicio do crime principal e as Tags como pistas auxiliares, mas nao aceite uma tag sem confirmacao no corpo;
+- use o Corpo como evidencia decisiva para confirmar ou corrigir o crime;
 - responda somente um objeto JSON valido com as chaves:
-  decision, canonical_label, confidence, evidence_text, rationale, resumo_curto, tema_principal, marcadores_secundarios, modus_operandi, relacao_operacional;
-- preencha modus_operandi com zero ou mais labels curtas em lowercase_com_underscores que descrevam a forma de execucao.
-- exemplos de modus_operandi validos: arma_fogo, fraude_documental, fraude_digital, fraude_pix, arrombamento, abordagem_via_publica, invasao_dispositivo, lavagem_financeira, armazenamento_digital, compartilhamento_online, extracao_ilegal_madeira, garimpo_ilegal, desmatamento, trafico_de_especies, caca_ilegal, pesca_ilegal, uso_ilegal_solo, comercializacao_ilegal, transporte_ilegal, apreensao_madeira, fiscalizacao_ambiental, atividade_clandestina, risco_ambiental.
-- em crimes ambientais, apreensao_madeira, fiscalizacao_ambiental, atividade_clandestina e risco_ambiental podem ser usados quando descreverem a forma operacional observada no caso.
+  decision, canonical_label, confidence, evidence_text, rationale, resumo_curto, tema_principal, marcadores_secundarios, relacao_operacional;
 - se decision for novo_tema_candidato, canonical_label deve ser uma nova label em lowercase_com_underscores.
 
 Labels canonicas permitidas:
@@ -168,6 +166,12 @@ Labels canonicas permitidas:
 
 Sugestoes por similaridade do cosseno:
 {cosine_block}
+
+Titulo:
+{doc.get("titulo", "")}
+
+Tags da fonte:
+{', '.join(str(tag) for tag in doc.get("tags", [])[:20])}
 
 Texto:
 {body_text(doc)[:1800]}
@@ -199,7 +203,8 @@ Texto:
     if not canonical_label:
         return rare_news_review(review, "Label retornada fora da lista canonica permitida."), provider, model_name, token_usage
     secondary = map_secondary_labels(review.marcadores_secundarios, allowed_labels, canonical_label)
-    modus = map_modus_labels(review.modus_operandi)
+    # Modus operandi is outside the scope of the crime-only methodology.
+    modus: list[str] = []
     relation = review.relacao_operacional or ("coocorrencia_sem_fusao" if secondary else "tema_unico")
     return review.model_copy(
         update={

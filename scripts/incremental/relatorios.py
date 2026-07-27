@@ -46,6 +46,50 @@ def plot_metrics(metrics: pd.DataFrame) -> list[object]:
     return figures
 
 
+def plot_crime_type_timeline() -> object | None:
+    """Plot monthly and cumulative diversity of final crime labels."""
+    timeline_path = RUN_DIR / "linha_tempo_tipos_crime.csv"
+    if not timeline_path.exists():
+        return None
+    timeline = pd.read_csv(timeline_path)
+    if timeline.empty:
+        return None
+
+    timeline["periodo"] = pd.to_datetime(timeline["periodo"], format="%Y-%m", errors="coerce")
+    timeline = timeline.dropna(subset=["periodo"]).sort_values("periodo")
+    if timeline.empty:
+        return None
+
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(
+        timeline["periodo"],
+        timeline["tipos_distintos_acumulados"],
+        marker="o",
+        linewidth=2,
+        color="#1f77b4",
+        label="Tipos distintos acumulados",
+    )
+    ax.bar(
+        timeline["periodo"],
+        timeline["novos_tipos_no_mes"],
+        width=20,
+        alpha=0.35,
+        color="#ff7f0e",
+        label="Novos tipos no mes",
+    )
+    ax.set_title("Linha do tempo dos tipos de crime identificados")
+    ax.set_xlabel("Mes de publicacao")
+    ax.set_ylabel("Quantidade de tipos de crime")
+    ax.legend()
+    fig.autofmt_xdate()
+    fig.tight_layout()
+    output = FIGURES_DIR / "linha_tempo_tipos_crime.png"
+    fig.savefig(output, dpi=160)
+    plt.close(fig)
+    return output
+
+
 def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], figures: list[object]) -> list[str]:
     lines = ["# Execucao da metodologia incremental", "", "## Fundacao", ""]
     lines.extend(
@@ -124,6 +168,9 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
 def run(foundation: dict[str, object]) -> dict[str, object]:
     metrics = pd.read_csv(METRICS_CSV) if METRICS_CSV.exists() else pd.DataFrame()
     figures = plot_metrics(metrics) if not metrics.empty else []
+    crime_timeline = plot_crime_type_timeline()
+    if crime_timeline is not None:
+        figures.append(crime_timeline)
     report = RUN_DIR / "relatorio_execucao_metodologia.md"
     readme = RUN_DIR / "README_METRICAS.md"
     lines = build_report_lines(metrics, foundation, figures)
@@ -136,11 +183,12 @@ def run(foundation: dict[str, object]) -> dict[str, object]:
             "## Arquivos",
             "",
             "- `metrics_batches.csv`: metricas por iteracao.",
+            "- `linha_tempo_tipos_crime.csv`: tipos distintos, novos tipos e acumulado por mes.",
             "- `relatorio_execucao_metodologia.md`: relatorio narrativo da execucao.",
             "- `events.jsonl`: trilha completa de eventos.",
             "- `insumo_agente_organizador_arvore.json`: insumo completo do Agente Organizador da Arvore.",
             "- `arvore_temas_agent1_refinada.json`: reorganizacao global dos temas candidatos.",
-            "- `figures/`: graficos WNN, LLM residual e candidatos compostos.",
+            "- `figures/`: graficos WNN, LLM residual, candidatos compostos e linha do tempo de tipos de crime.",
         ]
     )
     readme.write_text("\n".join(readme_lines) + "\n", encoding="utf-8")

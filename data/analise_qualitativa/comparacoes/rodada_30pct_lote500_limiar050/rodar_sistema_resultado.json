@@ -1,0 +1,218 @@
+{
+  "sampling": {
+    "stage": "amostragem",
+    "base_docs": 8310,
+    "sample_docs": 2493,
+    "reserve_docs": 5817,
+    "sample_fraction": 0.3,
+    "temporal_strata": "year",
+    "sample_strata_counts": {
+      "2011": 2,
+      "2019": 138,
+      "2020": 235,
+      "2021": 299,
+      "2022": 251,
+      "2023": 260,
+      "2024": 546,
+      "2025": 514,
+      "2026": 248
+    },
+    "docs_jsonl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\documentos_base.jsonl",
+    "linguistic_preprocessing_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\preprocessamento_linguistico.json",
+    "sample_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\amostra_inicial.csv",
+    "reserve_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\reserva_incremental.csv"
+  },
+  "clusters": {
+    "stage": "clusterizacao_inicial",
+    "algorithm": "minibatch_kmeans_fallback",
+    "sample_docs": 2493,
+    "clusters_total": 29,
+    "raw_clusters_total": 40,
+    "noise_clusters": 0,
+    "silhouette_score": 0.306164,
+    "vocabulary_size": 20000,
+    "tfidf_nonzero": 298665,
+    "tfidf_density": 0.00599007,
+    "cosine_merge_groups": 5,
+    "cosine_merges": [
+      {
+        "cosine_group_id": 0,
+        "merged_raw_cluster_ids": [
+          0,
+          21
+        ],
+        "dominant_family": "crimes_ambientais",
+        "size": 108
+      },
+      {
+        "cosine_group_id": 1,
+        "merged_raw_cluster_ids": [
+          1,
+          10,
+          31
+        ],
+        "dominant_family": "crime_organizado",
+        "size": 299
+      },
+      {
+        "cosine_group_id": 6,
+        "merged_raw_cluster_ids": [
+          6,
+          7,
+          26,
+          29,
+          32,
+          37
+        ],
+        "dominant_family": "crimes_contra_criancas",
+        "size": 331
+      },
+      {
+        "cosine_group_id": 8,
+        "merged_raw_cluster_ids": [
+          8,
+          23
+        ],
+        "dominant_family": "trafico_drogas",
+        "size": 184
+      },
+      {
+        "cosine_group_id": 11,
+        "merged_raw_cluster_ids": [
+          11,
+          20,
+          24
+        ],
+        "dominant_family": "corrupcao_recursos_publicos",
+        "size": 215
+      }
+    ],
+    "cluster_assignments_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\cluster_assignments_amostra.csv",
+    "cluster_summary_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\resumo_clusters_amostra.csv"
+  },
+  "themes": {
+    "stage": "agente1_temas",
+    "themes_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\temas_canonicos_agent1.json",
+    "themes_accepted": 17,
+    "quarantined_cluster_ids": [],
+    "discarded_cluster_ids": []
+  },
+  "cosine": {
+    "stage": "similaridade_cosseno",
+    "profile_pkl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\perfis_cosseno_temas.pkl",
+    "profile_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\perfis_cosseno_temas.json",
+    "themes_profiled": 17
+  },
+  "linguistic_preprocessing": {
+    "stage": "preprocessamento_linguistico",
+    "documents": 8310,
+    "original_tokens": 1240262,
+    "kept_tokens": 742574,
+    "removed_tokens": 497688,
+    "reduction_ratio": 0.401277,
+    "linguistic_elapsed_seconds": 9.8881,
+    "total_elapsed_seconds": 11.3246,
+    "backends": {
+      "nltk_mac_morpho_unigram": 8310
+    },
+    "representation": "substantivos_verbos_adjetivos_e_expressoes_de_dominio"
+  },
+  "agent2": {
+    "stage": "agente2_discriminadores",
+    "wnn_feature_bank": "D:\\github\\NT_PF\\data\\analise_qualitativa\\wnn_feature_bank.json",
+    "wnn_discriminators": 615,
+    "wnn_labels": 40,
+    "wnn_crime_discriminators": 509,
+    "wnn_modus_discriminators": 106,
+    "discriminator_mode": "tokens_only",
+    "generalization_policy": "crime_and_modus_markers_from_body; title_as_secondary_crime_clue",
+    "uses_title_or_tags": true,
+    "tag_policy": "auxiliary_hints_only; tags_do_not_activate_or_create_a_classification"
+  },
+  "batches": {
+    "stage": "processar_lotes",
+    "metrics_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+    "batches": 15
+  },
+  "reports": {
+    "stage": "relatorios",
+    "metrics": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+    "metrics_readme": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\README_METRICAS.md",
+    "figures": [
+      "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\figures\\wnn_residual_candidatos_por_iteracao.png",
+      "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\figures\\taxas_wnn_llm_candidatos_por_iteracao.png"
+    ],
+    "report": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\relatorio_execucao_metodologia.md"
+  },
+  "theme_tree_organizer": {
+    "stage": "agente_organizador_arvore",
+    "theme_refinement_input_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\insumo_agente_organizador_arvore.json",
+    "refined_theme_tree_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\arvore_temas_agent1_refinada.json",
+    "decisions": 35,
+    "promoted_count": 1,
+    "promoted_unique_count": 1,
+    "promoted_canonical_themes": [
+      "rara_combate_disseminacao_pornografia"
+    ],
+    "merged_into_existing_count": 33,
+    "kept_as_leaf_count": 1,
+    "discarded_count": 0,
+    "quarantined_count": 0
+  },
+  "rare_news_review": {
+    "stage": "reavaliar_quarentenas",
+    "quarantines_reviewed": 1,
+    "rescued": 0,
+    "rare_news": 25,
+    "review_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\quarentenas_reavaliacao.csv",
+    "output_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\classificacoes_incrementais_pos_quarentena.csv",
+    "summary_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\status_pos_quarentena.csv",
+    "theme_counts_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\noticias_por_tema_pos_quarentena.csv",
+    "figure": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\figures\\noticias_por_tema_pos_quarentena.png"
+  },
+  "token_cost_summary": {
+    "llm_residual_calls": 1473,
+    "prompt_tokens_total": 2463395,
+    "completion_tokens_total": 407301,
+    "tokens_total": 2870696,
+    "avg_tokens_per_llm": 1948.8771,
+    "source_metrics_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+    "source_events_jsonl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\events.jsonl"
+  },
+  "comparison_dashboard": {
+    "dashboard": "D:\\github\\NT_PF\\data\\analise_qualitativa\\dashboard_comparacao.html",
+    "previous_snapshot": "D:\\github\\NT_PF\\data\\analise_qualitativa\\run_snapshots\\20260724_125545_auto_before_reset"
+  },
+  "steps": [
+    {
+      "label": "sincronizacao da base",
+      "skipped": true,
+      "elapsed_seconds": 0.0,
+      "returncode": 0
+    },
+    {
+      "label": "metodologia incremental",
+      "skipped": false,
+      "elapsed_seconds": 2397.3525,
+      "returncode": 0
+    },
+    {
+      "label": "agente organizador da arvore de temas",
+      "skipped": false,
+      "elapsed_seconds": 26.2205,
+      "returncode": 0
+    },
+    {
+      "label": "consolidacao de noticias raras",
+      "skipped": false,
+      "elapsed_seconds": 1.2741,
+      "returncode": 0
+    },
+    {
+      "label": "resumo de custo por tokens",
+      "skipped": false,
+      "elapsed_seconds": 0.4859,
+      "returncode": 0
+    }
+  ]
+}

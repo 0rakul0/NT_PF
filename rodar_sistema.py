@@ -69,14 +69,14 @@ def build_run_config(reset: bool = True) -> RunConfig:
         if model != llm_settings.ollama.model_name
     )
     return RunConfig(
-        sample_fraction=env_float("PF_SAMPLE_FRACTION", 0.10),
-        batch_size=env_int("PF_BATCH_SIZE", 500),
+        sample_fraction=env_float("PF_SAMPLE_FRACTION", 0.30),
+        batch_size=env_int("PF_BATCH_SIZE", 100),
         seed=env_int("PF_RANDOM_SEED", 42),
         wnn_enabled=env_bool("PF_WNN_ENABLED", True),
         wnn_confidence_threshold=env_float("PF_WNN_CONFIDENCE_THRESHOLD", 0.50),
         wnn_margin_threshold=env_float("PF_WNN_MARGIN_THRESHOLD", 0.12),
         wnn_min_active_discriminators=env_int("PF_WNN_MIN_ACTIVE_DISCRIMINATORS", 2),
-        wnn_max_discriminators_per_theme=env_int("PF_WNN_MAX_DISCRIMINATORS_PER_THEME", 35),
+        wnn_max_discriminators_per_theme=env_int("PF_WNN_MAX_DISCRIMINATORS_PER_THEME", 200),
         temporal_strata=os.getenv("PF_TEMPORAL_STRATA", "year").strip() or "year",
         model=llm_settings.ollama.model_name,
         base_url=llm_settings.ollama.base_url,
@@ -89,10 +89,12 @@ def build_run_config(reset: bool = True) -> RunConfig:
         ollama_num_predict=env_int("PF_OLLAMA_NUM_PREDICT", 1024),
         agent3_min_confidence=env_float("PF_AGENT3_MIN_CONFIDENCE", 0.55),
         resume_batches=env_bool("PF_RESUME_BATCHES", True),
-        preserve_previous_run=env_bool("PF_PRESERVE_PREVIOUS_RUN", True),
+        # Each full execution starts from a clean incremental workspace. Prior
+        # runs meant for comparison must be archived under comparacoes/ first.
+        preserve_previous_run=env_bool("PF_PRESERVE_PREVIOUS_RUN", False),
         theme_tree_review_interval_batches=env_int("PF_THEME_TREE_REVIEW_INTERVAL_BATCHES", 0),
         dashboard_update_interval_batches=env_int("PF_DASHBOARD_UPDATE_INTERVAL_BATCHES", 0),
-        wnn_compaction_interval_batches=env_int("PF_WNN_COMPACTION_INTERVAL_BATCHES", 2),
+        wnn_compaction_interval_batches=env_int("PF_WNN_COMPACTION_INTERVAL_BATCHES", 1),
         local_fallback_models=local_fallback_models,
     )
 

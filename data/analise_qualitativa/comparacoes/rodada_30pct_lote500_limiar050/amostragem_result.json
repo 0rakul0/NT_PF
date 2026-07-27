@@ -1,0 +1,23 @@
+{
+  "stage": "amostragem",
+  "base_docs": 8310,
+  "sample_docs": 831,
+  "reserve_docs": 7479,
+  "sample_fraction": 0.1,
+  "temporal_strata": "year",
+  "sample_strata_counts": {
+    "2011": 1,
+    "2019": 46,
+    "2020": 78,
+    "2021": 100,
+    "2022": 84,
+    "2023": 86,
+    "2024": 182,
+    "2025": 171,
+    "2026": 83
+  },
+  "docs_jsonl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\documentos_base.jsonl",
+  "linguistic_preprocessing_json": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\preprocessamento_linguistico.json",
+  "sample_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\amostra_inicial.csv",
+  "reserve_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\reserva_incremental.csv"
+}

@@ -26,6 +26,7 @@ from scripts.incremental.preprocessamento_linguistico import preprocess_body_tex
 from scripts.incremental.similaridade_cosseno import top_k_similar_themes
 from scripts.schemas.pf_incremental_agent_schemas import ResidualReviewAgentResponse
 from scripts.incremental.dashboard_comparacao import run as update_dashboard
+from scripts.avaliar_crimes_por_tags import crime_labels_from_tags
 from scripts.pf_llm_models import NoticiaLLMInference
 
 try:
@@ -33,10 +34,11 @@ try:
         append_discriminators_from_learned_rules,
         classify_with_wnn,
         compact_feature_bank,
+        record_reverse_memory_observation,
         suggest_discriminator_rules_from_review,
     )
 except ModuleNotFoundError:
-    from pf_wnn_classifier import append_discriminators_from_learned_rules, classify_with_wnn, compact_feature_bank, suggest_discriminator_rules_from_review
+    from pf_wnn_classifier import append_discriminators_from_learned_rules, classify_with_wnn, compact_feature_bank, record_reverse_memory_observation, suggest_discriminator_rules_from_review
 
 try:
     from scripts.agentes.agente_organizador_arvore import run as run_theme_tree_organizer
@@ -51,6 +53,13 @@ def classification_text(doc: dict[str, Any]) -> str:
         return semantic
     body = str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "")).strip()
     return preprocess_body_text(body).semantic_features
+
+
+def classification_inputs(doc: dict[str, Any]) -> tuple[str, str]:
+    """Return body evidence and the title fallback for crime classification."""
+    title = str(doc.get("titulo", "") or "").strip()
+    title_features = preprocess_body_text(title).semantic_features if title else ""
+    return classification_text(doc), title_features or title
 
 
 def review_to_inference(review: ResidualReviewAgentResponse) -> NoticiaLLMInference:
@@ -83,9 +92,11 @@ def canonical_labels() -> list[str]:
 
 
 def initialize_classification_row(doc: dict[str, Any]) -> dict[str, Any]:
+    parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
     return {
         "arquivo": doc["arquivo"],
         "titulo": doc["titulo"],
+        "data_publicacao": str(parsed.get("data_publicacao", "") or ""),
         "inference": {},
         "classification_source": "residual_pending_wnn",
         "wnn_attempted": False,
@@ -96,10 +107,13 @@ def initialize_classification_row(doc: dict[str, Any]) -> dict[str, Any]:
         "wnn_crime_confidence": 0.0,
         "wnn_crime_margin": 0.0,
         "wnn_crime_autonomous": False,
+        "wnn_crime_evidence_source": "",
+        "wnn_crime_tag_hints": [],
         "wnn_top_label": "",
         "wnn_modus_operandi": [],
         "wnn_modus_confidence": 0.0,
         "wnn_modus_evidence_count": 0,
+        "wnn_modus_evidence_source": "",
         "wnn_relacao_operacional": "",
         "wnn_marcadores_secundarios": [],
         "wnn_theme_candidate": {},
@@ -132,6 +146,59 @@ def initialize_classification_row(doc: dict[str, Any]) -> dict[str, Any]:
         "semantic_reduction_ratio": float(doc.get("linguistic_metrics", {}).get("reduction_ratio", 0.0) or 0.0),
         "semantic_backend": str(doc.get("linguistic_metrics", {}).get("backend", "")),
     }
+
+
+def export_temporal_crime_counts() -> tuple[str | None, str | None]:
+    """Export occurrence and crime-type discovery timelines by publication month."""
+    batch_paths = sorted(LOTS_DIR.glob("lote_*_classificacoes.csv"))
+    if not batch_paths:
+        return None, None
+    frames = [pd.read_csv(path) for path in batch_paths]
+    rows = pd.concat(frames, ignore_index=True)
+    if rows.empty or "data_publicacao" not in rows:
+        return None, None
+
+    wnn_labels = rows.get("wnn_top_label", pd.Series("", index=rows.index)).fillna("").astype(str)
+    residual_labels = rows.get("agent3_canonical_label", pd.Series("", index=rows.index)).fillna("").astype(str)
+    accepted = rows.get("wnn_accepted", pd.Series(False, index=rows.index)).fillna(False).astype(str).str.lower().eq("true")
+    rows["crime_canonico"] = residual_labels
+    rows.loc[accepted & wnn_labels.ne(""), "crime_canonico"] = wnn_labels[accepted & wnn_labels.ne("")]
+    rows = rows.loc[rows["crime_canonico"].ne("")].copy()
+    rows["periodo"] = pd.to_datetime(rows["data_publicacao"], dayfirst=True, errors="coerce").dt.to_period("M").astype(str)
+    rows = rows.loc[rows["periodo"].ne("NaT")]
+    if rows.empty:
+        return None, None
+    summary = (
+        rows.groupby(["periodo", "crime_canonico"], as_index=False)
+        .size()
+        .rename(columns={"size": "ocorrencias"})
+        .sort_values(["periodo", "crime_canonico"])
+    )
+    output = RUN_DIR / "ocorrencias_crime_por_mes.csv"
+    summary.to_csv(output, index=False, encoding="utf-8-sig")
+
+    # A type is considered "discovered" in the first month in which its final
+    # canonical label occurs in the chronological reserve.  This separates the
+    # crime diversity observed in a month from the cumulative taxonomy seen so far.
+    first_seen = rows.groupby("crime_canonico")["periodo"].min()
+    monthly = (
+        rows.groupby("periodo")["crime_canonico"]
+        .agg(lambda labels: sorted(set(labels)))
+        .reset_index(name="tipos_no_mes")
+        .sort_values("periodo")
+        .reset_index(drop=True)
+    )
+    monthly["tipos_distintos_no_mes"] = monthly["tipos_no_mes"].map(len)
+    monthly["novos_tipos_no_mes"] = monthly.apply(
+        lambda row: sum(first_seen[label] == row["periodo"] for label in row["tipos_no_mes"]),
+        axis=1,
+    )
+    monthly["tipos_distintos_acumulados"] = monthly["novos_tipos_no_mes"].cumsum()
+    monthly["tipos_crime_no_mes"] = monthly["tipos_no_mes"].map(" | ".join)
+    diversity = monthly.drop(columns=["tipos_no_mes"])
+    diversity_output = RUN_DIR / "linha_tempo_tipos_crime.csv"
+    diversity.to_csv(diversity_output, index=False, encoding="utf-8-sig")
+    return str(output), str(diversity_output)
 
 
 def _progress_message(
@@ -206,8 +273,11 @@ def run(config: RunConfig) -> dict[str, object]:
             row = initialize_classification_row(doc)
             rows.append(row)
             residual_docs += 1
-            text_for_classification = classification_text(doc)
-            cosine_candidates = top_k_similar_themes(text_for_classification, top_k=5, preprocessed=True)
+            crime_text, title_fallback_text = classification_inputs(doc)
+            parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
+            raw_tags = doc.get("tags") or parsed.get("tags") or []
+            crime_tag_hints = crime_labels_from_tags(raw_tags if isinstance(raw_tags, list) else [])
+            cosine_candidates = top_k_similar_themes(crime_text or title_fallback_text, top_k=5, preprocessed=True)
             row.update(
                 {
                     "cosine_top_label": cosine_candidates[0]["label"] if cosine_candidates else "",
@@ -218,12 +288,14 @@ def run(config: RunConfig) -> dict[str, object]:
             if config.wnn_enabled:
                 wnn_attempted += 1
                 wnn_result = classify_with_wnn(
-                    text_for_classification,
+                    title_fallback_text,
                     WNN_FEATURE_BANK_PATH,
                     confidence_threshold=config.wnn_confidence_threshold,
                     margin_threshold=config.wnn_margin_threshold,
                     min_active_discriminators=config.wnn_min_active_discriminators,
                     cosine_candidates=cosine_candidates,
+                    crime_text=crime_text,
+                    crime_tag_hints=crime_tag_hints,
                 )
                 wnn_dict = wnn_result.to_dict()
                 row.update(
@@ -236,10 +308,13 @@ def run(config: RunConfig) -> dict[str, object]:
                         "wnn_crime_confidence": round(wnn_result.crime_confidence, 4),
                         "wnn_crime_margin": round(wnn_result.crime_margin, 4),
                         "wnn_crime_autonomous": wnn_result.crime_autonomous,
+                        "wnn_crime_evidence_source": wnn_dict.get("crime_evidence_source", ""),
+                        "wnn_crime_tag_hints": crime_tag_hints,
                         "wnn_top_label": wnn_result.top_label,
                         "wnn_modus_operandi": wnn_result.modus_operandi,
                         "wnn_modus_confidence": round(wnn_result.modus_confidence, 4),
                         "wnn_modus_evidence_count": int(wnn_result.modus_evidence_count),
+                        "wnn_modus_evidence_source": wnn_dict.get("modus_evidence_source", ""),
                         "wnn_relacao_operacional": (
                             wnn_result.inference.relacao_operacional if wnn_result.inference else ""
                         ),
@@ -269,10 +344,13 @@ def run(config: RunConfig) -> dict[str, object]:
                         "crime_confidence": round(wnn_result.crime_confidence, 4),
                         "crime_margin": round(wnn_result.crime_margin, 4),
                         "crime_autonomous": wnn_result.crime_autonomous,
+                        "crime_evidence_source": wnn_dict.get("crime_evidence_source", ""),
+                        "crime_tag_hints": crime_tag_hints,
                         "top_label": wnn_result.top_label,
                         "modus_operandi": wnn_result.modus_operandi,
                         "modus_confidence": round(wnn_result.modus_confidence, 4),
                         "modus_evidence_count": int(wnn_result.modus_evidence_count),
+                        "modus_evidence_source": wnn_dict.get("modus_evidence_source", ""),
                         "relacao_operacional": wnn_result.inference.relacao_operacional if wnn_result.inference else "",
                         "marcadores_secundarios": wnn_result.inference.marcadores_secundarios if wnn_result.inference else [],
                         "theme_candidate": wnn_result.theme_candidate,
@@ -426,6 +504,14 @@ def run(config: RunConfig) -> dict[str, object]:
                 else []
             )
             learned_rules += len(incorporated_wnn)
+            reverse_memory_update = {"recorded": False, "reason": "review_not_classified"}
+            if review.decision == "classificar" and review.canonical_label != RARE_NEWS_LABEL:
+                reverse_memory_update = record_reverse_memory_observation(
+                    WNN_FEATURE_BANK_PATH,
+                    review.canonical_label,
+                    str(doc.get("body_text", "") or doc.get("context", "")),
+                    source="verified_residual",
+                )
             row.update(
                 {
                     "classification_source": "agent3_review",
@@ -441,6 +527,7 @@ def run(config: RunConfig) -> dict[str, object]:
                     "agent3_rationale": review.rationale,
                     "agent2_incremental_wnn_count": len(incorporated_wnn),
                     "agent2_incremental_wnn": incorporated_wnn,
+                    "drasiw_reverse_memory": reverse_memory_update,
                     "inference": review_to_inference(review).model_dump() if review.decision == "classificar" else {},
                 }
             )
@@ -555,7 +642,10 @@ def run(config: RunConfig) -> dict[str, object]:
             and iteration % config.wnn_compaction_interval_batches == 0
         ):
             try:
-                compact_result = compact_feature_bank(WNN_FEATURE_BANK_PATH)
+                compact_result = compact_feature_bank(
+                    WNN_FEATURE_BANK_PATH,
+                    max_discriminators_per_label=config.wnn_max_discriminators_per_theme,
+                )
                 append_event(
                     {
                         "stage": "wnn_compaction",
@@ -611,7 +701,14 @@ def run(config: RunConfig) -> dict[str, object]:
 
     metrics_df = pd.DataFrame(metrics)
     metrics_df.to_csv(METRICS_CSV, index=False, encoding="utf-8-sig")
-    result = {"stage": "processar_lotes", "metrics_csv": str(METRICS_CSV), "batches": len(metrics)}
+    temporal_counts_csv, temporal_diversity_csv = export_temporal_crime_counts()
+    result = {
+        "stage": "processar_lotes",
+        "metrics_csv": str(METRICS_CSV),
+        "temporal_crime_counts_csv": temporal_counts_csv,
+        "temporal_crime_diversity_csv": temporal_diversity_csv,
+        "batches": len(metrics),
+    }
     write_json(RUN_DIR / "processar_lotes_result.json", result)
     append_event(result)
     return result

@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from langchain_ollama import ChatOllama
+try:
+    from langchain_ollama import ChatOllama
+except ImportError:  # Allows data-splitting and preprocessing utilities to run without the LLM runtime.
+    ChatOllama = None  # type: ignore[assignment,misc]
 from scripts.incremental.preprocessamento_linguistico import preprocess_body_text
 
 try:
@@ -62,6 +65,8 @@ def news_body_text(parsed: dict[str, Any]) -> str:
 
 @dataclass(frozen=True)
 class RunConfig:
+    # Foundation: earliest 10% of the news base for clustering and taxonomy.
+    # Reserve: every later document, kept in chronological order for incremental processing.
     sample_fraction: float = 0.10
     batch_size: int = 500
     seed: int = 42
@@ -69,7 +74,9 @@ class RunConfig:
     wnn_confidence_threshold: float = 0.50
     wnn_margin_threshold: float = 0.12
     wnn_min_active_discriminators: int = 2
-    wnn_max_discriminators_per_theme: int = 35
+    # Classes begin compact (35) and expand adaptively, through confirmed
+    # Agent 3 learning, up to this ceiling.
+    wnn_max_discriminators_per_theme: int = 200
     temporal_strata: str = "year"
     model: str = "llama3.1:latest"
     base_url: str = "http://localhost:11434"
@@ -85,7 +92,9 @@ class RunConfig:
     preserve_previous_run: bool = True
     theme_tree_review_interval_batches: int = 0
     dashboard_update_interval_batches: int = 0
-    wnn_compaction_interval_batches: int = 2
+    # Metamorphosis at each batch boundary: deduplicate, remove weak/invalid
+    # markers and retain the strongest confirmed patterns.
+    wnn_compaction_interval_batches: int = 1
     local_fallback_models: tuple[str, ...] = ("llama3.1:latest", "gemma3n:e2b", "llama3:8b")
 
 
@@ -321,18 +330,43 @@ def split_docs(
     seed: int,
     temporal_granularity: str = "year",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    sample_names = temporal_stratified_sample_names(docs, fraction, seed, temporal_granularity)
-    sample = [item for item in docs if item["arquivo"] in sample_names]
-    reserve = [item for item in docs if item["arquivo"] not in sample_names]
-    return sample, reserve
+    """Split the corpus at a chronological cutoff, without future-data leakage.
+
+    The foundation is the earliest ``fraction`` of dated documents.  The reserve is
+    every later document, also sorted by publication date, so batches represent the
+    evolution of the corpus over time.  ``seed`` and ``temporal_granularity`` remain
+    in the signature for compatibility with existing callers; no random or
+    stratified selection is performed.
+    """
+    if not docs:
+        return [], []
+    if not 0 < fraction < 1:
+        raise ValueError("fraction must be between 0 and 1")
+
+    def chronological_key(doc: dict[str, Any]) -> tuple[bool, datetime, str]:
+        parsed = doc.get("parsed", {})
+        published = parsed.get("data_publicacao") if isinstance(parsed, dict) else ""
+        date = parse_br_date(published)
+        # Undated documents stay after dated records, where they cannot leak into
+        # the historical foundation. Filename makes ties deterministic.
+        return (date is None, date or datetime.max, str(doc.get("arquivo", "")))
+
+    ordered_docs = sorted(docs, key=chronological_key)
+    target_size = max(1, round(len(ordered_docs) * fraction))
+    return ordered_docs[:target_size], ordered_docs[target_size:]
 
 
 def docs_by_manifest(manifest_csv: Path) -> list[dict[str, Any]]:
-    names = set(pd.read_csv(manifest_csv)["arquivo"].astype(str))
-    return [doc for doc in read_jsonl(DOCS_JSONL) if doc["arquivo"] in names]
+    manifest_names = pd.read_csv(manifest_csv)["arquivo"].astype(str).tolist()
+    docs_by_name = {str(doc.get("arquivo", "")): doc for doc in read_jsonl(DOCS_JSONL)}
+    # Preserve the manifest order: in the reserve this is chronological and feeds
+    # directly into the incremental batches.
+    return [docs_by_name[name] for name in manifest_names if name in docs_by_name]
 
 
 def llm(model: str, base_url: str, timeout_seconds: int = 180, json_schema: dict[str, Any] | None = None) -> ChatOllama:
+    if ChatOllama is None:
+        raise ImportError("langchain_ollama is required to execute LLM review, but is not installed.")
     return ChatOllama(
         model=model,
         base_url=base_url,

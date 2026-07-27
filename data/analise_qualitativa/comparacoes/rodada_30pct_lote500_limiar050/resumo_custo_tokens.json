@@ -1,0 +1,9 @@
+{
+  "llm_residual_calls": 1473,
+  "prompt_tokens_total": 2463395,
+  "completion_tokens_total": 407301,
+  "tokens_total": 2870696,
+  "avg_tokens_per_llm": 1948.8771,
+  "source_metrics_csv": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\metrics_batches.csv",
+  "source_events_jsonl": "D:\\github\\NT_PF\\data\\analise_qualitativa\\incremental\\events.jsonl"
+}

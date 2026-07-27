@@ -40,16 +40,10 @@ def run(config: RunConfig) -> dict[str, object]:
                 if isinstance(item, dict) and str(item.get("kind", "crime")) == "crime"
             ]
         ),
-        "wnn_modus_discriminators": len(
-            [
-                item
-                for item in feature_bank.get("discriminators", [])
-                if isinstance(item, dict) and str(item.get("kind", "crime")) == "modus"
-            ]
-        ),
         "discriminator_mode": "tokens_only",
-        "generalization_policy": "crime_and_modus_markers_from_body_text",
-        "uses_title_or_tags": False,
+        "generalization_policy": "crime_markers_from_body; title_as_secondary_crime_clue",
+        "uses_title_or_tags": True,
+        "tag_policy": "auxiliary_hints_only; tags_do_not_activate_or_create_a_classification",
     }
     write_json(RUN_DIR / "agente2_result.json", result)
     append_event(result)

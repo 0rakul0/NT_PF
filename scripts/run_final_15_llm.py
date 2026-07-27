@@ -15,7 +15,7 @@ from scripts.incremental.run_all_incremental import run
 
 def main() -> None:
     config = RunConfig(
-        sample_fraction=0.15,
+        sample_fraction=0.10,
         batch_size=500,
         model="llama3.2",
         reset=True,

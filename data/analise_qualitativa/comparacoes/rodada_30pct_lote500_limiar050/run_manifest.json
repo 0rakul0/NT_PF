@@ -1,0 +1,46 @@
+{
+  "base_docs": 8310,
+  "sample_fraction": 0.3,
+  "sample_docs": 2493,
+  "reserve_docs": 5817,
+  "clusters_total": 29,
+  "noise_clusters": 0,
+  "themes_accepted": 17,
+  "cosine_profiles": 17,
+  "wnn_discriminators": 615,
+  "agent2_discriminator_bank": "D:\\github\\NT_PF\\data\\analise_qualitativa\\wnn_feature_bank.json",
+  "wnn_feature_bank": "D:\\github\\NT_PF\\data\\analise_qualitativa\\wnn_feature_bank.json",
+  "config": {
+    "sample_fraction": 0.3,
+    "batch_size": 500,
+    "seed": 42,
+    "wnn_enabled": true,
+    "wnn_confidence_threshold": 0.5,
+    "wnn_margin_threshold": 0.12,
+    "wnn_min_active_discriminators": 2,
+    "wnn_max_discriminators_per_theme": 35,
+    "temporal_strata": "year",
+    "model": "llama3.1:latest",
+    "base_url": "http://localhost:11434",
+    "max_docs": null,
+    "reset": true,
+    "max_residual_llm_per_batch": null,
+    "max_batches": null,
+    "llm_timeout_seconds": 180,
+    "ollama_num_ctx": 131072,
+    "ollama_num_predict": 1024,
+    "agent3_min_confidence": 0.55,
+    "resume_batches": true,
+    "preserve_previous_run": false,
+    "theme_tree_review_interval_batches": 0,
+    "dashboard_update_interval_batches": 0,
+    "wnn_compaction_interval_batches": 2,
+    "local_fallback_models": [
+      "gemma3n:e2b",
+      "llama3:8b"
+    ]
+  },
+  "previous_run_snapshot": {
+    "created": false
+  }
+}

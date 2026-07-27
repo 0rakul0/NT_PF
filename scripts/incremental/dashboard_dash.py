@@ -12,7 +12,7 @@ import networkx as nx
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import Dash, Input, Output, dash_table, dcc, html
+from dash import ALL, Dash, Input, Output, ctx, dash_table, dcc, html
 from plotly.subplots import make_subplots
 
 from scripts.incremental.common import ANALYSIS_DIR, EVENTS_JSONL, LINGUISTIC_PREPROCESSING_JSON, LOTS_DIR, WNN_FEATURE_BANK_PATH
@@ -129,11 +129,8 @@ def _summary_cards(current: dict[str, Any], previous: dict[str, Any], comparison
     composite = _safe_int(current.get("wnn_multi_discriminator_candidates"))
     memory_size = _safe_int(current.get("wnn_memory_vocab_size"))
     crime_docs = _safe_int(current.get("crime_docs"))
-    modus_docs = _safe_int(current.get("modus_docs"))
     unique_crimes = _safe_int(current.get("unique_crime_labels"))
-    unique_modus = _safe_int(current.get("unique_modus_labels"))
     learned_crime = _safe_int(current.get("learned_crime_discriminators"))
-    learned_modus = _safe_int(current.get("learned_modus_discriminators"))
     reclassified = _safe_int(comparison.get("changed_docs")) if comparison.get("available") else 0
     stable = _safe_int(comparison.get("stable_docs")) if comparison.get("available") else 0
     previous_label = previous.get("execucao", "sem baseline")
@@ -147,9 +144,8 @@ def _summary_cards(current: dict[str, Any], previous: dict[str, Any], comparison
         _card("Documentos Processados", docs, "execucao atual"),
         _card("WNN", wnn, "classificacoes aceitas pela camada 2"),
         _card("Docs Com Crime", crime_docs, f"labels unicas: {unique_crimes}"),
-        _card("Docs Com Modus", modus_docs, f"labels unicas: {unique_modus}"),
         _card("LLM Residual", llm, "casos enviados ao Agente 3"),
-        _card("Aprendizado", learned, f"crime={learned_crime} | modus={learned_modus}"),
+        _card("Aprendizado", learned, f"discriminadores de crime: {learned_crime}"),
         _card("Candidatos Compostos", composite, "coacionamentos para revisar na arvore"),
         _card("Cobertura WNN", current.get("taxa_wnn", "sem taxa"), "resolvido por discriminadores"),
         _card("Memoria WNN", memory_size or "aguardando", "posicoes na matriz binaria"),
@@ -166,7 +162,7 @@ def _metrics_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = N
             title="Roteamento e cobertura por lote",
             annotations=[
                 {
-                    "text": "Aguardando o primeiro lote concluir para exibir roteamento, crime e modus operandi.",
+                    "text": "Aguardando o primeiro lote concluir para exibir o roteamento por crime.",
                     "xref": "paper",
                     "yref": "paper",
                     "x": 0.5,
@@ -220,24 +216,14 @@ def _metrics_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = N
             ),
             secondary_y=True,
         )
-        fig.add_trace(
-            go.Scatter(
-                x=axis_metrics["iteration"],
-                y=axis_metrics["modus_rate"],
-                mode="lines+markers",
-                name="Cobertura modus",
-                line={"color": "#2563eb", "width": 3, "dash": "dot"},
-            ),
-            secondary_y=True,
-        )
     fig.update_layout(
-        title="Roteamento operacional + cobertura por eixo",
+        title="Roteamento operacional e cobertura de crimes",
         margin={"l": 24, "r": 16, "t": 48, "b": 24},
         legend_title_text="",
         barmode="group",
     )
     fig.update_yaxes(title_text="Documentos", secondary_y=False)
-    fig.update_yaxes(title_text="Cobertura por eixo", tickformat=".0%", range=[0, 1], secondary_y=True)
+    fig.update_yaxes(title_text="Cobertura de crimes", tickformat=".0%", range=[0, 1], secondary_y=True)
     return fig
 
 
@@ -683,6 +669,78 @@ def _load_discriminator_bank() -> list[dict[str, Any]]:
     return [item for item in discriminators if isinstance(item, dict)]
 
 
+def _memory_capacity_panel() -> html.Div:
+    """Show adaptive per-crime capacity and the latest memory metamorphosis."""
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for item in _load_discriminator_bank():
+        if str(item.get("kind", "crime")) != "crime":
+            continue
+        label = _theme_parent(str(item.get("label", "")))
+        if label:
+            grouped.setdefault(label, []).append(item)
+    ceiling = int(os.getenv("PF_WNN_MAX_DISCRIMINATORS_PER_THEME", "200") or 200)
+    rows: list[dict[str, Any]] = []
+    for label, items in grouped.items():
+        learned = 0
+        variants = 0
+        for item in items:
+            if "agent3_learned_discriminator" in str(item.get("source", "") or ""):
+                learned += 1
+            raw_variants = item.get("marker_variants", [])
+            if isinstance(raw_variants, list):
+                variants += len(raw_variants)
+                learned += sum(
+                    max(1, _safe_int(variant.get("confirmations", 1)))
+                    for variant in raw_variants
+                    if isinstance(variant, dict)
+                    and "agent3_learned_discriminator" in str(variant.get("source", "") or "")
+                )
+        capacity = min(ceiling, 35 + learned * 5)
+        patterns = len(items) + variants
+        rows.append(
+            {
+                "crime": _humanize_label(label),
+                "padroes": patterns,
+                "limite": capacity,
+                "ocupacao": f"{patterns / capacity:.0%}" if capacity else "-",
+                "aprendizados": learned,
+            }
+        )
+    rows.sort(key=lambda row: (-int(row["aprendizados"]), -int(row["padroes"]), str(row["crime"])))
+
+    latest = "A metamorfose ainda nao foi registrada."
+    if EVENTS_JSONL.exists():
+        for raw_line in reversed(EVENTS_JSONL.read_text(encoding="utf-8").splitlines()):
+            try:
+                event = json.loads(raw_line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("stage") == "wnn_compaction" and event.get("status") == "ok":
+                result = event.get("result", {}) if isinstance(event.get("result"), dict) else {}
+                latest = (
+                    f"Última metamorfose — lote {event.get('iteration', '?')}: "
+                    f"{result.get('before', 0)} → {result.get('after', 0)} discriminadores; "
+                    f"removidos={result.get('removed', 0)}, variantes removidas={result.get('variants_removed', 0)}."
+                )
+                break
+    return html.Div(
+        [
+            html.H2("Capacidade adaptativa e metamorfose da WNN"),
+            html.Div("Classes frequentes crescem de 35 até 200 padrões; a compactação preserva os mais confirmados.", className="muted cloud-help"),
+            html.Div(latest, className="chart-note"),
+            dash_table.DataTable(
+                data=rows,
+                columns=[{"name": key.replace("_", " ").title(), "id": key} for key in ["crime", "padroes", "limite", "ocupacao", "aprendizados"]],
+                page_size=12,
+                style_table={"overflowX": "auto", "maxHeight": "480px", "overflowY": "auto"},
+                style_cell={"fontFamily": "Arial", "fontSize": 12, "padding": "7px", "textAlign": "left"},
+                style_header={"backgroundColor": "#e8edf4", "fontWeight": "bold"},
+            ),
+        ],
+        className="panel",
+    )
+
+
 def _memory_position_context() -> dict[int, dict[str, Any]]:
     payload = _read_json(WNN_FEATURE_BANK_PATH)
     if not isinstance(payload, dict):
@@ -763,7 +821,7 @@ def _latest_memory_from_events() -> dict[str, Any]:
     return {}
 
 
-def _binary_memory_panel(max_cells: int = MAX_MEMORY_CELLS) -> html.Div:
+def _latest_binary_memory_panel(max_cells: int = MAX_MEMORY_CELLS) -> html.Div:
     memory = _latest_memory_from_events()
     if not memory:
         return html.Div("Aguardando a primeira noticia passar pela memoria binaria.", className="muted")
@@ -887,6 +945,117 @@ def _binary_memory_panel(max_cells: int = MAX_MEMORY_CELLS) -> html.Div:
     )
 
 
+def _binary_memory_panel() -> html.Div:
+    """Render one compact perforated-card view for each canonical crime."""
+    payload = _read_json(WNN_FEATURE_BANK_PATH)
+    if not isinstance(payload, dict):
+        return html.Div("Aguardando a memoria WNN ser criada.", className="muted")
+    memory = payload.get("memory_vocab", {})
+    tokens = memory.get("tokens", []) if isinstance(memory, dict) else []
+    if not isinstance(tokens, list) or not tokens:
+        return html.Div("Aguardando posicoes binarias da memoria WNN.", className="muted")
+    token_to_position = {str(token): index for index, token in enumerate(tokens)}
+    grouped: dict[str, dict[str, Any]] = {}
+    discriminators = payload.get("discriminators", [])
+    for item in discriminators if isinstance(discriminators, list) else []:
+        if not isinstance(item, dict) or str(item.get("kind", "crime")) != "crime":
+            continue
+        label = _theme_parent(str(item.get("label", "")))
+        if not label:
+            continue
+        bucket = grouped.setdefault(label, {"positions": set(), "patterns": 0})
+        bucket["patterns"] += 1
+        token_groups = [item.get("tokens", [])]
+        variants = item.get("marker_variants", [])
+        if isinstance(variants, list):
+            token_groups.extend(variant.get("tokens", []) for variant in variants if isinstance(variant, dict))
+            bucket["patterns"] += len([variant for variant in variants if isinstance(variant, dict)])
+        for raw_tokens in token_groups:
+            if not isinstance(raw_tokens, list):
+                continue
+            for token in raw_tokens:
+                position = token_to_position.get(str(token))
+                if position is not None:
+                    bucket["positions"].add(position)
+
+    # 12 columns × 20 rows fill the taller 150 × 200 px perforated card.
+    hole_count = 240
+    cards = []
+    for label, info in sorted(grouped.items()):
+        positions = info["positions"]
+        holes = [False] * hole_count
+        for position in positions:
+            holes[int(position) % hole_count] = True
+        cards.append(
+            html.Div(
+                [
+                    html.Div(_humanize_label(label), className="punch-card-title", title=_humanize_label(label)),
+                    html.Div(
+                        [html.Span("", className=f"punch-hole {'on' if active else 'off'}") for active in holes],
+                        className="punch-holes",
+                        title=f"{len(positions)} posicoes da memoria | {info['patterns']} padroes",
+                    ),
+                    html.Div(f"{len(positions)} bits · {info['patterns']} padroes", className="punch-card-meta"),
+                ],
+                className="punch-card",
+                title=f"{_humanize_label(label)}: {len(positions)} posicoes binarias mapeadas; {info['patterns']} padroes.",
+                id={"type": "punch-card", "crime": label},
+                n_clicks=0,
+            )
+        )
+    return html.Div(
+        [
+            html.Div(
+                "Cada cartão resume os bits da memória associados a um crime; furos verdes representam posições mapeadas pelos discriminadores e variantes.",
+                className="muted cloud-help",
+            ),
+            html.Div(cards, className="punch-card-grid"),
+        ],
+        className="memory-panel",
+    )
+
+
+def _crime_punch_card_cloud(label: str | None) -> html.Div:
+    if not label:
+        return html.Div("Clique em um cartão perfurado para ver todos os seus padrões.", className="muted")
+    tokens_by_pattern: list[list[Any]] = []
+    for item in _load_discriminator_bank():
+        if str(item.get("kind", "crime")) != "crime" or _theme_parent(str(item.get("label", ""))) != label:
+            continue
+        tokens_by_pattern.append(item.get("tokens", []))
+        variants = item.get("marker_variants", [])
+        if isinstance(variants, list):
+            tokens_by_pattern.extend(variant.get("tokens", []) for variant in variants if isinstance(variant, dict))
+    frequencies: dict[str, int] = {}
+    for tokens in tokens_by_pattern:
+        if not isinstance(tokens, list):
+            continue
+        for token in tokens:
+            term = _humanize_label(token)
+            if term:
+                frequencies[term] = frequencies.get(term, 0) + 1
+    if not frequencies:
+        return html.Div("Este cartão ainda não possui padrões legíveis.", className="muted")
+    maximum = max(frequencies.values())
+    words = [
+        html.Span(
+            term,
+            className="pattern-cloud-word",
+            style={"fontSize": f"{14 + round(24 * count / maximum)}px"},
+            title=f"{term}: presente em {count} padrão(ões)",
+        )
+        for term, count in sorted(frequencies.items(), key=lambda pair: (-pair[1], pair[0]))
+    ]
+    return html.Div(
+        [
+            html.H3(f"Nuvem do cartão — {_humanize_label(label)}"),
+            html.Div(f"{len(tokens_by_pattern)} padrões reunidos do cartão perfurado.", className="disc-meta"),
+            html.Div(words, className="pattern-cloud"),
+        ],
+        className="pattern-cloud-panel",
+    )
+
+
 def _split_terms(value: Any, limit: int = 5) -> list[str]:
     if isinstance(value, list):
         terms = [str(item).strip() for item in value]
@@ -995,6 +1164,159 @@ def _latest_active_from_events() -> tuple[set[str], str]:
         label = str(event.get("arquivo", ""))
         return ids, label
     return set(), ""
+
+
+def _recent_wnn_documents(limit: int = 12) -> list[dict[str, str]]:
+    classifications = _read_lot_classifications(ANALYSIS_DIR)
+    if classifications.empty:
+        return []
+    rows: list[dict[str, str]] = []
+    for _, row in classifications.iloc[::-1].iterrows():
+        filename = str(row.get("arquivo", "") or "").strip()
+        title = str(row.get("titulo", "") or "").strip()
+        active_count = _safe_int(row.get("wnn_active_discriminators_count"))
+        if not filename or active_count <= 0:
+            continue
+        rows.append({"label": _clip_label(title or filename, 110), "value": filename})
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def _selected_wnn_document(filename: str | None = None) -> dict[str, Any]:
+    classifications = _read_lot_classifications(ANALYSIS_DIR)
+    if classifications.empty:
+        return {}
+    selected = pd.DataFrame()
+    if filename:
+        selected = classifications[classifications["arquivo"].astype(str) == str(filename)]
+    if selected.empty:
+        selectable = classifications[
+            pd.to_numeric(classifications.get("wnn_active_discriminators_count", 0), errors="coerce").fillna(0) > 0
+        ]
+        selected = selectable.tail(1) if not selectable.empty else classifications.tail(1)
+    if selected.empty:
+        return {}
+    return selected.iloc[-1].to_dict()
+
+
+def _mask_word(term: Any, strength: str) -> html.Span:
+    class_name = "mask-word"
+    if strength == "strong":
+        class_name += " mask-word-core"
+    elif strength == "medium":
+        class_name += " mask-word-support"
+    else:
+        class_name += " mask-word-context"
+    return html.Span(_humanize_label(term), className=class_name)
+
+
+def _active_mask_cards(filename: str | None = None, limit: int = 8) -> tuple[html.Div, html.Div]:
+    document = _selected_wnn_document(filename)
+    if not document:
+        empty = html.Div("Aguardando classificacoes WNN com discriminadores ativos.", className="muted")
+        return empty, empty
+    active = _parse_list_cell(document.get("wnn_active_discriminators", []))
+    active = active[:limit]
+    title = str(document.get("titulo", "") or document.get("arquivo", "") or "Noticia selecionada")
+    label = str(document.get("wnn_top_label", "") or document.get("agent3_canonical_label", "") or "sem decisao")
+    confidence = _safe_float_percent(document.get("wnn_confidence"))
+    cards: list[html.Div] = []
+    for item in active:
+        tokens = item.get("tokens", []) if isinstance(item.get("tokens", []), list) else []
+        cards.append(
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Div(_humanize_label(item.get("matched_variant_name") or item.get("label")), className="mask-name"),
+                            html.Span("ativa", className="mask-active-badge"),
+                        ],
+                        className="mask-card-label",
+                    ),
+                    html.Div([_mask_word(token, str(item.get("strength", ""))) for token in tokens], className="mask-cloud"),
+                ],
+                className="mask-card",
+            )
+        )
+    decision = html.Div(
+        [
+            html.Div(title, className="mask-news-title"),
+            html.Div(
+                [
+                    html.Div("Decisao atual", className="mask-detail-label"),
+                    html.Div(_humanize_label(label), className="mask-result"),
+                    html.Div(f"Cobertura / confianca WNN: {confidence:.0%}", className="mask-detail-label"),
+                    html.Div(
+                        html.Div(className="mask-coverage-fill", style={"width": f"{max(0, min(100, confidence * 100)):.1f}%"}),
+                        className="mask-coverage",
+                    ),
+                    html.Div(
+                        f"Agente 3: {str(document.get('agent3_decision', '') or 'nao acionado')}",
+                        className="mask-agent3",
+                    ),
+                ],
+                className="mask-decision",
+            ),
+        ],
+        className="mask-reading",
+    )
+    return html.Div(cards, className="mask-card-grid"), decision
+
+
+def _active_discriminator_options(filename: str | None = None) -> list[dict[str, str]]:
+    document = _selected_wnn_document(filename)
+    active = _parse_list_cell(document.get("wnn_active_discriminators", [])) if document else []
+    options: list[dict[str, str]] = []
+    for item in active:
+        disc_id = str(item.get("id", "") or "")
+        if not disc_id:
+            continue
+        label = _humanize_label(item.get("matched_variant_name") or item.get("label") or disc_id)
+        options.append({"label": label, "value": disc_id})
+    return options
+
+
+def _discriminator_pattern_cloud(filename: str | None, discriminator_id: str | None) -> html.Div:
+    options = _active_discriminator_options(filename)
+    selected_id = discriminator_id or (options[0]["value"] if options else "")
+    item = next((entry for entry in _load_discriminator_bank() if str(entry.get("id", "")) == selected_id), None)
+    if not item:
+        return html.Div("Selecione um discriminador ativo para ver seus padrões.", className="muted")
+
+    frequencies: dict[str, int] = {}
+    patterns = [item.get("tokens", [])]
+    variants = item.get("marker_variants", [])
+    if isinstance(variants, list):
+        patterns.extend(variant.get("tokens", []) for variant in variants if isinstance(variant, dict))
+    for tokens in patterns:
+        if not isinstance(tokens, list):
+            continue
+        for token in tokens:
+            normalized = _humanize_label(token)
+            frequencies[normalized] = frequencies.get(normalized, 0) + 1
+    if not frequencies:
+        return html.Div("Esse discriminador ainda não possui padrões legíveis.", className="muted")
+    maximum = max(frequencies.values())
+    words = [
+        html.Span(
+            term,
+            className="pattern-cloud-word",
+            style={"fontSize": f"{14 + round(22 * count / maximum)}px"},
+            title=f"{term}: presente em {count} padrão(ões)",
+        )
+        for term, count in sorted(frequencies.items(), key=lambda pair: (-pair[1], pair[0]))
+    ]
+    name = _humanize_label(_discriminator_label(item))
+    pattern_count = 1 + (len(variants) if isinstance(variants, list) else 0)
+    return html.Div(
+        [
+            html.Div(f"Nuvem de padrões — {name}", className="pattern-cloud-title"),
+            html.Div(f"{pattern_count} padrões: marcador principal e variantes aprendidas.", className="disc-meta"),
+            html.Div(words, className="pattern-cloud"),
+        ],
+        className="pattern-cloud-panel",
+    )
 
 
 def _canonical_discriminator_activity() -> tuple[list[dict[str, Any]], list[dict[str, Any]], set[str], str]:
@@ -2539,7 +2861,7 @@ def _wnn_crime_modus_figure(selected_crime: str = "__top__", graph_mode: str = "
 
 
 def create_app() -> Dash:
-    app = Dash(__name__)
+    app = Dash(__name__, suppress_callback_exceptions=True)
     app.title = "NT_PF Dashboard"
     app.layout = html.Div(
         [
@@ -2558,17 +2880,6 @@ def create_app() -> Dash:
                 className="header",
             ),
             html.Div(id="kpis", className="kpi-grid"),
-            html.Div(
-                [
-                    html.H2("Eixos de Classificacao"),
-                    html.Div(
-                        "Separacao operacional entre o classificador de tipo de crime e o classificador de modus operandi.",
-                        className="muted cloud-help",
-                    ),
-                    html.Div(id="axis-overview", className="axis-overview-grid"),
-                ],
-                className="panel",
-            ),
             html.Div(
                 [
                     dcc.Graph(id="metrics-graph", className="panel"),
@@ -2595,64 +2906,34 @@ def create_app() -> Dash:
             ),
             html.Div(
                 [
-                    html.H2("Fluxo Sankey da Classificacao WNN"),
-                    html.Div(
-                        "Inspirado em leituras editoriais de fluxo, o Sankey mostra como as noticias entram na WNN, atravessam o eixo de crime, passam pelo eixo de modus operandi e chegam na classificacao final.",
-                        className="muted cloud-help",
-                    ),
-                    dcc.Dropdown(
-                        id="wnn-flow-filter",
-                        options=_crime_filter_options(),
-                        value="__top__",
-                        clearable=False,
-                        style={"marginBottom": "10px"},
-                    ),
-                    dcc.RadioItems(
-                        id="wnn-flow-view-mode",
-                        options=_wnn_flow_mode_options(),
-                        value="sankey",
-                        inline=True,
-                        style={"marginBottom": "10px"},
-                        inputStyle={"marginRight": "6px", "marginLeft": "12px"},
-                    ),
-                    html.Div(id="wnn-flow-status", className="muted cloud-help"),
-                    dcc.Graph(id="wnn-flow-sankey", className="tree-graph"),
-                    html.Iframe(
-                        id="wnn-flow-particles",
-                        className="flow-frame",
-                        style={"display": "none"},
-                    ),
-                    html.H2("Vetor Binario da Ultima Noticia (grade 0/1)"),
+                    html.H2("Memoria WNN e discriminadores de crime"),
+                    html.H3("Cartões perfurados por tipo de crime"),
                     html.Div(id="binary-memory-panel", className="memory-wrap"),
-                ],
-                className="panel",
-            ),
-            html.Div(
-                [
-                    html.H2("Grafo WNN -> Crime -> Modus Operandi"),
+                    html.Div("Clique em um cartão para abrir sua nuvem de todos os padrões abaixo.", className="muted cloud-help"),
+                    html.Div("Clique em um cartão perfurado para ver todos os seus padrões.", id="punch-card-pattern-cloud"),
+                    html.H2("Mascaras Ativas da Noticia"),
                     html.Div(
-                        "O grafo parte da raiz WNN, passa pelo crime canonico principal, organiza os modos por grupo operacional e termina no marcador final. As contagens representam ocorrencias por no.",
+                        "Selecione uma noticia recente para ver os discriminadores realmente acionados, com suas palavras completas e pesos por evidencia.",
                         className="muted cloud-help",
                     ),
                     dcc.Dropdown(
-                        id="wnn-crime-filter",
-                        options=_crime_filter_options(),
-                        value="__top__",
+                        id="mask-document-select",
+                        options=_recent_wnn_documents(),
+                        value=(_recent_wnn_documents(1) or [{"value": None}])[0]["value"],
                         clearable=False,
-                        style={"marginBottom": "10px"},
+                        className="mask-select",
                     ),
-                    dcc.RadioItems(
-                        id="wnn-graph-mode",
-                        options=_graph_mode_options(),
-                        value="exploracao",
-                        inline=True,
-                        style={"marginBottom": "10px"},
-                        inputStyle={"marginRight": "6px", "marginLeft": "12px"},
+                    html.Div(
+                        [
+                            html.Div(id="active-mask-cards"),
+                            html.Div(id="active-mask-reading"),
+                        ],
+                        className="active-mask-layout",
                     ),
-                    dcc.Graph(id="wnn-crime-modus-graph", className="tree-graph"),
                 ],
                 className="panel",
             ),
+            html.Div(id="memory-capacity-panel"),
             html.Div(
                 [
                     html.Div(
@@ -2711,7 +2992,7 @@ def create_app() -> Dash:
             .kpi-title { color: #667085; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
             .kpi-value { font-size: 28px; font-weight: 700; margin-top: 6px; color: #111827; }
             .kpi-subtitle { color: #667085; font-size: 12px; margin-top: 4px; }
-            .graph-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 14px; margin-bottom: 14px; }
+            .graph-grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 14px; }
             .table-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 14px; }
             .panel { background: #ffffff; border: 1px solid #d9e0ea; border-radius: 8px; padding: 12px; }
             .axis-overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
@@ -2775,8 +3056,39 @@ def create_app() -> Dash:
                 box-shadow: 0 0 10px rgba(22, 199, 132, .75), inset 0 0 0 1px rgba(255, 255, 255, .18);
             }
             .memory-cell.off { background: #16232c; }
+            .punch-card-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; margin-top: 12px; }
+            .punch-card { width: 150px; height: 200px; box-sizing: border-box; padding: 6px 7px; border-radius: 5px; border: 1px solid #64748b; background: #0b1620; color: #e2e8f0; box-shadow: inset 0 0 0 2px rgba(255,255,255,.04), 0 1px 2px rgba(15,23,42,.15); overflow: hidden; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+            .punch-card:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 2px rgba(94,234,212,.35), 0 5px 10px rgba(15,23,42,.24); }
+            .punch-card-title { font-size: 10px; line-height: 11px; height: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .25px; color: #dbeafe; }
+            .punch-holes { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin: 3px 0; }
+            .punch-hole { width: 5px; height: 5px; border-radius: 1px; background: #233544; border: 1px solid #304657; }
+            .punch-hole.on { background: #2dd4a3; border-color: #5eead4; box-shadow: 0 0 5px rgba(45,212,163,.65); }
+            .punch-card-meta { font-size: 9px; color: #94a3b8; white-space: nowrap; }
+            .mask-select { margin: 0 0 12px 0; }
+            .active-mask-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(230px, .55fr); gap: 12px; align-items: start; }
+            .mask-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 10px; }
+            .mask-card { min-height: 94px; display: grid; grid-template-columns: 98px minmax(0, 1fr); align-items: center; gap: 8px; padding: 10px; border: 1px solid #d9e0ea; border-radius: 8px; background: #f8fafc; }
+            .mask-card-label { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+            .mask-name { color: #475467; font-size: 12px; line-height: 1.35; overflow-wrap: normal; word-break: normal; }
+            .mask-active-badge { color: #1478cf; background: #e7f2ff; border-radius: 999px; padding: 4px 8px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+            .mask-cloud { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 5px 8px; text-align: center; min-width: 0; }
+            .mask-word { color: #667085; font-size: 13px; line-height: 1.05; white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+            .mask-word-core { color: #162033; font-size: 16px; font-weight: 700; }
+            .mask-word-support { color: #344054; font-size: 14px; font-weight: 700; }
+            .mask-reading { min-height: 100%; border: 1px solid #d9e0ea; border-radius: 8px; padding: 12px; background: #f8fafc; }
+            .pattern-cloud-panel { margin-top: 10px; border: 1px solid #d9e0ea; border-radius: 8px; padding: 12px; background: #fbfcfe; }
+            .pattern-cloud-title { font-size: 16px; font-weight: 700; color: #172b4d; margin-bottom: 4px; }
+            .pattern-cloud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 4px 2px; min-height: 68px; }
+            .pattern-cloud-word { color: #075985; font-weight: 650; line-height: 1.05; cursor: default; }
+            .mask-news-title { font-size: 13px; color: #162033; font-weight: 700; line-height: 1.35; margin-bottom: 12px; }
+            .mask-decision { border-top: 1px solid #d9e0ea; padding-top: 10px; }
+            .mask-detail-label { color: #667085; font-size: 12px; margin-bottom: 4px; }
+            .mask-result { color: #162033; font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+            .mask-coverage { height: 8px; overflow: hidden; background: #d9e0ea; border-radius: 999px; margin-bottom: 12px; }
+            .mask-coverage-fill { height: 100%; background: #2491ee; border-radius: inherit; }
+            .mask-agent3 { color: #475467; font-size: 12px; line-height: 1.35; }
             @media (max-width: 980px) {
-                .graph-grid, .table-grid, .tree-map-layout { grid-template-columns: 1fr; }
+                .graph-grid, .table-grid, .tree-map-layout, .active-mask-layout { grid-template-columns: 1fr; }
                 .header { display: block; }
                 .operational-legend { position: static; }
             }
@@ -2899,7 +3211,6 @@ def create_app() -> Dash:
     @app.callback(
         Output("updated-at", "children"),
         Output("kpis", "children"),
-        Output("axis-overview", "children"),
         Output("metrics-graph", "figure"),
         Output("rate-graph", "figure"),
         Output("summary-table", "data"),
@@ -2924,7 +3235,6 @@ def create_app() -> Dash:
                 else f"Visualizacao estatica dos artefatos atuais | use o botao para recarregar | baseline: {previous.name if previous else 'nenhum'}"
             ),
             _summary_cards(current_summary, previous_summary, comparison),
-            _axis_overview_panel(current_summary),
             _metrics_figure(metrics, axis_metrics),
             _rate_figure(metrics, axis_metrics),
             ctx["summary_rows"],
@@ -2934,47 +3244,47 @@ def create_app() -> Dash:
         )
 
     @app.callback(
-        Output("wnn-flow-status", "children"),
-        Output("wnn-flow-sankey", "figure"),
-        Output("wnn-flow-sankey", "style"),
-        Output("wnn-flow-particles", "srcDoc"),
-        Output("wnn-flow-particles", "style"),
         Output("binary-memory-panel", "children"),
         Input("refresh", "n_intervals"),
         Input("refresh-button", "n_clicks"),
-        Input("wnn-flow-filter", "value"),
-        Input("wnn-flow-view-mode", "value"),
     )
-    def refresh_discriminators(_n: int, _clicks: int, selected_crime: str, view_mode: str):
-        sankey_figure, sankey_status = _wnn_flow_sankey_figure(selected_crime or "__top__")
-        particle_srcdoc, particle_status = _wnn_flow_particle_srcdoc(selected_crime or "__top__")
-        selected_view = str(view_mode or "sankey")
-        if selected_view == "animado":
-            status = particle_status
-            sankey_style = {"display": "none"}
-            iframe_style = {"display": "block", "width": "100%", "minHeight": "680px"}
-        else:
-            status = sankey_status
-            sankey_style = {"display": "block"}
-            iframe_style = {"display": "none"}
-        return (
-            status,
-            sankey_figure,
-            sankey_style,
-            particle_srcdoc,
-            iframe_style,
-            _binary_memory_panel(),
-        )
+    def refresh_binary_memory(_n: int, _clicks: int):
+        return _binary_memory_panel()
 
     @app.callback(
-        Output("wnn-crime-modus-graph", "figure"),
+        Output("memory-capacity-panel", "children"),
         Input("refresh", "n_intervals"),
         Input("refresh-button", "n_clicks"),
-        Input("wnn-crime-filter", "value"),
-        Input("wnn-graph-mode", "value"),
     )
-    def refresh_graphs(_n: int, _clicks: int, selected_crime: str, graph_mode: str):
-        return _wnn_crime_modus_figure(selected_crime or "__top__", graph_mode or "exploracao")
+    def refresh_memory_capacity(_n: int, _clicks: int):
+        return _memory_capacity_panel()
+
+    @app.callback(
+        Output("mask-document-select", "options"),
+        Input("refresh", "n_intervals"),
+        Input("refresh-button", "n_clicks"),
+    )
+    def refresh_mask_document_options(_n: int, _clicks: int):
+        return _recent_wnn_documents()
+
+    @app.callback(
+        Output("punch-card-pattern-cloud", "children"),
+        Input({"type": "punch-card", "crime": ALL}, "n_clicks"),
+    )
+    def show_punch_card_pattern_cloud(_clicks: list[int] | None):
+        triggered = ctx.triggered_id
+        label = str(triggered.get("crime", "")) if isinstance(triggered, dict) else ""
+        return _crime_punch_card_cloud(label)
+
+    @app.callback(
+        Output("active-mask-cards", "children"),
+        Output("active-mask-reading", "children"),
+        Input("refresh", "n_intervals"),
+        Input("refresh-button", "n_clicks"),
+        Input("mask-document-select", "value"),
+    )
+    def refresh_active_masks(_n: int, _clicks: int, selected_document: str | None):
+        return _active_mask_cards(selected_document)
 
     return app
 
