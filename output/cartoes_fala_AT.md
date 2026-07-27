@@ -16,7 +16,7 @@ Os cartões usam exclusivamente os dados da execução final. “Cobertura WNN�
 
 ---
 
-## Cartão 2 — Pergunta e ideia central
+## Cartão 2 — Pergunta e proposta
 
 **Fala sugerida:**
 
@@ -26,9 +26,11 @@ Os cartões usam exclusivamente os dados da execução final. “Cobertura WNN�
 
 ---
 
-## Cartão 3 — Recorte temporal do experimento
+## Cartão 3 — Corte temporal do experimento
 
-**Figura a exibir:** [linha do tempo de tipos de crime](../data/analise_qualitativa/incremental/figures/linha_tempo_tipos_crime.png).
+**Figura a exibir:**
+
+![Linha do tempo do experimento temporal](linha-do-tempo-experimento-temporal.png)
 
 **Fala sugerida:**
 
@@ -84,7 +86,7 @@ Os cartões usam exclusivamente os dados da execução final. “Cobertura WNN�
 
 ---
 
-## Cartão 8 — Como a memória decide
+## Cartão 8 — Como a WNN decide
 
 **Fala sugerida:**
 
@@ -102,7 +104,7 @@ Os cartões usam exclusivamente os dados da execução final. “Cobertura WNN�
 
 ---
 
-## Cartão 10 — Resultado operacional
+## Cartão 10 — Resultado principal: cobertura
 
 **Figura a exibir:** [taxas WNN, LLM e candidatos por lote](../data/analise_qualitativa/incremental/figures/taxas_wnn_llm_candidatos_por_iteracao.png).
 
@@ -114,7 +116,7 @@ Os cartões usam exclusivamente os dados da execução final. “Cobertura WNN�
 
 ---
 
-## Cartão 11 — Tokens e custo mensurável
+## Cartão 11 — Tokens e custo operacional
 
 **Figura a exibir:** [WNN, resíduos e candidatos por lote](../data/analise_qualitativa/incremental/figures/wnn_residual_candidatos_por_iteracao.png).
 
@@ -124,7 +126,7 @@ Os cartões usam exclusivamente os dados da execução final. “Cobertura WNN�
 
 ---
 
-## Cartão 12 — Leitura correta dos resultados
+## Cartão 12 — Leitura correta: cobertura não é acurácia
 
 **Fala sugerida:**
 
@@ -132,7 +134,7 @@ Os cartões usam exclusivamente os dados da execução final. “Cobertura WNN�
 
 ---
 
-## Cartão 13 — Conclusão
+## Cartão 13 — Conclusão e limites
 
 **Fala sugerida:**
 

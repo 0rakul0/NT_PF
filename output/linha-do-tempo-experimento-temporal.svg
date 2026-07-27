@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="640" viewBox="0 0 1600 640" role="img" aria-labelledby="title desc">
+  <title id="title">Linha do tempo do experimento temporal com memória WNN</title>
+  <desc id="desc">Cinco marcos mostram a fundação histórica, o corte temporal, a reserva incremental, o aprendizado por lotes e os resultados da execução.</desc>
+  <text x="60" y="65" fill="#183300" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="700">Linha do tempo do experimento incremental</text>
+  <text x="60" y="103" fill="#183300" font-family="Arial, Helvetica, sans-serif" font-size="20">A memória é formada apenas com o passado e aprende ao percorrer cronologicamente as notícias posteriores.</text>
+
+  <line x1="95" y1="350" x2="1505" y2="350" stroke="#8ba73e" stroke-width="4"/>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <line x1="150" y1="350" x2="150" y2="220" stroke="#8ba73e" stroke-width="3"/>
+    <text x="150" y="150" text-anchor="middle" fill="#183300" font-size="24" font-weight="700">29/11/2011</text>
+    <text x="150" y="182" text-anchor="middle" fill="#183300" font-size="19">Início histórico da base</text>
+    <polygon points="55,316 68,303 232,303 245,316 245,371 232,384 68,384 55,371" fill="#a7d74f"/>
+    <text x="150" y="343" text-anchor="middle" fill="#183300" font-size="19" font-weight="700">Fundação histórica</text>
+    <text x="150" y="368" text-anchor="middle" fill="#183300" font-size="17">notícias mais antigas</text>
+
+    <line x1="460" y1="350" x2="460" y2="455" stroke="#8ba73e" stroke-width="3"/>
+    <polygon points="365,316 378,303 542,303 555,316 555,371 542,384 378,384 365,371" fill="#a7d74f"/>
+    <text x="460" y="343" text-anchor="middle" fill="#183300" font-size="23" font-weight="700">10% da base</text>
+    <text x="460" y="368" text-anchor="middle" fill="#183300" font-size="17">831 notícias</text>
+    <text x="460" y="488" text-anchor="middle" fill="#183300" font-size="24" font-weight="700">30/07/2020</text>
+    <text x="460" y="520" text-anchor="middle" fill="#183300" font-size="19">Corte cronológico</text>
+
+    <line x1="770" y1="350" x2="770" y2="220" stroke="#8ba73e" stroke-width="3"/>
+    <text x="770" y="150" text-anchor="middle" fill="#183300" font-size="24" font-weight="700">A partir de 30/07/2020</text>
+    <text x="770" y="182" text-anchor="middle" fill="#183300" font-size="19">Reserva incremental</text>
+    <polygon points="675,316 688,303 852,303 865,316 865,371 852,384 688,384 675,371" fill="#a7d74f"/>
+    <text x="770" y="343" text-anchor="middle" fill="#183300" font-size="23" font-weight="700">90% da base</text>
+    <text x="770" y="368" text-anchor="middle" fill="#183300" font-size="17">7.479 notícias</text>
+
+    <line x1="1080" y1="350" x2="1080" y2="455" stroke="#8ba73e" stroke-width="3"/>
+    <polygon points="985,316 998,303 1162,303 1175,316 1175,371 1162,384 998,384 985,371" fill="#a7d74f"/>
+    <text x="1080" y="343" text-anchor="middle" fill="#183300" font-size="23" font-weight="700">15 lotes</text>
+    <text x="1080" y="368" text-anchor="middle" fill="#183300" font-size="17">WNN aprende e compacta</text>
+    <text x="1080" y="488" text-anchor="middle" fill="#183300" font-size="24" font-weight="700">2020–2026</text>
+    <text x="1080" y="520" text-anchor="middle" fill="#183300" font-size="19">processamento cronológico</text>
+
+    <line x1="1390" y1="350" x2="1390" y2="220" stroke="#8ba73e" stroke-width="3"/>
+    <text x="1390" y="150" text-anchor="middle" fill="#183300" font-size="24" font-weight="700">Execução concluída</text>
+    <text x="1390" y="182" text-anchor="middle" fill="#183300" font-size="19">resultado operacional</text>
+    <polygon points="1295,316 1308,303 1472,303 1485,316 1485,371 1472,384 1308,384 1295,371" fill="#a7d74f"/>
+    <text x="1390" y="343" text-anchor="middle" fill="#183300" font-size="23" font-weight="700">80,64% WNN</text>
+    <text x="1390" y="368" text-anchor="middle" fill="#183300" font-size="17">1.448 resíduos para LLM</text>
+  </g>
+
+  <text x="60" y="600" fill="#183300" font-family="Arial, Helvetica, sans-serif" font-size="18">Fundação: 17 crimes canônicos • Taxonomia final: 18 categorias • Memória final: 358 posições lexicais</text>
+</svg>
