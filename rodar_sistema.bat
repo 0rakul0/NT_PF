@@ -3,7 +3,13 @@ setlocal
 
 cd /d "%~dp0"
 
+if /I "%~1"=="--reset" set PF_RESET_RUN=true
+if /I "%~1"=="--nova-rodada" set PF_RESET_RUN=true
+if /I "%~1"=="--continue" set PF_RESET_RUN=false
+
 if "%PF_SKIP_SYNC%"=="" set PF_SKIP_SYNC=false
+if "%PF_RESUME_RUN%"=="" set PF_RESUME_RUN=true
+if "%PF_RESET_RUN%"=="" set PF_RESET_RUN=false
 if "%PF_PRESERVE_PREVIOUS_RUN%"=="" set PF_PRESERVE_PREVIOUS_RUN=true
 if "%PF_LLM_PROVIDER%"=="" set PF_LLM_PROVIDER=openai
 if "%PF_SAMPLE_FRACTION%"=="" set PF_SAMPLE_FRACTION=0.10
@@ -17,9 +23,11 @@ echo Rodando sistema NT_PF
 echo ============================================================
 echo.
 echo Fluxo padrao:
-echo - sincronizar/gerar base: PF_SKIP_SYNC=%PF_SKIP_SYNC%
+echo - continuar checkpoints existentes: PF_RESUME_RUN=%PF_RESUME_RUN%
+echo - resetar e iniciar nova rodada: PF_RESET_RUN=%PF_RESET_RUN%
+echo - sincronizar/gerar base: PF_SKIP_SYNC=%PF_SKIP_SYNC% (somente rodada nova)
 echo - preservar execucao anterior: PF_PRESERVE_PREVIOUS_RUN=%PF_PRESERVE_PREVIOUS_RUN%
-echo - limpar artefatos anteriores
+echo - limpar artefatos anteriores (somente rodada nova)
 echo - provedor LLM: PF_LLM_PROVIDER=%PF_LLM_PROVIDER%
 echo - fundacao: PF_SAMPLE_FRACTION=%PF_SAMPLE_FRACTION% dos registros mais antigos
 echo - massa incremental: 90%% dos registros posteriores, em ordem cronologica
@@ -33,6 +41,7 @@ echo - casos residuais seguem para o Agente 3
 echo - exportar ocorrencias por crime e mes para analise temporal
 echo - revisao da arvore tematica ao final da execucao
 echo - gerar metricas, graficos e README automatico
+echo - para uma nova rodada: rodar_sistema.bat --reset
 echo.
 
 where uv >nul 2>nul

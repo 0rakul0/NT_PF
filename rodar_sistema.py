@@ -12,7 +12,7 @@ from scripts.incremental.dashboard_comparacao import run as run_comparison_dashb
 from scripts.incremental.organizar_arvore_temas import run as run_theme_tree_organizer
 from scripts.incremental.reavaliar_quarentenas import run as run_rare_news_review
 from scripts.incremental.resumo_custo_tokens import run as run_token_cost_summary
-from scripts.incremental.run_all_incremental import run
+from scripts.incremental.run_all_incremental import has_resume_checkpoint, resume as resume_incremental, run
 from scripts.project_config import CONTENT_CSV, INDEX_CSV, NEWS_MARKDOWN_DIR, PROJECT_ROOT, get_llm_settings
 
 
@@ -69,7 +69,7 @@ def build_run_config(reset: bool = True) -> RunConfig:
         if model != llm_settings.ollama.model_name
     )
     return RunConfig(
-        sample_fraction=env_float("PF_SAMPLE_FRACTION", 0.30),
+        sample_fraction=env_float("PF_SAMPLE_FRACTION", 0.10),
         batch_size=env_int("PF_BATCH_SIZE", 100),
         seed=env_int("PF_RANDOM_SEED", 42),
         wnn_enabled=env_bool("PF_WNN_ENABLED", True),
@@ -89,6 +89,9 @@ def build_run_config(reset: bool = True) -> RunConfig:
         ollama_num_predict=env_int("PF_OLLAMA_NUM_PREDICT", 1024),
         agent3_min_confidence=env_float("PF_AGENT3_MIN_CONFIDENCE", 0.55),
         resume_batches=env_bool("PF_RESUME_BATCHES", True),
+        dynamic_class_thresholds=env_bool("PF_DYNAMIC_CLASS_THRESHOLDS", True),
+        dynamic_threshold_min_references=env_int("PF_DYNAMIC_THRESHOLD_MIN_REFERENCES", 10),
+        dynamic_threshold_step=env_float("PF_DYNAMIC_THRESHOLD_STEP", 0.02),
         # Each full execution starts from a clean incremental workspace. Prior
         # runs meant for comparison must be archived under comparacoes/ first.
         preserve_previous_run=env_bool("PF_PRESERVE_PREVIOUS_RUN", False),
@@ -101,21 +104,43 @@ def build_run_config(reset: bool = True) -> RunConfig:
 
 def main() -> None:
     steps: list[dict[str, object]] = []
-    steps.append(
-        run_command(
-            [sys.executable, "-B", str(PROJECT_ROOT / "scripts" / "pf_operacoes_pipeline.py")],
-            "sincronizacao da base",
-            skip=env_bool("PF_SKIP_SYNC", False),
+    requested_resume = env_bool("PF_RESUME_RUN", True)
+    requested_reset = env_bool("PF_RESET_RUN", False)
+    resume_run = not requested_reset and requested_resume and has_resume_checkpoint()
+
+    if resume_run:
+        # The source base is deliberately not synchronized here.  The existing
+        # reserve CSV is the immutable checkpoint for this execution.
+        steps.append(
+            {
+                "label": "sincronizacao da base",
+                "skipped": True,
+                "reason": "continuacao preserva a reserva original",
+                "elapsed_seconds": 0.0,
+                "returncode": 0,
+            }
         )
-    )
+        print("[rodar_sistema] continuando a execucao interrompida pelos checkpoints dos lotes")
+    else:
+        if requested_reset:
+            print("[rodar_sistema] reset solicitado; iniciando nova rodada e reconstruindo a fundacao")
+        elif requested_resume:
+            print("[rodar_sistema] nenhum checkpoint completo encontrado; iniciando nova rodada")
+        steps.append(
+            run_command(
+                [sys.executable, "-B", str(PROJECT_ROOT / "scripts" / "pf_operacoes_pipeline.py")],
+                "sincronizacao da base",
+                skip=env_bool("PF_SKIP_SYNC", False),
+            )
+        )
     ensure_base_inputs()
 
-    config = build_run_config(reset=True)
+    config = build_run_config(reset=not resume_run)
     started = time.perf_counter()
-    result = run(config)
+    result = resume_incremental(config) if resume_run else run(config)
     steps.append(
         {
-            "label": "metodologia incremental",
+            "label": "continuacao incremental" if resume_run else "metodologia incremental",
             "skipped": False,
             "elapsed_seconds": round(time.perf_counter() - started, 4),
             "returncode": 0,

@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+import ast
 import json
+import shutil
 from collections import Counter, defaultdict
+from datetime import datetime
+from pathlib import Path
 from typing import Any
+
+import pandas as pd
 
 from scripts.incremental.common import (
     NEW_THEME_CANDIDATES_JSONL,
+    LOTS_DIR,
     RARE_NEWS_DESCRIPTION,
     RARE_NEWS_LABEL,
     REFINED_THEME_TREE_JSON,
     THEME_REFINEMENT_INPUT_JSON,
     THEMES_JSON,
     WNN_FEATURE_BANK_PATH,
+    RUN_SNAPSHOTS_DIR,
     RunConfig,
     append_event,
     read_json,
@@ -19,8 +27,6 @@ from scripts.incremental.common import (
     write_json,
 )
 from scripts.pf_wnn_classifier import compact_feature_bank, parent_theme
-from scripts.incremental.llm_api import invoke_json_with_fallback
-from scripts.incremental.similaridade_cosseno import top_k_similar_themes
 from scripts.schemas.pf_incremental_agent_schemas import ThemeCandidateDecision, ThemeTreeRefinementResponse
 
 
@@ -115,6 +121,8 @@ def _tokens(label: str) -> set[str]:
 
 
 def _candidate_groups() -> list[dict[str, Any]]:
+    from scripts.incremental.similaridade_cosseno import top_k_similar_themes
+
     rows = read_jsonl(NEW_THEME_CANDIDATES_JSONL)
     grouped: dict[str, dict[str, Any]] = {}
     for row in rows:
@@ -437,6 +445,8 @@ def refine_theme_tree(config: RunConfig) -> ThemeTreeRefinementResponse:
         + json.dumps(candidates, ensure_ascii=False)
     )
     try:
+        from scripts.incremental.llm_api import invoke_json_with_fallback
+
         response, provider, model_name, _token_usage = invoke_json_with_fallback(prompt, ThemeTreeRefinementResponse, config, "agente_organizador_arvore")
         append_event({"stage": "agente_organizador_arvore", "status": "llm_ok", "provider": provider, "model": model_name})
         if not response.decisions and candidates:
@@ -455,10 +465,117 @@ def refine_theme_tree(config: RunConfig) -> ThemeTreeRefinementResponse:
     return response
 
 
+def _as_list(value: object) -> list[object]:
+    if isinstance(value, list):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        return []
+    try:
+        parsed = ast.literal_eval(value)
+    except (SyntaxError, ValueError):
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _as_bool(value: object) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "sim"}
+
+
+def _apply_metric_feedback_to_wnn_bank(
+    feature_bank_path: Path = WNN_FEATURE_BANK_PATH,
+    lots_dir: Path = LOTS_DIR,
+    snapshots_dir: Path = RUN_SNAPSHOTS_DIR,
+    report_path: Path | None = None,
+) -> dict[str, object]:
+    """Apply conservative, auditable discriminator feedback from completed lots.
+
+    Tags x2 are read only after WNN decisions. A rule receives one confirmation
+    when it contributed to a correct autonomous decision. A non-curated learned
+    rule is quarantined only after at least two false-positive activations and no
+    correct activation; curated rules are never automatically disabled.
+    """
+    paths = sorted(lots_dir.glob("lote_*_classificacoes.csv"))
+    if not feature_bank_path.exists() or not paths:
+        return {"snapshot": "", "reinforced": 0, "quarantined": 0, "reason": "no_completed_lots"}
+    frames = [pd.read_csv(path) for path in paths]
+    rows = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+    if rows.empty:
+        return {"snapshot": "", "reinforced": 0, "quarantined": 0, "reason": "empty_lots"}
+
+    correct_by_id: Counter[str] = Counter()
+    error_by_id: Counter[str] = Counter()
+    for row in rows.to_dict(orient="records"):
+        if not _as_bool(row.get("wnn_accepted", False)):
+            continue
+        targets = {str(label) for label in _as_list(row.get("x2_target_labels", [])) if str(label)}
+        predicted = str(row.get("wnn_top_label", "") or "")
+        if not targets or not predicted:
+            continue
+        active = _as_list(row.get("wnn_active_discriminators", []))
+        matching_ids = {
+            str(item.get("id", ""))
+            for item in active
+            if isinstance(item, dict)
+            and str(item.get("label", "")) == predicted
+            and float(item.get("mask_coverage", 0.0) or 0.0) >= 0.999
+            and str(item.get("id", ""))
+        }
+        destination = correct_by_id if predicted in targets else error_by_id
+        destination.update(matching_ids)
+
+    payload = read_json(feature_bank_path)
+    discriminators = payload.get("discriminators", []) if isinstance(payload, dict) else []
+    if not isinstance(discriminators, list):
+        return {"snapshot": "", "reinforced": 0, "quarantined": 0, "reason": "invalid_feature_bank"}
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    snapshot_dir = snapshots_dir / f"{timestamp}_before_metric_discriminator_feedback"
+    snapshot_dir.mkdir(parents=True, exist_ok=False)
+    snapshot_path = snapshot_dir / feature_bank_path.name
+    shutil.copy2(feature_bank_path, snapshot_path)
+
+    reinforced_ids: list[str] = []
+    quarantined_ids: list[str] = []
+    for item in discriminators:
+        if not isinstance(item, dict):
+            continue
+        discriminator_id = str(item.get("id", ""))
+        hits = int(correct_by_id.get(discriminator_id, 0))
+        errors = int(error_by_id.get(discriminator_id, 0))
+        if hits:
+            item["confirmations"] = int(item.get("confirmations", 0) or 0) + hits
+            item["last_metric_feedback"] = {"correct": hits, "incorrect": errors, "at": timestamp}
+            reinforced_ids.append(discriminator_id)
+        source = str(item.get("source", ""))
+        learned = source.startswith("agent3_learned") or "generalized_micro_world" in source
+        if learned and errors >= 2 and hits == 0:
+            item["quarantined"] = True
+            item["quarantine_reason"] = "metric_false_positive_without_correct_activation"
+            item["quarantine_feedback"] = {"correct": hits, "incorrect": errors, "at": timestamp}
+            quarantined_ids.append(discriminator_id)
+
+    payload["discriminators"] = discriminators
+    payload["metric_feedback"] = {
+        "created_at": timestamp,
+        "snapshot": str(snapshot_path),
+        "completed_lots": len(paths),
+        "reinforced_ids": reinforced_ids,
+        "quarantined_ids": quarantined_ids,
+        "policy": "x2_pos_decisao; regra_curada_preservada; quarentena_exige_2_erros_sem_acerto",
+    }
+    write_json(feature_bank_path, payload)
+    result = {"snapshot": str(snapshot_path), "reinforced": len(reinforced_ids), "quarantined": len(quarantined_ids)}
+    resolved_report_path = report_path or (feature_bank_path.parent / "incremental" / "feedback_metricas_discriminadores.json")
+    resolved_report_path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(resolved_report_path, {**result, **payload["metric_feedback"]})
+    return result
+
+
 def run(config: RunConfig | None = None) -> dict[str, object]:
     """Organiza globalmente a arvore de temas apos a etapa incremental."""
     config = config or RunConfig(reset=False)
     response = refine_theme_tree(config)
+    feedback = _apply_metric_feedback_to_wnn_bank()
+    append_event({"stage": "agente_organizador_arvore", "status": "metric_feedback_applied", **feedback})
     result = {
         "stage": "agente_organizador_arvore",
         "theme_refinement_input_json": str(THEME_REFINEMENT_INPUT_JSON),
@@ -471,6 +588,7 @@ def run(config: RunConfig | None = None) -> dict[str, object]:
         "kept_as_leaf_count": response.kept_as_leaf_count,
         "discarded_count": response.discarded_count,
         "quarantined_count": response.quarantined_count,
+        "discriminator_metric_feedback": feedback,
     }
     append_event(result)
     return result

@@ -73,6 +73,143 @@ def _parse_jsonish_list(value: Any) -> list[Any]:
     return []
 
 
+def _as_bool(value: Any) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "sim"}
+
+
+def _classification_quality_rows() -> list[dict[str, Any]]:
+    """Measure WNN and Agent 3 against x2 tags saved with each lot.
+
+    x2 is read only after each decision.  It is never part of the retinal input
+    nor sent to the LLM, preserving an auditable evaluation of both layers.
+    """
+    frame = _read_lot_classifications(ANALYSIS_DIR)
+    if frame.empty:
+        return []
+
+    records: list[dict[str, Any]] = []
+    for row in frame.to_dict(orient="records"):
+        targets = [str(label) for label in _parse_jsonish_list(row.get("x2_target_labels", [])) if str(label)]
+        if not targets:
+            continue
+        wnn_accepted = _as_bool(row.get("wnn_accepted", False))
+        agent3_reviewed = _as_bool(row.get("agent3_reviewed", False))
+        raw_agent3 = str(row.get("agent3_raw_canonical_label", "") or row.get("agent3_canonical_label", ""))
+        final_label = str(row.get("wnn_top_label", "")) if wnn_accepted else str(row.get("agent3_canonical_label", ""))
+        records.append(
+            {
+                "targets": set(targets),
+                "wnn_accepted": wnn_accepted,
+                "wnn_label": str(row.get("wnn_top_label", "")),
+                "agent3_reviewed": agent3_reviewed,
+                "agent3_raw_label": raw_agent3,
+                "agent3_final_label": str(row.get("agent3_canonical_label", "")),
+                "final_label": final_label,
+                "learning_authorized": _as_bool(row.get("agent3_learning_authorized", False)),
+                "learning_status": str(row.get("agent3_learning_status", "")),
+            }
+        )
+
+    def summarize(name: str, selected: list[dict[str, Any]], label_key: str, total: int, note: str) -> dict[str, Any]:
+        decisions = [item for item in selected if item.get(label_key)]
+        correct = sum(str(item[label_key]) in item["targets"] for item in decisions)
+        precision = correct / len(decisions) if decisions else 0.0
+        recall = correct / total if total else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+        return {
+            "camada": name,
+            "avaliadas": len(decisions),
+            "corretas": correct,
+            "precisao": f"{precision:.1%}",
+            "cobertura": f"{recall:.1%}",
+            "f1": f"{f1:.1%}",
+            "observacao": note,
+        }
+
+    total = len(records)
+    wnn = [item for item in records if item["wnn_accepted"]]
+    agent3 = [item for item in records if item["agent3_reviewed"]]
+    final = [item for item in records if item["final_label"]]
+    authorized = sum(item["learning_authorized"] for item in agent3)
+    corrected = sum(item["learning_status"] == "corrigido_por_x2_unica" for item in agent3)
+    bleached = sum(item["learning_status"] == "desambiguado_por_bleaching_x2_multilabel" for item in agent3)
+    supervision_available = any(item["learning_status"] for item in agent3)
+    return [
+        summarize("WNN (decisão autônoma)", wnn, "wnn_label", total, "x2 consultada somente após a decisão."),
+        summarize("Agente 3 — resposta bruta", agent3, "agent3_raw_label", len(agent3), "Mede a LLM antes de qualquer supervisão."),
+        summarize("Resultado final WNN + Agente 3", final, "final_label", total, "Rótulo final comparado às tags criminais mapeadas."),
+        (
+            {
+                "camada": "Agente 4 — supervisão por x2",
+                "avaliadas": len(agent3),
+                "corretas": authorized,
+                "precisao": f"{(authorized / len(agent3)):.1%}" if agent3 else "0.0%",
+                "cobertura": "—",
+                "f1": "—",
+                "observacao": (
+                    f"{corrected} rótulo(s) único(s) corrigido(s); {bleached} multirrótulo(s) "
+                    "desambiguado(s) por bleaching; os demais são bloqueados."
+                ),
+            }
+            if supervision_available
+            else {
+                "camada": "Agente 4 — supervisão por x2",
+                "avaliadas": "—",
+                "corretas": "—",
+                "precisao": "—",
+                "cobertura": "—",
+                "f1": "—",
+                "observacao": "Disponível somente em lotes iniciados após esta atualização.",
+            }
+        ),
+    ]
+
+
+def _wnn_quality_by_crime_rows() -> list[dict[str, Any]]:
+    """Report the performance of each crime mask/discriminator class.
+
+    A WNN decision can activate several lexical rules. Attribution to one
+    individual rule would be misleading, so this table evaluates the complete
+    set of discriminators associated with each canonical crime mask.
+    """
+    frame = _read_lot_classifications(ANALYSIS_DIR)
+    if frame.empty:
+        return []
+
+    records: list[tuple[set[str], str]] = []
+    for row in frame.to_dict(orient="records"):
+        targets = {str(label) for label in _parse_jsonish_list(row.get("x2_target_labels", [])) if str(label)}
+        if not targets:
+            continue
+        predicted = str(row.get("wnn_top_label", "")) if _as_bool(row.get("wnn_accepted", False)) else ""
+        records.append((targets, predicted))
+
+    labels = sorted(
+        {label for targets, _ in records for label in targets}
+        | {predicted for _, predicted in records if predicted}
+    )
+    rows: list[dict[str, Any]] = []
+    for label in labels:
+        reference = sum(label in targets for targets, _ in records)
+        predicted = sum(prediction == label for _, prediction in records)
+        correct = sum(label in targets and prediction == label for targets, prediction in records)
+        precision = correct / predicted if predicted else 0.0
+        recall = correct / reference if reference else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+        rows.append(
+            {
+                "classe_wnn": _humanize_label(label),
+                "referencias_x2": reference,
+                "previsoes_wnn": predicted,
+                "acertos": correct,
+                "precisao": f"{precision:.1%}",
+                "revocacao": f"{recall:.1%}",
+                "f1": f"{f1:.1%}",
+            }
+        )
+    return sorted(rows, key=lambda item: (-_safe_int(item["referencias_x2"]), str(item["classe_wnn"])))
+
+
 def _card(title: str, value: Any, subtitle: str = "") -> html.Div:
     return html.Div(
         [
@@ -178,6 +315,10 @@ def _metrics_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = N
         return fig
 
     frame = metrics.copy()
+    if frame.empty and not axis_metrics.empty:
+        # During a running lot, classifications can be persisted before the
+        # batch metrics CSV. Keep the quality/diversity graph available.
+        frame = axis_metrics[["iteration"]].copy()
     for column in ["wnn_accepted", "post_wnn_residual", "llm_processed", "wnn_multi_discriminator_candidates"]:
         if column not in frame:
             frame[column] = 0
@@ -232,10 +373,10 @@ def _rate_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = None
     if metrics.empty and axis_metrics.empty:
         fig = go.Figure()
         fig.update_layout(
-            title="Taxas e diversidade dos classificadores",
+            title="Taxas, qualidade e diversidade por lote",
             annotations=[
                 {
-                    "text": "Sem taxas ainda. Assim que houver lote, este grafico mostra crime, modus e pressao de revisao.",
+                    "text": "Sem dados ainda. Assim que houver lote, este gráfico mostra taxas, acurácia, precisão e diversidade.",
                     "xref": "paper",
                     "yref": "paper",
                     "x": 0.5,
@@ -250,6 +391,8 @@ def _rate_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = None
         )
         return fig
     frame = metrics.copy()
+    if frame.empty and not axis_metrics.empty:
+        frame = axis_metrics[["iteration"]].copy()
     for column in ["docs", "wnn_accepted", "llm_processed", "wnn_multi_discriminator_candidates"]:
         if column not in frame:
             frame[column] = 0
@@ -270,7 +413,7 @@ def _rate_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = None
     )
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(
-        go.Scatter(x=frame["iteration"], y=frame["wnn_rate"], mode="lines+markers", name="Aceitacao WNN"),
+        go.Scatter(x=frame["iteration"], y=frame["wnn_rate"], mode="lines+markers", name="Aceitação WNN"),
         secondary_y=False,
     )
     fig.add_trace(
@@ -281,7 +424,7 @@ def _rate_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = None
             name="LLM residual",
             line={"dash": "dot", "color": "#dc2626"},
         ),
-        secondary_y=True,
+        secondary_y=False,
     )
     fig.add_trace(
         go.Scatter(
@@ -291,9 +434,29 @@ def _rate_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = None
             name="Candidatos compostos",
             line={"dash": "dash", "color": "#7c3aed"},
         ),
-        secondary_y=True,
+        secondary_y=False,
     )
     if not axis_metrics.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=axis_metrics["iteration"],
+                y=axis_metrics["accuracy"],
+                mode="lines+markers",
+                name="Acurácia final",
+                line={"color": "#2563eb", "width": 3},
+            ),
+            secondary_y=False,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=axis_metrics["iteration"],
+                y=axis_metrics["precision"],
+                mode="lines+markers",
+                name="Precisão final",
+                line={"color": "#0f766e", "dash": "dash"},
+            ),
+            secondary_y=False,
+        )
         fig.add_trace(
             go.Scatter(
                 x=axis_metrics["iteration"],
@@ -302,7 +465,7 @@ def _rate_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = None
                 name="Crimes unicos",
                 line={"color": "#111827", "dash": "dash"},
             ),
-            secondary_y=False,
+            secondary_y=True,
         )
         fig.add_trace(
             go.Scatter(
@@ -312,22 +475,21 @@ def _rate_figure(metrics: pd.DataFrame, axis_metrics: pd.DataFrame | None = None
                 name="Modus unicos",
                 line={"color": "#1d4ed8", "dash": "dash"},
             ),
-            secondary_y=False,
+            secondary_y=True,
         )
     fig.update_layout(
-        title="Taxas e diversidade por lote",
+        title="Taxas, acurácia, precisão e diversidade por lote",
         margin={"l": 24, "r": 16, "t": 48, "b": 24},
     )
-    left_source = [float(frame["wnn_rate"].max()) if not frame.empty else 0.0]
+    rate_columns = ["wnn_rate", "llm_rate", "candidate_rate"]
+    rate_ceiling = max(0.05, float(frame[rate_columns].max().max()) if not frame.empty else 0.0)
     if not axis_metrics.empty:
-        left_source.extend([float(axis_metrics["unique_crimes"].max()), float(axis_metrics["unique_modus"].max())])
-    left_ceiling = max(1.0, max(left_source) + 1.0)
-    right_ceiling = min(
-        1.0,
-        max(0.05, float(frame[["llm_rate", "candidate_rate"]].max().max()) + 0.04),
-    )
-    fig.update_yaxes(title_text="Qtd. de labels ativas / diversidade", range=[0, left_ceiling], secondary_y=False)
-    fig.update_yaxes(title_text="LLM / candidatos compostos", tickformat=".0%", range=[0, right_ceiling], secondary_y=True)
+        rate_ceiling = max(rate_ceiling, float(axis_metrics[["accuracy", "precision"]].max().max()))
+    diversity_ceiling = 1.0
+    if not axis_metrics.empty:
+        diversity_ceiling = max(1.0, float(axis_metrics[["unique_crimes", "unique_modus"]].max().max()) + 1.0)
+    fig.update_yaxes(title_text="Taxas de classificação e qualidade", tickformat=".0%", range=[0, min(1.0, rate_ceiling + 0.04)], secondary_y=False)
+    fig.update_yaxes(title_text="Classes ativas por lote", range=[0, diversity_ceiling], secondary_y=True)
     return fig
 
 
@@ -592,6 +754,16 @@ def _classifier_axis_metrics() -> tuple[dict[str, Any], pd.DataFrame]:
     per_batch_rows: list[dict[str, Any]] = []
     for iteration, batch_df in frame.groupby("iteration", sort=True):
         batch_docs = len(batch_df)
+        targets_by_doc = [
+            {str(label) for label in _parse_jsonish_list(value) if str(label)}
+            for value in batch_df.get("x2_target_labels", pd.Series([], dtype=object)).tolist()
+        ]
+        final_labels = batch_df["crime_label"].astype(str).str.strip().tolist()
+        evaluated = [(targets, label) for targets, label in zip(targets_by_doc, final_labels) if targets]
+        predicted = [(targets, label) for targets, label in evaluated if label]
+        correct = sum(label in targets for targets, label in predicted)
+        accuracy = correct / len(evaluated) if evaluated else 0.0
+        precision = correct / len(predicted) if predicted else 0.0
         batch_modus_labels = {
             str(label).strip()
             for labels in batch_df["modus_labels"].tolist()
@@ -609,6 +781,9 @@ def _classifier_axis_metrics() -> tuple[dict[str, Any], pd.DataFrame]:
                 "modus_rate": (float(batch_df["has_modus"].sum()) / float(batch_docs)) if batch_docs else 0.0,
                 "unique_crimes": int(batch_df.loc[batch_df["has_crime"], "crime_label"].astype(str).str.strip().replace("", pd.NA).dropna().nunique()),
                 "unique_modus": int(len(batch_modus_labels)),
+                "accuracy": accuracy,
+                "precision": precision,
+                "evaluated_x2": len(evaluated),
             }
         )
     return summary, pd.DataFrame(per_batch_rows)
@@ -727,6 +902,47 @@ def _memory_capacity_panel() -> html.Div:
         [
             html.H2("Capacidade adaptativa e metamorfose da WNN"),
             html.Div("Classes frequentes crescem de 35 até 200 padrões; a compactação preserva os mais confirmados.", className="muted cloud-help"),
+            html.H3("Qualidade da classificação por camada"),
+            html.Div(
+                "As tags x2 são referências pós-decisão: não entram na retina nem no prompt da LLM. Elas validam e supervisionam o aprendizado.",
+                className="muted cloud-help",
+            ),
+            dash_table.DataTable(
+                data=_classification_quality_rows(),
+                columns=[
+                    {"name": "Camada", "id": "camada"},
+                    {"name": "Avaliadas", "id": "avaliadas"},
+                    {"name": "Corretas", "id": "corretas"},
+                    {"name": "Precisão", "id": "precisao"},
+                    {"name": "Cobertura", "id": "cobertura"},
+                    {"name": "F1", "id": "f1"},
+                    {"name": "Observação", "id": "observacao"},
+                ],
+                style_table={"overflowX": "auto", "marginBottom": "16px"},
+                style_cell={"fontFamily": "Arial", "fontSize": 12, "padding": "7px", "textAlign": "left", "whiteSpace": "normal", "height": "auto"},
+                style_header={"backgroundColor": "#e8edf4", "fontWeight": "bold"},
+            ),
+            html.H3("Desempenho dos discriminadores WNN por classe"),
+            html.Div(
+                "Cada linha avalia a máscara completa da classe. Precisão mede o acerto quando a WNN prevê a classe; revocação mede quanto das referências x2 dessa classe foi recuperado pela WNN.",
+                className="muted cloud-help",
+            ),
+            dash_table.DataTable(
+                data=_wnn_quality_by_crime_rows(),
+                columns=[
+                    {"name": "Classe / máscara WNN", "id": "classe_wnn"},
+                    {"name": "Referências x2", "id": "referencias_x2"},
+                    {"name": "Previsões WNN", "id": "previsoes_wnn"},
+                    {"name": "Acertos", "id": "acertos"},
+                    {"name": "Precisão", "id": "precisao"},
+                    {"name": "Revocação", "id": "revocacao"},
+                    {"name": "F1", "id": "f1"},
+                ],
+                page_size=12,
+                style_table={"overflowX": "auto", "maxHeight": "480px", "overflowY": "auto", "marginBottom": "16px"},
+                style_cell={"fontFamily": "Arial", "fontSize": 12, "padding": "7px", "textAlign": "left"},
+                style_header={"backgroundColor": "#e8edf4", "fontWeight": "bold"},
+            ),
             html.Div(latest, className="chart-note"),
             dash_table.DataTable(
                 data=rows,
@@ -2870,8 +3086,13 @@ def create_app() -> Dash:
                 [
                     html.Div(
                         [
-                            html.H1("NT_PF - Acompanhamento WNN"),
-                            html.Div(id="updated-at", className="muted"),
+                            html.Div("INTELIGÊNCIA ANALÍTICA · WNN", className="eyebrow"),
+                            html.H1("Acompanhamento da Classificação WNN"),
+                            html.Div(
+                                "Visão operacional do roteamento, memória binária, discriminadores e qualidade da classificação.",
+                                className="header-subtitle",
+                            ),
+                            html.Div(id="updated-at", className="header-status"),
                         ],
                         className="header-copy",
                     ),
@@ -2882,7 +3103,13 @@ def create_app() -> Dash:
             html.Div(id="kpis", className="kpi-grid"),
             html.Div(
                 [
-                    dcc.Graph(id="metrics-graph", className="panel"),
+                    html.Div(
+                        [
+                            html.Div("VISÃO OPERACIONAL", className="section-kicker"),
+                            dcc.Graph(id="metrics-graph"),
+                        ],
+                        className="panel graph-panel",
+                    ),
                     html.Div(
                         [
                             dcc.Graph(id="rate-graph"),
@@ -2899,7 +3126,7 @@ def create_app() -> Dash:
                                 className="chart-note",
                             ),
                         ],
-                        className="panel",
+                        className="panel graph-panel",
                     ),
                 ],
                 className="graph-grid",
@@ -2931,9 +3158,9 @@ def create_app() -> Dash:
                         className="active-mask-layout",
                     ),
                 ],
-                className="panel",
+                className="panel feature-panel",
             ),
-            html.Div(id="memory-capacity-panel"),
+            html.Div(id="memory-capacity-panel", className="section-block"),
             html.Div(
                 [
                     html.Div(
@@ -3087,6 +3314,73 @@ def create_app() -> Dash:
             .mask-coverage { height: 8px; overflow: hidden; background: #d9e0ea; border-radius: 999px; margin-bottom: 12px; }
             .mask-coverage-fill { height: 100%; background: #2491ee; border-radius: inherit; }
             .mask-agent3 { color: #475467; font-size: 12px; line-height: 1.35; }
+
+            /* ---- Visual refresh v2 ---- */
+            :root {
+                --bg: #f4f7fb;
+                --surface: #ffffff;
+                --surface-soft: #f8fafc;
+                --text: #10233f;
+                --muted: #667085;
+                --border: #dce3ee;
+                --accent: #175cd3;
+                --accent-soft: #eaf2ff;
+                --success: #179b68;
+                --shadow: 0 10px 30px rgba(16, 35, 63, .06);
+            }
+            * { box-sizing: border-box; }
+            body { background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+            .page { max-width: 1680px; margin: 0 auto; padding: 28px 32px 42px; }
+            .header {
+                position: relative; overflow: hidden;
+                padding: 24px 26px; margin-bottom: 18px;
+                border: 1px solid rgba(23, 92, 211, .12); border-radius: 18px;
+                background: linear-gradient(135deg, #ffffff 0%, #f7faff 65%, #eef5ff 100%);
+                box-shadow: var(--shadow);
+            }
+            .header::after { content: ""; position: absolute; right: -70px; top: -90px; width: 250px; height: 250px; border-radius: 50%; background: rgba(23, 92, 211, .055); }
+            .header-copy { position: relative; z-index: 1; gap: 7px; }
+            .eyebrow, .section-kicker { font-size: 11px; font-weight: 800; letter-spacing: .13em; color: var(--accent); }
+            h1 { font-size: clamp(25px, 2vw, 34px); line-height: 1.08; letter-spacing: -.025em; color: #0b1f3a; }
+            h2 { font-size: 18px; letter-spacing: -.01em; color: #12233f; margin-bottom: 14px; }
+            h3 { color: #23395d; }
+            .header-subtitle { max-width: 830px; color: #475467; font-size: 14px; line-height: 1.55; }
+            .header-status { width: fit-content; margin-top: 3px; padding: 5px 9px; border-radius: 999px; background: rgba(23, 92, 211, .07); color: #344054; font-size: 11px; font-weight: 650; }
+            .refresh-button { position: relative; z-index: 1; border: 0; background: #12233f; color: #fff; border-radius: 11px; padding: 11px 16px; box-shadow: 0 6px 18px rgba(18,35,63,.14); transition: transform .15s ease, background .15s ease; }
+            .refresh-button:hover { background: #1f3b64; transform: translateY(-1px); }
+            .kpi-grid { grid-template-columns: repeat(5, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+            .kpi { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 14px; padding: 16px 16px 15px; box-shadow: 0 4px 16px rgba(16,35,63,.035); transition: transform .15s ease, box-shadow .15s ease; }
+            .kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #175cd3, #53b1fd); opacity: .85; }
+            .kpi:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(16,35,63,.07); }
+            .kpi-title { font-size: 10.5px; font-weight: 800; letter-spacing: .075em; }
+            .kpi-value { font-size: 30px; letter-spacing: -.035em; color: #0b1f3a; }
+            .kpi-subtitle { line-height: 1.35; min-height: 32px; }
+            .graph-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; align-items: stretch; }
+            .panel { border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 5px 18px rgba(16,35,63,.035); }
+            .graph-panel { min-width: 0; padding: 12px 14px 14px; }
+            .graph-panel .js-plotly-plot, .graph-panel .plot-container { width: 100% !important; }
+            .feature-panel { margin-bottom: 18px; padding: 20px; }
+            .section-block { margin-bottom: 18px; }
+            .table-grid { gap: 16px; margin-top: 18px; }
+            .chart-note { margin: 4px 4px 0; padding: 12px 8px 4px; border-top-color: #e8edf5; background: linear-gradient(180deg, rgba(248,250,252,.25), rgba(248,250,252,.8)); border-radius: 0 0 9px 9px; }
+            .memory-panel, .axis-panel, .axis-discriminator-panel, .mask-card, .mask-reading, .pattern-cloud-panel { border-color: #dfe6f0; border-radius: 11px; }
+            .memory-panel, .axis-discriminator-panel, .mask-card, .mask-reading { background: #f9fbfd; }
+            .axis-crime { background: linear-gradient(180deg, #fbfdff 0%, #eef5ff 100%); }
+            .axis-modus { background: linear-gradient(180deg, #fbfefd 0%, #eefaf5 100%); }
+            .disc-light { border-radius: 10px; padding: 9px 10px; }
+            .disc-light.active { box-shadow: 0 0 0 1px rgba(23,155,104,.12), 0 4px 14px rgba(23,155,104,.08); }
+            .punch-card { border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.035), 0 8px 16px rgba(15,23,42,.13); }
+            .punch-card:hover { transform: translateY(-3px); }
+            .mask-active-badge { background: var(--accent-soft); color: var(--accent); }
+            .mask-coverage-fill { background: linear-gradient(90deg, #175cd3, #53b1fd); }
+            .pattern-cloud-word { color: #175cd3; }
+            .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner table { border-collapse: separate !important; border-spacing: 0 !important; }
+            .Select-control { border-radius: 10px !important; border-color: #d7dfeb !important; min-height: 40px; }
+            .Select-menu-outer { border-radius: 0 0 10px 10px; border-color: #d7dfeb; }
+            @media (max-width: 1350px) { .kpi-grid { grid-template-columns: repeat(3, minmax(170px, 1fr)); } }
+            @media (max-width: 1100px) { .graph-grid { grid-template-columns: 1fr; } }
+            @media (max-width: 720px) { .page { padding: 16px; } .header { padding: 20px; } .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+            @media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
             @media (max-width: 980px) {
                 .graph-grid, .table-grid, .tree-map-layout, .active-mask-layout { grid-template-columns: 1fr; }
                 .header { display: block; }

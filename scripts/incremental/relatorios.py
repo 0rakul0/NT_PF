@@ -144,6 +144,28 @@ def build_report_lines(metrics: pd.DataFrame, foundation: dict[str, object], fig
                 f"wnn={int(row.get('wnn_accepted', 0))}, llm={int(row['llm_processed'])}, aprendizados={int(row['learned_rules'])}, "
                 f"candidatos_compostos={int(row.get('wnn_multi_discriminator_candidates', 0))}, taxa_wnn={row.get('wnn_rate', 0):.2%}"
             )
+    tag_evaluation = foundation.get("tag_evaluation", {})
+    if isinstance(tag_evaluation, dict):
+        tag_metrics = tag_evaluation
+        if tag_metrics:
+            lines.extend(
+                [
+                    "",
+                    "## Avaliacao WNN por tags da PF",
+                    "",
+                    "- Referencia: tags criminais mapeadas de `x2`; elas nao entram na classificacao.",
+                    f"- Noticias com tag criminal mapeada: {tag_metrics.get('documents_with_mapped_crime_tag', 0)}",
+                    f"- Classificadas pela WNN: {tag_metrics.get('accepted_by_wnn', 0)}",
+                    f"- Predicoes corretas: {tag_metrics.get('correct_predictions', 0)}",
+                    f"- Cobertura: {float(tag_metrics.get('coverage', 0.0)):.2%}",
+                    f"- Precisao: {float(tag_metrics.get('precision', 0.0)):.2%}",
+                    f"- Recall: {float(tag_metrics.get('recall', 0.0)):.2%}",
+                    f"- F1: {float(tag_metrics.get('f1', 0.0)):.2%}",
+                ]
+            )
+            outputs = tag_metrics.get("outputs", {})
+            if isinstance(outputs, dict):
+                lines.append(f"- Matriz de confusao: `{outputs.get('confusion_matrix_csv', '')}`")
     if figures:
         lines.extend(["", "## Graficos", ""])
         for figure in figures:
@@ -183,6 +205,8 @@ def run(foundation: dict[str, object]) -> dict[str, object]:
             "## Arquivos",
             "",
             "- `metrics_batches.csv`: metricas por iteracao.",
+            "- `avaliacao_crime_tags/metricas_crime_por_tags.json`: precisao, recall, F1 e cobertura da WNN contra `x2`.",
+            "- `avaliacao_crime_tags/matriz_confusao_crime_por_tags.csv`: matriz de confusao em formato longo; tags multiplas geram uma linha por referencia.",
             "- `linha_tempo_tipos_crime.csv`: tipos distintos, novos tipos e acumulado por mes.",
             "- `relatorio_execucao_metodologia.md`: relatorio narrativo da execucao.",
             "- `events.jsonl`: trilha completa de eventos.",

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.4)  26 JUL 2026 21:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.4.4)  25 AUG 2026 19:16
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -119,13 +119,16 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size <24> not available
 Package: fontenc 2025/07/18 v2.1d Standard LaTeX package
 LaTeX Font Info:    Trying to load font information for T1+ptm on input line 11
 6.
+
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\t1ptm.fd
 File: t1ptm.fd 2001/06/04 font definitions for T1/ptm.
-)) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/base\inputenc.sty
+))
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/base\inputenc.sty
 Package: inputenc 2024/02/08 v1.3d Input encoding file
 \inpenc@prehook=\toks18
 \inpenc@posthook=\toks19
-) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/babel\babel.sty
+)
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/babel\babel.sty
 Package: babel 2025/12/11 v25.17 The multilingual framework for LuaLaTeX, pdfLa
 TeX and XeLaTeX
 \babel@savecnt=\count290
@@ -145,12 +148,14 @@ LaTeX Encoding Info:    Ignoring declaration for text command \SS (encoding ?)
 on input line 2101.
 \U@D=\dimen172
 \l@unhyphenated=\language79
+
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/babel\txtbabel.def)
 \bbl@readstream=\read2
 \bbl@dirlevel=\count291
 Package babel Info: Configuration files are deprecated, as
 (babel)             they can break document portability.
 (babel)             Reported on input line 4196.
+
 *************************************
 * Local config file bblopts.cfg used
 *
@@ -173,20 +178,25 @@ Package babel Info: Making " an active character on input line 132.
 LaTeX Info: Redefining \cite on input line 302.
 LaTeX Info: Redefining \nocite on input line 332.
 Package: cite 2015/02/27  v 5.5
-) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+)
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
 Package: amsmath 2025/07/09 v2.17z AMS math features
 \@mathmargin=\skip52
+
 For additional information on amsmath, use the `?' option.
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
 Package: amstext 2024/11/17 v2.01 AMS text
+
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty
 File: amsgen.sty 1999/11/30 v2.0 generic functions
 \@emptytoks=\toks20
 \ex@=\dimen173
-)) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty
+))
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty
 Package: amsbsy 1999/11/29 v1.2d Bold Symbols
 \pmbraise@=\dimen174
-) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty
+)
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty
 Package: amsopn 2022/04/08 v2.04 operator names
 )
 \inf@bad=\count292
@@ -236,8 +246,10 @@ LaTeX Info: Redefining \Relbar on input line 970.
 \mathdisplay@stack=\toks24
 LaTeX Info: Redefining \[ on input line 2950.
 LaTeX Info: Redefining \] on input line 2951.
-) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+)
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
 Package: amssymb 2013/01/14 v3.01 AMS font symbols
+
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty
 Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
 \symAMSa=\mathgroup4
@@ -248,11 +260,14 @@ LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
 )) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/graphics\graphicx.st
 y
 Package: graphicx 2024/12/31 v1.2e Enhanced LaTeX Graphics (DPC,SPQR)
+
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/graphics\keyval.sty
 Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
 \KV@toks@=\toks25
-) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/graphics\graphics.sty
+)
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/graphics\graphics.sty
 Package: graphics 2024/08/06 v1.4g Standard LaTeX Graphics (DPC,SPQR)
+
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/graphics\trig.sty
 Package: trig 2023/12/02 v1.11 sin cos tan (DPC)
 )
@@ -278,8 +293,8 @@ Package: array 2025/09/25 v2.6n Tabular extension package (FMi)
 \ar@cellbox=\box58
 )
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/pgf/frontendlayer\tikz.
-sty (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/pgf/basiclayer\pgf.
 sty
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/pgf/basiclayer\pgf.sty
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/pgf/utilities\pgfrcs.st
 y
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/pgf/utilities\pgfutil
@@ -293,8 +308,8 @@ y
 \pgfutil@abb=\box59
 )
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/pgf/utilities\pgfrcs.
-code.tex (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/pgf\pgf.revi
-sion.tex)
+code.tex
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/pgf\pgf.revision.tex)
 Package: pgfrcs 2025-08-29 v3.1.11a (3.1.11a)
 ))
 Package: pgf 2025-08-29 v3.1.11a (3.1.11a)
@@ -360,8 +375,10 @@ File: pgfsyssoftpath.code.tex 2025-08-29 v3.1.11a (3.1.11a)
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/pgf/systemlayer\pgfsy
 sprotocol.code.tex
 File: pgfsysprotocol.code.tex 2025-08-29 v3.1.11a (3.1.11a)
-)) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
+))
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/xcolor\xcolor.sty
 Package: xcolor 2024/09/29 v3.02 LaTeX color extensions (UK)
+
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.cfg
 File: color.cfg 2016/01/02 v1.6 sample color configuration
 )
@@ -543,8 +560,8 @@ y
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/pgf/utilities\pgfkeys.s
 ty
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/pgf/utilities\pgfkeys
-.code.tex)) (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/pgf/math\pg
-fmath.sty
+.code.tex))
+(C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/pgf/math\pgfmath.sty
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/pgf/math\pgfmath.code
 .tex))
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/generic/pgf/utilities\pgffor.
@@ -609,24 +626,25 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count325
 ) (artigo_wnn.aux
 Package babel Info: 'brazilian' activates 'portuges' shorthands.
-(babel)             Reported on input line 8.
+(babel)             Reported on input line 13.
 )
 \openout1 = `artigo_wnn.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 30.
-LaTeX Font Info:    ... okay on input line 30.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 27.
+LaTeX Font Info:    ... okay on input line 27.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 27.
+LaTeX Font Info:    ... okay on input line 27.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 27.
+LaTeX Font Info:    ... okay on input line 27.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 27.
+LaTeX Font Info:    ... okay on input line 27.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 27.
+LaTeX Font Info:    ... okay on input line 27.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 27.
+LaTeX Font Info:    ... okay on input line 27.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 27.
+LaTeX Font Info:    ... okay on input line 27.
+
 -- Lines per column: 56 (exact).
 
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mk
@@ -653,364 +671,102 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/00miktex\epstopdf-sys.c
 fg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
-))
-Underfull \hbox (badness 1810) in paragraph at lines 38--40
-\T1/ptm/b/n/9 redes neurais sem pesos, WiSARD, auditoria, modelo de
- []
-
-(../trabalho_wnn/metodologia_crime_unico.tex
-Underfull \hbox (badness 2644) in paragraph at lines 9--10
-\T1/ptm/m/n/10 é propor um ciclo reproduzível de fundação temática,
- []
-
-
-Underfull \hbox (badness 3492) in paragraph at lines 9--10
-\T1/ptm/m/n/10 classificação incremental, revisão residual e atualização
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 13--14
-[]\T1/ptm/m/n/10 Rangel et al. [1] propõem uma
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 17--18
-[]\T1/ptm/m/n/10 Carneiro [2] investiga resultados teóricos
- []
-
-[1{C:/Users/jeffe/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/je
-ffe/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc}
+)) (trabalho_wnn/metodologia_crime_unico.tex [1{C:/Users/jeffe/AppData/Local/Mi
+KTeX/fonts/map/pdftex/pdftex.map}{C:/Users/jeffe/AppData/Local/Programs/MiKTeX/
+fonts/enc/dvips/base/8r.enc}
 
 
 ]
-Underfull \hbox (badness 3623) in paragraph at lines 19--20
-\T1/ptm/m/n/10 etiquetas linguísticas e a análise das propriedades do
- []
+LaTeX Font Info:    Trying to load font information for U+msa on input line 37.
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 21--22
-[]\T1/ptm/m/n/10 No
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 23--24
-[]\T1/ptm/m/n/10 Na
- []
-
-
-Underfull \hbox (badness 4205) in paragraph at lines 23--24
-\T1/ptm/m/n/10 para modelar tópicos, agrupar documentos ou estimar
- []
-
-
-Underfull \hbox (badness 1616) in paragraph at lines 25--26
-\T1/ptm/m/n/10 classificação [11]--[13]. Em particular, Guan et al. [12]
- []
-
-
-Underfull \hbox (badness 1609) in paragraph at lines 27--28
-\T1/ptm/m/n/10 combinam uma taxonomia de tarefas com uma cascata
- []
-
-
-Underfull \hbox (badness 1968) in paragraph at lines 31--32
-\T1/ptm/m/n/10 em novos marcadores aproxima-se do \T1/ptm/m/it/10 bootstrapping
- \T1/ptm/m/n/10 de
- []
-
-
-Underfull \hbox (badness 2452) in paragraph at lines 41--42
-\T1/ptm/m/n/10 o corpo não ativa discriminadores suficientes. As tags
- []
-
-
-Underfull \hbox (badness 1418) in paragraph at lines 43--44
-\T1/ptm/m/n/10 inspirada em princípios de WNN/WiSARD, e não uma
- []
-
-[2]
-LaTeX Font Info:    Trying to load font information for U+msa on input line 53.
 
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 53.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 37.
+
 
 (C:\Users\jeffe\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-Underfull \hbox (badness 10000) in paragraph at lines 57--58
-[]|\T1/ptm/m/n/8 Representação pré-processada do corpo
+Underfull \hbox (badness 10000) in paragraph at lines 67--67
+[]|\T1/ptm/m/n/8 Vocabulário ver-si-o-
  []
 
 
-Underfull \hbox (badness 2351) in paragraph at lines 58--59
-[]|\T1/ptm/m/n/8 Camada de codificação que projeta o texto
+Underfull \hbox (badness 10000) in paragraph at lines 67--68
+[]|\T1/ptm/m/n/8 Sequência or-de-nada $\OML/cmm/m/it/8 V[] \OT1/cmr/m/n/8 =
  []
 
 
-Underfull \hbox (badness 1546) in paragraph at lines 58--59
-\T1/ptm/m/n/8 semântico em um vetor binário de posições
+Underfull \hbox (badness 10000) in paragraph at lines 67--68
+\OT1/cmr/m/n/8 (\OML/cmm/m/it/8 a[]; a[]; [] ; a[]\OT1/cmr/m/n/8 )$ \T1/ptm/m/n
+/8 de po-si-ções le-xi-cais
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 59--59
-[]|\T1/ptm/m/n/8 Vocabulário
+Underfull \hbox (badness 4479) in paragraph at lines 71--71
+[]|\T1/ptm/m/n/8 Imagem bi-ná-ria ou
+ []
+
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 157--157
+[]|\T1/ptm/m/n/8 1. Con-so-li-da-ção
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 60--61
-[]|\T1/ptm/m/n/8 Índice estável associado a uma
+Underfull \hbox (badness 10000) in paragraph at lines 158--158
+[]|\T1/ptm/m/n/8 2. Ge-ra-ção de
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 61--61
-[]|\T1/ptm/m/n/8 Vetor binário da
+Underfull \hbox (badness 10000) in paragraph at lines 158--159
+[]|\T1/ptm/m/n/8 Crimes e evi-dên-cias da fun-da-ção; cria
  []
 
 
-Underfull \hbox (badness 5533) in paragraph at lines 61--62
-[]|\T1/ptm/m/n/8 Vetor $\OT1/cmr/bx/n/8 x\OT1/cmr/m/n/8 (\OML/cmm/m/it/8 d\OT1/
-cmr/m/n/8 )$ \T1/ptm/m/n/8 que indica quais posições do
+Underfull \hbox (badness 10000) in paragraph at lines 159--159
+[]|\T1/ptm/m/n/8 3. Clas-si-fi-ca-ção
  []
 
 
-Underfull \hbox (badness 1484) in paragraph at lines 62--63
-\T1/ptm/m/n/8 canônico, indicando as posições lexicais que
+Underfull \hbox (badness 2096) in paragraph at lines 159--160
+[]|\T1/ptm/m/n/8 Recebe so-mente $\OML/cmm/m/it/8 x[]$ \T1/ptm/m/n/8 e a me-mó-
+ria; cal-cula
  []
 
 
-Underfull \hbox (badness 4479) in paragraph at lines 63--63
-[]|\T1/ptm/m/n/8 Imagem binária ou
+Underfull \hbox (badness 3471) in paragraph at lines 159--160
+\T1/ptm/m/n/8 pon-tu-a-ção, co-ber-tura, con-fi-ança e mar-gem.
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 64--65
-[]|\T1/ptm/m/n/8 Conjunto pequeno de posições
+Underfull \hbox (badness 1448) in paragraph at lines 160--161
+[]|\T1/ptm/m/n/8 Recebe $\OML/cmm/m/it/8 x[]$\T1/ptm/m/n/8 , clas-ses per-mi-ti
+-das e evi-dên-cias
  []
 
 
-Overfull \hbox (3.83954pt too wide) in paragraph at lines 53--67
- [][] 
+Underfull \hbox (badness 7186) in paragraph at lines 160--161
+\T1/ptm/m/n/8 WNN; in-ter-preta ca-sos re-si-du-ais. Re-torna
  []
 
 
-Underfull \hbox (badness 1502) in paragraph at lines 89--90
-\T1/ptm/m/n/10 apenas dez posições; ao final da execução, a memória
+Underfull \hbox (badness 10000) in paragraph at lines 160--161
+\T1/ptm/m/n/8 de-ci-são, ró-tulo, con-fi-ança, evi-dên-cia e
  []
 
 
-Underfull \hbox (badness 1688) in paragraph at lines 127--128
-\T1/ptm/m/n/10 um discriminador integralmente ativado. No exemplo, a
+Underfull \hbox (badness 10000) in paragraph at lines 161--161
+[]|\T1/ptm/m/n/8 5. Va-li-da-ção
  []
 
-
-Underfull \hbox (badness 1377) in paragraph at lines 131--132
-\T1/ptm/m/n/10 do cosseno auxilia a aproximar clusters semanticamente
+[3] [4] [5]
+Underfull \hbox (badness 6825) in paragraph at lines 317--318
+\T1/ptm/m/n/10 o que su-gere ati-va-ções por con-texto in-ci-den-tal, en-
  []
 
-[3]
-Underfull \hbox (badness 2245) in paragraph at lines 135--136
-[]\T1/ptm/m/n/10 A Função 2 gera discriminadores lexicais de crime.
- []
-
-
-Underfull \hbox (badness 1701) in paragraph at lines 135--136
-\T1/ptm/m/n/10 Para cada crime canônico, são selecionados marcadores
- []
-
-
-Underfull \hbox (badness 2469) in paragraph at lines 135--136
-\T1/ptm/m/n/10 sua máscara vetorial WNN. A saída é um banco de
- []
-
-
-Underfull \hbox (badness 1953) in paragraph at lines 139--140
-[]\T1/ptm/m/n/10 As funções do fluxo são definidas por contratos de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 149--149
-[]|\T1/ptm/m/n/8 1. Consolidação
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 149--150
-\T1/ptm/m/n/8 e evidências semânticas. Deve agrupar
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 150--150
-[]|\T1/ptm/m/n/8 2. Geração de
- []
-
-
-Underfull \hbox (badness 3019) in paragraph at lines 150--151
-[]|\T1/ptm/m/n/8 Recebe os crimes aceitos, suas evidências e
- []
-
-
-Underfull \hbox (badness 1412) in paragraph at lines 150--151
-\T1/ptm/m/n/8 sinais acidentais e palavras genéricas. Retorna
- []
-
-
-Underfull \hbox (badness 2538) in paragraph at lines 150--151
-\T1/ptm/m/n/8 lexicais, peso, origem e justificativa de cada
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 151--151
-[]|\T1/ptm/m/n/8 3. Classificação
- []
-
-
-Underfull \hbox (badness 4291) in paragraph at lines 152--153
-[]|\T1/ptm/m/n/8 Recebe corpo, título, tags, classes canônicas
- []
-
-
-Underfull \hbox (badness 3168) in paragraph at lines 152--153
-\T1/ptm/m/n/8 permitidas, evidências WNN e sugestões por
- []
-
-
-Overfull \hbox (1.32092pt too wide) in paragraph at lines 145--155
- [][] 
- []
-
-
-Underfull \hbox (badness 4621) in paragraph at lines 157--158
-\T1/ptm/m/n/10 com as máscaras e os crimes já existentes; quando
- []
-
-
-Underfull \hbox (badness 1881) in paragraph at lines 157--158
-\T1/ptm/m/n/10 Somente candidatos recorrentes, textualmente distintos e
- []
-
-
-Underfull \hbox (badness 2269) in paragraph at lines 169--171
-[]\T1/ptm/m/n/10 O tratamento de decisões pouco separadas inspira-se
- []
-
-
-Underfull \hbox (badness 7362) in paragraph at lines 169--171
-\T1/ptm/m/n/10 discriminadores empatados ou muito próximos. Nesta
- []
-
-
-Underfull \hbox (badness 1577) in paragraph at lines 178--179
-[]\T1/ptm/m/n/10 Uma palavra inédita sugerida pela revisão residual é
- []
-
-[4]
-Underfull \hbox (badness 2126) in paragraph at lines 188--189
-[]\T1/ptm/m/n/10 Esta seção apresenta os diagnósticos operacionais da
- []
-
-
-Underfull \hbox (badness 1377) in paragraph at lines 188--189
-\T1/ptm/m/n/10 rodada concluída. A unidade experimental foi a notícia
- []
-
-
-Underfull \hbox (badness 2875) in paragraph at lines 188--189
-\T1/ptm/m/n/10 dos quais os 831 (10%) mais antigos compuseram a
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 196--197
-\T1/ptm/m/n/10 taxonomia final. O candidato operacional
- []
-
-
-Underfull \hbox (badness 1867) in paragraph at lines 196--197
-\T1/ptm/m/it/10 crimes_contra_criancas\T1/ptm/m/n/10 , pois suas evidências men
-cionam
- []
-
-
-Underfull \hbox (badness 4416) in paragraph at lines 252--252
-[]|\T1/ptm/m/n/9 Notícias classificadas diretamente pela
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 257--257
-[]|\T1/ptm/m/n/9 Tokens consumidos nas chamadas
- []
-
-
-Overfull \hbox (14.74641pt too wide) in paragraph at lines 242--262
- [][] 
- []
-
-
-Underfull \hbox (badness 1412) in paragraph at lines 264--265
-\T1/ptm/m/n/10 chamadas residuais. Portanto, 6.031 chamadas potenciais
- []
-
-
-Underfull \hbox (badness 1783) in paragraph at lines 264--265
-\T1/ptm/m/n/10 (80,64%) foram evitadas pela camada determinística. O
- []
-
-
-Underfull \hbox (badness 1436) in paragraph at lines 264--265
-\T1/ptm/m/n/10 a 1.806 tokens por chamada em média, torna o custo
- []
-
-
-Underfull \hbox (badness 2173) in paragraph at lines 264--265
-\T1/ptm/m/n/10 A redução de chamadas é um indicador de eficiência
- []
-
-[5]
-Underfull \hbox (badness 1810) in paragraph at lines 270--271
-\T1/ptm/m/n/10 Além disso, a comparação com execuções anteriores é
- []
-
-
-Underfull \hbox (badness 2680) in paragraph at lines 270--271
-\T1/ptm/m/n/10 apenas operacional, pois as rodadas diferem em base,
- []
-
-
-Underfull \hbox (badness 5756) in paragraph at lines 274--275
-[]\T1/ptm/m/n/10 Este trabalho abordou o problema de organizar e
- []
-
-
-Underfull \hbox (badness 2846) in paragraph at lines 274--275
-\T1/ptm/m/n/10 e preservando auditabilidade, adaptação a novos temas
- []
-
-
-Underfull \hbox (badness 1831) in paragraph at lines 274--275
-\T1/ptm/m/n/10 e estabilidade taxonômica. Para isso, foi proposta uma
- []
-
-
-Underfull \hbox (badness 1436) in paragraph at lines 276--277
-\T1/ptm/m/n/10 ou ambiguidade entre máscaras. Essa separação permite
- []
-
-
-Underfull \hbox (badness 2343) in paragraph at lines 276--277
-\T1/ptm/m/n/10 determinística, enquanto a interpretação mais custosa é
- []
-
-)
-Underfull \hbox (badness 10000) in paragraph at lines 280--43
-\T1/ptm/m/n/10 afirmar acurácia. Como trabalhos futuros,
- []
-
-(artigo_wnn.bbl
-Underfull \hbox (badness 2261) in paragraph at lines 32--36
-\T1/ptm/m/n/8 Universidade Federal do Rio de Janeiro, COPPE, Programa de
- []
-
-[6])
+) (artigo_wnn.bbl [6])
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -1031,13 +787,13 @@ L3 programming layer <2025-12-24>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 15764 strings out of 467871
- 315535 string characters out of 5418377
- 730156 words of memory out of 5000000
- 44351 multiletter control sequences out of 15000+600000
- 753408 words of font info for 172 fonts, out of 8000000 for 9000
+ 15850 strings out of 467871
+ 317307 string characters out of 5418377
+ 733132 words of memory out of 5000000
+ 44443 multiletter control sequences out of 15000+600000
+ 750477 words of font info for 164 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,14n,104p,971b,850s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,15n,104p,1285b,861s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/
 cmbx10.pfb><C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
 fonts/cm/cmbx7.pfb><C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/type1/pu
@@ -1060,7 +816,7 @@ l/Programs/MiKTeX/fonts/type1/urw/times/utmb8a.pfb><C:/Users/jeffe/AppData/Loca
 l/Programs/MiKTeX/fonts/type1/urw/times/utmbi8a.pfb><C:/Users/jeffe/AppData/Loc
 al/Programs/MiKTeX/fonts/type1/urw/times/utmr8a.pfb><C:/Users/jeffe/AppData/Loc
 al/Programs/MiKTeX/fonts/type1/urw/times/utmri8a.pfb>
-Output written on artigo_wnn.pdf (7 pages, 261098 bytes).
+Output written on artigo_wnn.pdf (7 pages, 268214 bytes).
 PDF statistics:
  130 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)

@@ -20,6 +20,17 @@ except ModuleNotFoundError:
 DEFAULT_FEATURE_WEIGHT = 1.0
 EVIDENCE_FEATURE_WEIGHT = 0.75
 WEAK_SIGNAL_WEIGHT = 0.20
+GENERIC_CONTEXT_TOKENS = {
+    "associacao",
+    "criminosa",
+    "crime",
+    "documento",
+    "falso",
+    "fraude",
+    "ilegal",
+    "organizacao",
+    "organizado",
+}
 MAX_SIGNATURES_PER_LABEL = 250
 # Preserve room for genuinely new patterns learned from verified residuals.
 # Otherwise an initial Agent 2 bank at its cap can discard every new marker.
@@ -43,6 +54,19 @@ ORGANIZED_CRIME_BRIDGE_TOKENS = {
     "quadrilha",
 }
 STRONG_ORGANIZED_CRIME_BRIDGE_TOKENS = ORGANIZED_CRIME_BRIDGE_TOKENS - {"crime"}
+ORGANIZED_CRIME_STRUCTURAL_TOKENS = {
+    "integrante",
+    "integrantes",
+    "lideranca",
+    "liderancas",
+    "hierarquia",
+    "nucleo",
+    "membro",
+    "membros",
+    "divisao",
+    "tarefas",
+    "estruturada",
+}
 ORGANIZED_OPERATIONAL_SUBTHEMES = {
     "trafico_drogas",
     "lavagem_dinheiro",
@@ -65,20 +89,23 @@ CONFIRMED_MEDIUM_THRESHOLD = 2
 CONFIRMED_STRONG_THRESHOLD = 4
 MIN_CONFIRMATIONS_FOR_NEW_LEARNED_MEMORY_TOKEN = 2
 CRIME_CONFIDENCE_THRESHOLDS = {
-    "crime_organizado": 0.72,
-    "corrupcao_desvio_recursos_publicos": 0.62,
-    "contrabando_descaminho": 0.58,
-    "crimes_contra_criancas": 0.58,
+    "crime_organizado": 0.65,
+    "corrupcao_desvio_recursos_publicos": 0.50,
+    "contrabando_descaminho": 0.50,
+    "crimes_contra_criancas": 0.50,
+    "crimes_previdenciarios": 0.45,
+    "trafico_drogas": 0.45,
 }
 CRIME_MARGIN_THRESHOLDS = {
     "crime_organizado": 0.28,
-    "corrupcao_desvio_recursos_publicos": 0.20,
-    "contrabando_descaminho": 0.18,
-    "crimes_contra_criancas": 0.18,
+    "corrupcao_desvio_recursos_publicos": 0.16,
+    "contrabando_descaminho": 0.14,
+    "crimes_contra_criancas": 0.12,
+    "crimes_previdenciarios": 0.10,
+    "trafico_drogas": 0.10,
 }
 BODY_FALLBACK_CONFIDENCE_BONUS = 0.08
 BODY_FALLBACK_MARGIN_BONUS = 0.06
-TAG_HINT_SCORE_BONUS = 0.15
 BLOCKED_MODUS_LABELS = {
     "atuacao_clandestina",
     "falta_de_fiscalizacao",
@@ -119,6 +146,9 @@ CURATED_THEME_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
         {"name": "armazenamento_pornografia_infantil", "tokens": ["armazenamento", "pornografia", "infantil"], "weight": 0.9},
         {"name": "compartilhamento_pornografia_infantil", "tokens": ["compartilhamento", "pornografia", "infantil"], "weight": 0.9},
         {"name": "aliciamento_menor", "tokens": ["aliciamento", "menor"], "weight": 0.9},
+        {"name": "divulgacao_pornografia_infantil", "tokens": ["divulgacao", "pornografia", "infantil"], "weight": 1.05},
+        {"name": "imagens_abuso_infantil", "tokens": ["imagens", "abuso", "infantil"], "weight": 1.05},
+        {"name": "violencia_sexual_infantil", "tokens": ["violencia", "sexual", "infantil"], "weight": 1.1},
     ],
     "trafico_drogas": [
         {"name": "trafico_drogas", "tokens": ["trafico", "drogas"], "weight": 1.2},
@@ -136,10 +166,17 @@ CURATED_THEME_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
     ],
     "contrabando_descaminho": [
         {"name": "contrabando_descaminho", "tokens": ["contrabando", "descaminho"], "weight": 1.2},
+        {"name": "cigarros_contrabandeados", "tokens": ["cigarros", "contrabandeados"], "weight": 1.15},
+        {"name": "mercadorias_contrabandeadas", "tokens": ["mercadorias", "contrabandeadas"], "weight": 1.1},
+        {"name": "carga_descaminhada", "tokens": ["carga", "descaminhada"], "weight": 1.05},
         {"name": "cigarros_ilegais", "tokens": ["cigarros", "ilegais"], "weight": 1.05},
         {"name": "mercadoria_estrangeira_irregular", "tokens": ["mercadoria", "estrangeira", "irregular"], "weight": 0.95},
         {"name": "produto_descaminhado", "tokens": ["produto", "descaminhado"], "weight": 0.95},
         {"name": "importacao_irregular", "tokens": ["importacao", "irregular"], "weight": 0.9},
+        {"name": "cigarros_origem_estrangeira", "tokens": ["cigarros", "origem", "estrangeira"], "weight": 1.0},
+        {"name": "eletronicos_importados_irregulares", "tokens": ["eletronicos", "importados", "irregulares"], "weight": 1.0},
+        {"name": "mercadorias_sem_documentacao", "tokens": ["mercadorias", "sem", "documentacao"], "weight": 0.95},
+        {"name": "fraude_aduaneira", "tokens": ["fraude", "aduaneira"], "weight": 1.0},
     ],
     "lavagem_dinheiro": [
         {"name": "lavagem_dinheiro", "tokens": ["lavagem", "dinheiro"], "weight": 1.2},
@@ -148,21 +185,46 @@ CURATED_THEME_DISCRIMINATORS: dict[str, list[dict[str, object]]] = {
     ],
     "corrupcao_desvio_recursos_publicos": [
         {"name": "desvio_recursos_publicos", "tokens": ["desvio", "recursos", "publicos"], "weight": 1.2},
+        {"name": "vantagem_indevida", "tokens": ["vantagem", "indevida"], "weight": 1.15},
+        {"name": "pagamento_propina", "tokens": ["pagamento", "propina"], "weight": 1.15},
+        {"name": "corrupcao_ativa_passiva", "tokens": ["corrupcao", "ativa"], "weight": 1.05},
         {"name": "fraude_licitacao", "tokens": ["fraude", "licitacao"], "weight": 1.1},
         {"name": "contratacao_fraudulenta", "tokens": ["contratacao", "fraudulenta"], "weight": 0.95},
         {"name": "peculato_recursos_publicos", "tokens": ["peculato", "recursos", "publicos"], "weight": 1.0},
         {"name": "desvio_verbas_publicas", "tokens": ["desvio", "verbas", "publicas"], "weight": 1.0},
+        {"name": "superfaturamento_licitacao", "tokens": ["superfaturamento", "licitacao"], "weight": 1.1},
+        {"name": "fraude_contrato_publico", "tokens": ["fraude", "contrato", "publico"], "weight": 1.1},
+        {"name": "desvio_emendas_parlamentares", "tokens": ["desvio", "emendas", "parlamentares"], "weight": 1.1},
+        {"name": "recursos_federais_desviados", "tokens": ["recursos", "federais", "desviados"], "weight": 1.05},
     ],
     "armas_municoes": [
         {"name": "arma_fogo", "tokens": ["arma", "fogo"], "weight": 1.1},
         {"name": "porte_ilegal_arma", "tokens": ["porte", "ilegal", "arma"], "weight": 1.1},
         {"name": "posse_ilegal_arma", "tokens": ["posse", "ilegal", "arma"], "weight": 1.1},
     ],
+    "crimes_previdenciarios": [
+        {"name": "fraude_beneficio_previdenciario", "tokens": ["fraude", "beneficio", "previdenciario"], "weight": 1.15},
+        {"name": "fraude_inss", "tokens": ["fraude", "inss"], "weight": 1.15},
+        {"name": "beneficio_inss_indevido", "tokens": ["beneficio", "inss", "indevido"], "weight": 1.1},
+        {"name": "aposentadoria_irregular", "tokens": ["aposentadoria", "irregular"], "weight": 1.05},
+        {"name": "pensao_irregular", "tokens": ["pensao", "irregular"], "weight": 1.0},
+    ],
     "crime_organizado": [
         {"name": "organizacao_criminosa", "tokens": ["organizacao", "criminosa"], "weight": 1.15},
+        {"name": "organizacao_criminosa_integrantes", "tokens": ["organizacao", "criminosa", "integrantes"], "weight": 1.2},
+        {"name": "associacao_criminosa_membros", "tokens": ["associacao", "criminosa", "membros"], "weight": 1.2},
+        {"name": "faccao_criminosa_liderancas", "tokens": ["faccao", "criminosa", "liderancas"], "weight": 1.2},
+        {"name": "quadrilha_estruturada", "tokens": ["quadrilha", "estruturada"], "weight": 1.1},
         {"name": "crime_organizado", "tokens": ["crime", "organizado"], "weight": 1.1},
         {"name": "associacao_criminosa", "tokens": ["associacao", "criminosa"], "weight": 1.0},
         {"name": "faccao_criminosa", "tokens": ["faccao", "criminosa"], "weight": 1.0},
+    ],
+    "crimes_sistema_financeiro": [
+        {"name": "instituicao_financeira", "tokens": ["instituicao", "financeira"], "weight": 1.15},
+        {"name": "gestao_fraudulenta", "tokens": ["gestao", "fraudulenta"], "weight": 1.15},
+        {"name": "evasao_divisas", "tokens": ["evasao", "divisas"], "weight": 1.15},
+        {"name": "operacao_cambio", "tokens": ["operacao", "cambio"], "weight": 1.05},
+        {"name": "fraude_bancaria", "tokens": ["fraude", "bancaria"], "weight": 1.05},
     ],
     "radiodifusao_clandestina": [
         {"name": "radio_clandestina", "tokens": ["radio", "clandestina"], "weight": 1.15},
@@ -573,12 +635,37 @@ def _dedupe_labels(labels: Iterable[str]) -> list[str]:
     return output
 
 
-def _domain_secondaries(primary: str, ranked: list[str], scores_by_label: dict[str, float]) -> list[str]:
-    return [
-        label
-        for label in ranked
-        if label != primary and scores_by_label.get(label, 0.0) >= 0.75
-    ]
+def _qualified_secondary_labels(
+    primary: str,
+    ranked: list[str],
+    scores_by_label: dict[str, float],
+    active: list[dict[str, object]],
+) -> list[str]:
+    """Return conservative secondary labels backed by a complete discriminator.
+
+    Secondary labels are evaluated as a multilabel output. They must therefore
+    have stricter evidence than a contextual co-occurrence: a full mask and a
+    score of at least one complete, specific discriminator. ``crime_organizado``
+    additionally requires an explicit structural signal of the investigated
+    group, avoiding labels triggered merely by an institutional mention.
+    """
+    selected: list[str] = []
+    for label in ranked:
+        if label == primary or scores_by_label.get(label, 0.0) < 1.0:
+            continue
+        label_active = [
+            item
+            for item in active
+            if _active_label(item) == label and float(item.get("mask_coverage", 0.0) or 0.0) >= 0.999
+        ]
+        if not label_active:
+            continue
+        if label == "crime_organizado":
+            organization_tokens = _active_tokens(label_active)
+            if not organization_tokens.intersection(ORGANIZED_CRIME_STRUCTURAL_TOKENS):
+                continue
+        selected.append(label)
+    return selected
 
 
 def _preferred_protected_domain(active_labels: set[str], scores_by_label: dict[str, float]) -> str:
@@ -657,15 +744,15 @@ def _operational_decision(
 
     active_labels = {_active_label(item) for item in active}
     tokens = _active_tokens(active)
-    has_organization_bridge = (
-        bool(tokens.intersection(STRONG_ORGANIZED_CRIME_BRIDGE_TOKENS))
-        or "crime_organizado" in active_labels
+    has_organization_bridge = bool(tokens.intersection(STRONG_ORGANIZED_CRIME_BRIDGE_TOKENS))
+    has_structural_organization_evidence = has_organization_bridge and bool(
+        tokens.intersection(ORGANIZED_CRIME_STRUCTURAL_TOKENS)
     )
     organized_subthemes = sorted(active_labels.intersection(ORGANIZED_OPERATIONAL_SUBTHEMES))
 
     protected_domain = _preferred_protected_domain(active_labels, scores_by_label)
     if protected_domain:
-        secondary = _domain_secondaries(protected_domain, ranked, scores_by_label)
+        secondary = _qualified_secondary_labels(protected_domain, ranked, scores_by_label, active)
         crimes = _dedupe_labels([protected_domain, *secondary])
         relation = "dominio_preferencial"
         if has_organization_bridge and "crime_organizado" in secondary:
@@ -680,13 +767,19 @@ def _operational_decision(
         ]
         if operational_domains:
             primary = max(operational_domains, key=lambda label: scores_by_label.get(label, 0.0))
-            secondary = [label for label in operational_domains if label != primary]
-            secondary.append("crime_organizado")
+            secondary = _qualified_secondary_labels(primary, ranked, scores_by_label, active)
+            if has_structural_organization_evidence and "crime_organizado" not in secondary:
+                secondary.append("crime_organizado")
             crimes = _dedupe_labels([primary, *secondary])
-            return primary, crimes, [label for label in crimes if label != primary], "dominio_preferencial_com_organizacao"
+            relation = (
+                "dominio_preferencial_com_organizacao"
+                if "crime_organizado" in secondary
+                else "dominio_preferencial_contexto_organizacao_suprimida"
+            )
+            return primary, crimes, [label for label in crimes if label != primary], relation
 
     top_label = ranked[0]
-    secondary = [label for label in ranked[1:] if scores_by_label.get(label, 0.0) >= 0.75]
+    secondary = _qualified_secondary_labels(top_label, ranked, scores_by_label, active)
     if secondary:
         return top_label, _dedupe_labels([top_label, *secondary]), secondary, "coocorrencia_sem_fusao"
     return top_label, [top_label], [], "tema_unico"
@@ -2327,7 +2420,7 @@ def build_feature_bank(
         parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
         # Crimes are extracted primarily from the body, where institutional
         # news normally states the legal fact beyond the generic headline.
-        text = str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "") or doc.get("titulo", "") or parsed.get("titulo", ""))
+        text = str(doc.get("x3_texto_noticia", "") or doc.get("body_text", "") or parsed.get("corpo", ""))
         words = _token_set_from_text(text)
         active_ids = sorted(
             str(item["id"])
@@ -2370,7 +2463,7 @@ def build_feature_bank(
         if not doc:
             continue
         parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
-        text = str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "") or doc.get("titulo", "") or parsed.get("titulo", ""))
+        text = str(doc.get("x3_texto_noticia", "") or doc.get("body_text", "") or parsed.get("corpo", ""))
         _record_reverse_memory_observation(payload, label, text, source="foundation_sample_body")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -2427,6 +2520,8 @@ def active_discriminators(text: str, feature_bank: dict[str, object]) -> list[di
     for item in feature_bank.get("discriminators", []):
         if not isinstance(item, dict):
             continue
+        if bool(item.get("quarantined", False)):
+            continue
         matched_variant: dict[str, object] | None = None
         for variant in _discriminator_variants(item):
             variant_tokens = variant.get("tokens", [])
@@ -2463,6 +2558,8 @@ def mask_discriminators(text: str, feature_bank: dict[str, object]) -> list[dict
     candidates: list[dict[str, object]] = []
     for item in feature_bank.get("discriminators", []):
         if not isinstance(item, dict):
+            continue
+        if bool(item.get("quarantined", False)):
             continue
         best: dict[str, object] | None = None
         for variant in _discriminator_variants(item):
@@ -2552,6 +2649,81 @@ def apply_domain_guard(active: list[dict[str, object]]) -> tuple[list[dict[str, 
     return accepted, rejected
 
 
+def downweight_generic_context_discriminators(active: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Keep cross-domain generic patterns as context, never as decisive evidence."""
+    adjusted: list[dict[str, object]] = []
+    for item in active:
+        tokens = {
+            canonical_label(str(token))
+            for token in item.get("tokens", [])
+            if canonical_label(str(token))
+        }
+        source = str(item.get("source", "") or "")
+        if (
+            _rule_kind(item.get("kind", "crime")) == "crime"
+            and source.startswith("agent2_generalized")
+            and tokens
+            and tokens.issubset(GENERIC_CONTEXT_TOKENS)
+        ):
+            adjusted.append(
+                {
+                    **item,
+                    "weight": round(float(item.get("weight", DEFAULT_FEATURE_WEIGHT) or DEFAULT_FEATURE_WEIGHT) * WEAK_SIGNAL_WEIGHT, 6),
+                    "strength": "weak",
+                    "generic_context_only": True,
+                }
+            )
+            continue
+        adjusted.append(item)
+    return adjusted
+
+
+WEAPON_DIRECT_OFFENCE_ANCHORS = {
+    "porte",
+    "posse",
+    "comercio",
+    "venda",
+    "trafico",
+    "fornecimento",
+    "armamento",
+    "municao",
+    "municoes",
+}
+
+
+def suppress_incidental_weapon_context(active: list[dict[str, object]]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Avoid promoting a weapon mention over a complete protected-domain mask.
+
+    Police reports often list an apprehended firearm while the investigated
+    offence is child exploitation, environmental crime, or forced labour.  A
+    weapon remains a valid primary class only when the text activates a direct
+    weapon-offence anchor such as possession, trafficking, sale, or ammunition.
+    """
+    protected_complete = any(
+        _active_label(item) in PROTECTED_DOMAIN_PRIORITY
+        and float(item.get("mask_coverage", 0.0) or 0.0) >= 0.999
+        for item in active
+    )
+    weapon_items = [item for item in active if _active_label(item) == "armas_municoes"]
+    if not protected_complete or not weapon_items:
+        return active, []
+    weapon_tokens = _active_tokens(weapon_items)
+    if weapon_tokens.intersection(WEAPON_DIRECT_OFFENCE_ANCHORS):
+        return active, []
+    retained = [item for item in active if _active_label(item) != "armas_municoes"]
+    rejected = [
+        {
+            "id": str(item.get("id", "")),
+            "label": "armas_municoes",
+            "tokens": item.get("tokens", []),
+            "source": str(item.get("source", "")),
+            "reason": "incidental_weapon_context_with_protected_domain",
+        }
+        for item in weapon_items
+    ]
+    return retained, rejected
+
+
 def _modus_scores(active: list[dict[str, object]]) -> dict[str, float]:
     scores: dict[str, float] = {}
     for item in active:
@@ -2610,6 +2782,12 @@ def _has_enough_marker_evidence(
     cosine_supported: bool,
     memory_supported: bool,
 ) -> bool:
+    # Generalized patterns formed exclusively by cross-domain legal vocabulary
+    # may help rank candidates, but cannot on their own create a crime decision.
+    # A full mask match is still insufficient when every active item is context.
+    decision_items = [item for item in active if _active_label(item) in {top_label, *secondary}]
+    if decision_items and all(bool(item.get("generic_context_only", False)) for item in decision_items):
+        return False
     if top_label == "crime_organizado":
         organization_anchors = set()
         for item in active:
@@ -2623,6 +2801,8 @@ def _has_enough_marker_evidence(
             len(organization_anchors.intersection(STRONG_ORGANIZED_CRIME_BRIDGE_TOKENS)) < 2
             and not explicit_crime_organized
         ):
+            return False
+        if not organization_anchors.intersection(ORGANIZED_CRIME_STRUCTURAL_TOKENS):
             return False
     counts = _label_evidence_counts(active)
     labels = [top_label, *secondary]
@@ -2697,22 +2877,22 @@ def classify_with_wnn(
     feature_bank_payload: dict[str, object] | None = None,
     sync_memory: bool = True,
     crime_tag_hints: list[str] | None = None,
+    class_confidence_overrides: dict[str, float] | None = None,
 ) -> WNNClassification:
     """Classify the canonical crime from the document body.
 
     ``text`` preserves the former single-text API. When the optional field-specific
     inputs are provided, crime is first inferred from ``crime_text`` (the body).
-    The legacy ``text`` acts as a title fallback only when the body has no qualified
-    crime discriminator. ``modus_text`` is kept only for backwards-compatible
-    callers and is not classified in the crime-only methodology.
-    Tag hints can support a text-activated crime discriminator, but cannot create
-    a classification by themselves.
+    ``text`` and ``modus_text`` are retained for backwards-compatible callers;
+    neither represents an additional decision path. ``crime_tag_hints`` is
+    accepted but intentionally ignored. The retina is built only from
+    ``crime_text`` (x3 / ``texto_noticia``); titles and tags never participate in
+    a decision.
     """
     feature_bank = feature_bank_payload if feature_bank_payload is not None else load_feature_bank(feature_bank_path)
     if sync_memory:
         sync_feature_memory(feature_bank)
-    crime_input = str(crime_text or text or "")
-    fallback_input = str(text or "")
+    crime_input = str(crime_text if crime_text is not None else text or "")
     memory_state = binary_memory_for_text(crime_input, feature_bank)
     crime_full_active = _with_evidence_source(active_discriminators(crime_input, feature_bank), "body")
     masked, guard_rejected = apply_domain_guard(mask_discriminators(crime_input, feature_bank))
@@ -2722,21 +2902,10 @@ def classify_with_wnn(
         if _rule_kind(item.get("kind", "crime")) == "crime"
         and float(item.get("mask_coverage", 0.0) or 0.0) >= MASK_MIN_COVERAGE
     ]
+    crime_active, incidental_weapon_rejected = suppress_incidental_weapon_context(crime_active)
+    guard_rejected.extend(incidental_weapon_rejected)
+    crime_active = downweight_generic_context_discriminators(crime_active)
     crime_evidence_source = "body"
-    if not crime_active and crime_text is not None and fallback_input and fallback_input != crime_input:
-        memory_state = binary_memory_for_text(fallback_input, feature_bank)
-        crime_full_active = _with_evidence_source(active_discriminators(fallback_input, feature_bank), "title_fallback")
-        fallback_masked, fallback_rejected = apply_domain_guard(mask_discriminators(fallback_input, feature_bank))
-        guard_rejected = [*guard_rejected, *fallback_rejected]
-        crime_active = [
-            {**item, "evidence_source": "title_fallback"}
-            for item in fallback_masked
-            if _rule_kind(item.get("kind", "crime")) == "crime"
-            # Organization is contextual unless the title itself establishes it.
-            and _active_label(item) != "crime_organizado"
-            and float(item.get("mask_coverage", 0.0) or 0.0) >= MASK_MIN_COVERAGE
-        ]
-        crime_evidence_source = "title_fallback"
     # The article evaluates a single axis: the canonical crime.  Modus
     # discriminators are deliberately ignored to prevent a second, unvalidated
     # classification task from affecting the incremental decision.
@@ -2801,13 +2970,6 @@ def classify_with_wnn(
         label = _active_label(item)
         mask_score = float(item["weight"]) * float(item.get("mask_coverage", 0.0) or 0.0)
         scores_by_label[label] = max(scores_by_label.get(label, 0.0), mask_score)
-    normalized_tag_hints = {
-        canonical_label(str(label))
-        for label in (crime_tag_hints or [])
-        if canonical_label(str(label))
-    }
-    for label in normalized_tag_hints.intersection(scores_by_label):
-        scores_by_label[label] += TAG_HINT_SCORE_BONUS
 
     crime_active, scores_by_label, bleaching_coverage_threshold = _bleach_ambiguous_discriminators(
         crime_active,
@@ -2872,6 +3034,28 @@ def classify_with_wnn(
     if operational_label and operational_label != top_label:
         top_label = operational_label
     theme_candidate = _multi_discriminator_candidate(scores_by_label, crime_active, relation)
+    cosine_label, cosine_score = _cosine_top_candidate(cosine_candidates)
+    ranked_labels = [label for label, _score in sorted(scores_by_label.items(), key=lambda item: item[1], reverse=True)]
+    known_cooccurrence = _can_resolve_known_cooccurrence(
+        scores_by_label,
+        crime_active,
+        top_label,
+        secondary,
+        relation,
+    )
+    cosine_tiebreak_used = bool(
+        relation in {"tema_unico", "coocorrencia_sem_fusao"}
+        and not known_cooccurrence
+        and cosine_score >= COSINE_SUPPORT_MIN_SCORE
+        and cosine_label
+        and cosine_label in ranked_labels[:2]
+        and cosine_label != top_label
+    )
+    if cosine_tiebreak_used:
+        top_label = cosine_label
+        crimes = [top_label]
+        secondary = []
+        relation = "cosine_tiebreak"
 
     if relation in {"cadeia_operacional", "crime_organizado_multidominio"} and top_label == "crime_organizado":
         operational_set = set(crimes)
@@ -2879,11 +3063,22 @@ def classify_with_wnn(
         second_score = max(
             [float(score) for label, score in scores_by_label.items() if label not in operational_set] or [0.0]
         )
-    elif relation in {"dominio_preferencial", "dominio_preferencial_com_organizacao"}:
+    elif relation in {"dominio_preferencial", "dominio_preferencial_com_organizacao", "dominio_preferencial_contexto_organizacao_suprimida"}:
         preferred_set = set(crimes or [top_label])
         top_score = sum(float(scores_by_label.get(label, 0.0) or 0.0) for label in preferred_set)
         second_score = max(
-            [float(score) for label, score in scores_by_label.items() if label not in preferred_set] or [0.0]
+            [
+                float(score)
+                for label, score in scores_by_label.items()
+                if label not in preferred_set
+                and not (relation == "dominio_preferencial_contexto_organizacao_suprimida" and label == "crime_organizado")
+            ]
+            or [0.0]
+        )
+    if cosine_tiebreak_used:
+        top_score = float(scores_by_label.get(top_label, 0.0) or 0.0)
+        second_score = max(
+            [float(score) for label, score in scores_by_label.items() if label != top_label] or [0.0]
         )
     confidence = top_score / total_score if total_score else 0.0
     margin = (top_score - second_score) / top_score if top_score else 0.0
@@ -2896,21 +3091,25 @@ def classify_with_wnn(
         secondary,
         cosine_candidates,
     )
-    effective_margin_threshold = (
-        min(margin_threshold, COSINE_ASSISTED_MARGIN_THRESHOLD)
-        if cosine_supported
-        else margin_threshold
-    )
-    effective_confidence_threshold = max(confidence_threshold, CRIME_CONFIDENCE_THRESHOLDS.get(top_label, 0.0))
-    effective_margin_threshold = max(effective_margin_threshold, CRIME_MARGIN_THRESHOLDS.get(top_label, 0.0))
-    known_cooccurrence = _can_resolve_known_cooccurrence(
-        scores_by_label,
-        crime_active,
-        top_label,
-        secondary,
-        relation,
-    )
-
+    # Classes with measured high precision and low recall may safely use a
+    # lower, explicit acceptance threshold. Labels omitted from these maps keep
+    # the global configuration; structural crime_organizado remains stricter.
+    dynamic_confidence = (class_confidence_overrides or {}).get(top_label)
+    class_confidence = float(dynamic_confidence) if dynamic_confidence is not None else CRIME_CONFIDENCE_THRESHOLDS.get(top_label)
+    class_margin = CRIME_MARGIN_THRESHOLDS.get(top_label)
+    if dynamic_confidence is not None:
+        # Dynamic calibration is already bounded and is derived only from
+        # completed prior batches; it may move above or below the global value.
+        effective_confidence_threshold = float(dynamic_confidence)
+        effective_margin_threshold = class_margin if class_margin is not None else margin_threshold
+    elif top_label == "crime_organizado":
+        effective_confidence_threshold = max(confidence_threshold, class_confidence or 0.0)
+        effective_margin_threshold = max(margin_threshold, class_margin or 0.0)
+    else:
+        effective_confidence_threshold = min(confidence_threshold, class_confidence) if class_confidence is not None else confidence_threshold
+        effective_margin_threshold = min(margin_threshold, class_margin) if class_margin is not None else margin_threshold
+    if cosine_supported:
+        effective_margin_threshold = min(effective_margin_threshold, COSINE_ASSISTED_MARGIN_THRESHOLD)
     if cosine_suspect:
         return WNNClassification(
             None,
@@ -2963,10 +3162,19 @@ def classify_with_wnn(
             modus_evidence_source="body",
         )
 
-    if (confidence < effective_confidence_threshold or margin < effective_margin_threshold) and not known_cooccurrence:
+    # A cosine candidate is generated from x3 and must agree with the WNN
+    # leading theme. Once the marker-evidence guard above has passed, this
+    # agreement is sufficient to route the document to that theme even when
+    # the score confidence or margin alone would cause abstention. Genuine
+    # cosine disagreement was already rejected by ``cosine_suspect``.
+    if (
+        (confidence < effective_confidence_threshold or margin < effective_margin_threshold)
+        and not known_cooccurrence
+        and not cosine_supported
+    ):
         return WNNClassification(
             None,
-            "abstain_ambiguous" if not cosine_supported else "abstain_cosine_supported_but_low_confidence",
+            "abstain_ambiguous",
             confidence,
             margin,
             top_label,
@@ -3004,7 +3212,13 @@ def classify_with_wnn(
     )
     return WNNClassification(
         inference,
-        "accepted_known_cooccurrence" if known_cooccurrence else "accepted_crime",
+        "accepted_known_cooccurrence"
+        if known_cooccurrence
+        else "accepted_cosine_tiebreak"
+        if cosine_tiebreak_used
+        else "accepted_cosine_supported"
+        if cosine_supported
+        else "accepted_crime",
         confidence,
         margin,
         top_label,

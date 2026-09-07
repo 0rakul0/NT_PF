@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import html
-import math
 import re
 import time
 import unicodedata
@@ -892,7 +891,6 @@ def collect_recent_site_rows(
 
 def find_missing_site_rows_progressively(
     session: requests.Session,
-    missing_count_estimate: int,
     manifest_lookup: dict[str, dict[str, object]],
     inventory: ExistingNewsInventory,
     markdown_dir: Path,
@@ -901,16 +899,20 @@ def find_missing_site_rows_progressively(
     sleep_seconds: float,
     first_page_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    if missing_count_estimate <= 0:
-        return pd.DataFrame(columns=INDEX_COLUMNS)
+    """Scan the recent listing until reaching a page already represented locally.
 
-    target_count = max(1, missing_count_estimate)
+    The portal's pagination count is not a reliable count of the historical
+    corpus.  The local inventory can therefore be much larger than the number
+    of items currently exposed by the listing.  Each listing item is compared
+    by its normalized title plus publication date (with the URL as an
+    additional identity check); only absent items are returned for download.
+    """
     comparison_state = build_inventory_comparison_state(inventory)
     page_index = 0
     found_rows: list[dict[str, object]] = []
     found_links: set[str] = set()
 
-    while len(found_rows) < target_count:
+    while True:
         offset = page_index * step
         if page_index == 0 and first_page_df is not None:
             page_df = first_page_df.copy()
@@ -952,6 +954,11 @@ def find_missing_site_rows_progressively(
             f"novos_titulos_encontrados={new_rows_on_page} | acumulado={len(found_rows)} | "
             f"titulos_pendentes={len(comparison_state.remaining_title_date_keys)}"
         )
+
+        # Listings are newest first.  A full page with no unknown title means
+        # the synchronization frontier has been reached.
+        if new_rows_on_page == 0:
+            break
 
         if len(page_df) < step:
             break
@@ -1064,57 +1071,34 @@ def main() -> None:
     print(f"[sync] noticias no site: {site_count}")
     print(f"[sync] markdowns locais: {local_count}")
 
-    site_rows_to_download = pd.DataFrame(columns=INDEX_COLUMNS)
+    # Do not compare site and local totals: the portal may expose only a
+    # recent pagination window while the local corpus keeps the full history.
+    # The decision is per item: known title/date is skipped; unknown is fetched.
+    site_rows_to_download = find_missing_site_rows_progressively(
+        session=session,
+        manifest_lookup=manifest_lookup,
+        inventory=inventory,
+        markdown_dir=markdown_dir,
+        step=DEFAULT_STEP,
+        timeout=DEFAULT_TIMEOUT,
+        sleep_seconds=DEFAULT_SLEEP,
+        first_page_df=first_page_df,
+    )
     site_rows_appended = 0
-    if site_count > local_count:
-        missing_count_estimate = site_count - local_count
-        pages_to_scan = max(1, math.ceil(missing_count_estimate / DEFAULT_STEP))
-        print(f"[sync] diferenca estimada: {missing_count_estimate}")
-        print(f"[sync] paginas iniciais a verificar: {pages_to_scan}")
-
-        recent_site_rows = collect_recent_site_rows(
+    df_index, site_rows_appended = append_site_rows_to_index(df_index, site_rows_to_download)
+    print(f"[sync] novas noticias identificadas no site: {len(site_rows_to_download)}")
+    if not site_rows_to_download.empty:
+        manifest = download_new_site_articles(
             session=session,
-            pages_to_scan=pages_to_scan,
-            step=DEFAULT_STEP,
+            df_site_rows=site_rows_to_download,
+            manifest=manifest,
+            content_csv=content_csv,
+            markdown_dir=markdown_dir,
             timeout=DEFAULT_TIMEOUT,
             sleep_seconds=DEFAULT_SLEEP,
-            first_page_df=first_page_df,
         )
-        site_rows_to_download = collect_site_rows_missing_locally(
-            recent_site_rows,
-            manifest_lookup,
-            inventory,
-            markdown_dir,
-        )
-        if site_rows_to_download.empty:
-            print("[sync] nenhum titulo novo encontrado na janela inicial. Vou continuar a busca nas paginas seguintes.")
-            site_rows_to_download = find_missing_site_rows_progressively(
-                session=session,
-                missing_count_estimate=missing_count_estimate,
-                manifest_lookup=manifest_lookup,
-                inventory=inventory,
-                markdown_dir=markdown_dir,
-                step=DEFAULT_STEP,
-                timeout=DEFAULT_TIMEOUT,
-                sleep_seconds=DEFAULT_SLEEP,
-                first_page_df=first_page_df,
-            )
-        df_index, site_rows_appended = append_site_rows_to_index(df_index, site_rows_to_download)
-        print(f"[sync] novas noticias identificadas no site: {len(site_rows_to_download)}")
-        if not site_rows_to_download.empty:
-            manifest = download_new_site_articles(
-                session=session,
-                df_site_rows=site_rows_to_download,
-                manifest=manifest,
-                content_csv=content_csv,
-                markdown_dir=markdown_dir,
-                timeout=DEFAULT_TIMEOUT,
-                sleep_seconds=DEFAULT_SLEEP,
-            )
-            manifest_lookup = build_manifest_lookup(manifest)
-            inventory = build_existing_news_inventory(markdown_dir, manifest_lookup)
-    else:
-        print("[sync] nenhuma coleta nova sera feita porque a contagem do site nao supera a contagem local.")
+        manifest_lookup = build_manifest_lookup(manifest)
+        inventory = build_existing_news_inventory(markdown_dir, manifest_lookup)
 
     df_index, local_rows_appended = append_missing_local_rows_to_index(df_index, inventory, manifest, markdown_dir)
     df_index = ensure_index_columns(df_index)

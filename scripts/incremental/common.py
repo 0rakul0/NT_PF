@@ -50,6 +50,7 @@ METRICS_CSV = RUN_DIR / "metrics_batches.csv"
 RUN_MANIFEST_JSON = RUN_DIR / "run_manifest.json"
 RUN_RESULT_JSON = RUN_DIR / "run_result.json"
 LINGUISTIC_PREPROCESSING_JSON = RUN_DIR / "preprocessamento_linguistico.json"
+DYNAMIC_THRESHOLDS_JSON = RUN_DIR / "limiares_dinamicos_wnn.json"
 
 RARE_NEWS_LABEL = "noticias_raras"
 RARE_NEWS_DESCRIPTION = "Noticias residuais raras, sem encaixe defensavel nos temas canonicos ou macrotemas existentes."
@@ -57,10 +58,9 @@ RARE_NEWS_PROMOTION_THRESHOLD = 2
 
 
 def news_body_text(parsed: dict[str, Any]) -> str:
+    """Return x3, the only textual field that may enter the retina."""
     body = str(parsed.get("corpo", "") or "").strip()
-    if body:
-        return body
-    return build_llm_context(parsed)
+    return body
 
 
 @dataclass(frozen=True)
@@ -89,6 +89,9 @@ class RunConfig:
     ollama_num_predict: int = 1024
     agent3_min_confidence: float = 0.55
     resume_batches: bool = True
+    dynamic_class_thresholds: bool = True
+    dynamic_threshold_min_references: int = 20
+    dynamic_threshold_step: float = 0.02
     preserve_previous_run: bool = True
     theme_tree_review_interval_batches: int = 0
     dashboard_update_interval_batches: int = 0
@@ -219,6 +222,13 @@ def load_docs(max_docs: int | None = None) -> list[dict[str, Any]]:
         docs.append(
             {
                 "arquivo": path.name,
+                # Original news variables. x1, x2 and x4 are kept for
+                # traceability, temporal ordering and evaluation; only x3 is
+                # transformed into the retinal representation.
+                "x1_titulo": str(parsed.get("titulo", "")),
+                "x2_tags": parsed.get("tags", []),
+                "x3_texto_noticia": body_text,
+                "x4_data_noticia": str(parsed.get("data_publicacao", "")),
                 "markdown_path": str(path),
                 "titulo": str(parsed.get("titulo", "")),
                 "tags": parsed.get("tags", []),
@@ -267,7 +277,7 @@ def parse_br_date(value: object) -> datetime | None:
 
 def temporal_bucket(doc: dict[str, Any], granularity: str) -> str:
     parsed = doc.get("parsed", {})
-    published = parsed.get("data_publicacao") if isinstance(parsed, dict) else ""
+    published = doc.get("x4_data_noticia", "") or (parsed.get("data_publicacao") if isinstance(parsed, dict) else "")
     parsed_date = parse_br_date(published)
     if parsed_date is None:
         return "sem_data"
@@ -345,7 +355,7 @@ def split_docs(
 
     def chronological_key(doc: dict[str, Any]) -> tuple[bool, datetime, str]:
         parsed = doc.get("parsed", {})
-        published = parsed.get("data_publicacao") if isinstance(parsed, dict) else ""
+        published = doc.get("x4_data_noticia", "") or (parsed.get("data_publicacao") if isinstance(parsed, dict) else "")
         date = parse_br_date(published)
         # Undated documents stay after dated records, where they cannot leak into
         # the historical foundation. Filename makes ties deterministic.

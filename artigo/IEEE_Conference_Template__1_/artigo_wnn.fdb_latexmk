@@ -1,15 +1,14 @@
 # Fdb version 4
-["bibtex artigo_wnn"] 1785113712.36831 "artigo_wnn.aux" "artigo_wnn.bbl" "artigo_wnn" 1785113714.86273 0
-  "../trabalho_wnn/referencias.bib" 1784941145 7063 5659419269fc6a5f695c1762c64b5340 ""
+["bibtex artigo_wnn"] 1787696117.87624 "artigo_wnn.aux" "artigo_wnn.bbl" "artigo_wnn" 1787696182.76944 0
+  "./trabalho_wnn/referencias.bib" 1785170286 7249 5659419269fc6a5f695c1762c64b5340 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/bibtex/bst/ieeetran/IEEEtran.bst" 1440622569 57748 7c8250ecf02814ce6ddc0cdbb63df1dd ""
-  "artigo_wnn.aux" 1785113713 4802 086c088c035dff4ddb94c2ca77cc163d "pdflatex"
+  "artigo_wnn.aux" 1787696181 5483 36483f34546ff1d02a1ab9290dfe3adf "pdflatex"
   (generated)
   "artigo_wnn.bbl"
   "artigo_wnn.blg"
   (rewritten before read)
-["pdflatex"] 1785113712.69245 "artigo_wnn.tex" "artigo_wnn.pdf" "artigo_wnn" 1785113714.86351 0
-  "../trabalho_wnn/metodologia_crime_unico.tex" 1785113704 34555 4c69e3e7815f68bcea1c7095457b2f58 ""
-  "C:/Users/jeffe/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1784939982 84158 d77284a6843bde1e4b9764f09fb2e89e ""
+["pdflatex"] 1787696180.54415 "artigo_wnn.tex" "artigo_wnn.pdf" "artigo_wnn" 1787696182.7702 0
+  "C:/Users/jeffe/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1787665656 84158 d77284a6843bde1e4b9764f09fb2e89e ""
   "C:/Users/jeffe/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1775316645 13333486 4d173dc5b2871e68f107bc86d090db35 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc" 1458473887 4993 80dc9bab7f31fb78a000ccfed0e27cab ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/adobe/times/ptmb7t.tfm" 1136783054 2172 fd0c924230362ff848a33632ed45dc23 ""
@@ -27,7 +26,6 @@
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/adobe/times/ptmri8t.tfm" 1136783054 6944 94c55ad86e6ea2826f78ba2240d50df9 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1233951848 1004 54797486969f23fa377b128694d548df ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1233951848 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
-  "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/cmextra/cmex9.tfm" 1234365220 996 a18840b13b499c08ac2de96a99eda4bc ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/symbols/msam10.tfm" 1233951854 916 f87d7c45f9c908e672703b83b72241a3 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/symbols/msam5.tfm" 1233951854 924 9904cf1d39e9767e7a3622f2a125a565 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/symbols/msam7.tfm" 1233951854 928 2dc8d444221b7a635bb58038579b861a ""
@@ -39,16 +37,12 @@
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmbx6.tfm" 1136765053 1344 8a0be4fe4d376203000810ad4dc81558 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmbx7.tfm" 1136765053 1336 3125ccb448c1a09074e3aa4a9832f130 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmbx8.tfm" 1136765053 1332 1fde11373e221473104d6cc5993f046e ""
-  "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmbx9.tfm" 1136765053 1328 5442e22a7072966dbaf88ca900acf3f0 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmmi6.tfm" 1136765053 1512 f21f83efb36853c0b70002322c1ab3ad ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmmi8.tfm" 1136765053 1520 eccf95517727cb11801f4f1aee3a21b4 ""
-  "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmmi9.tfm" 1136765053 1524 d89e2d087a9828407a196f428428ef4a ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmr6.tfm" 1136765053 1300 b62933e007d01cfd073f79b963c01526 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmr8.tfm" 1136765053 1292 21c1c5bfeaebccffdb478fd231a0997d ""
-  "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmr9.tfm" 1136765053 1292 6b21b9c2c7bebb38aa2273f7ca0fb3af ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmsy6.tfm" 1136765053 1116 933a60c408fc0a863a92debe84b2d294 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmsy8.tfm" 1136765053 1120 8b7d695260f3cff42e636090a8002094 ""
-  "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/tfm/public/cm/cmsy9.tfm" 1136765053 1116 25a7bf822c58caf309a702ef79f4afbb ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx10.pfb" 1247596666 34811 78b52f49e893bcba91bd7581cdc144c0 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx7.pfb" 1247596667 32007 e8fa0078355f39467039935974716569 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx8.pfb" 1247596666 32166 b0c356b15f19587482a9217ce1d8fa67 ""
@@ -173,9 +167,10 @@
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/tex/latex/tools/array.sty" 1761901070 15651 9d7c62df82cb29a555c00550babfe364 ""
   "C:/Users/jeffe/AppData/Local/Programs/MiKTeX/tex/latex/xcolor/xcolor.sty" 1729265222 55384 b454dec21c2d9f45ec0b793f0995b992 ""
   "IEEEtran.cls" 1784939822 281957 5b2e4fa15b0f7eabb840ebf67df4c0f7 ""
-  "artigo_wnn.aux" 1785113713 4802 086c088c035dff4ddb94c2ca77cc163d "pdflatex"
-  "artigo_wnn.bbl" 1785113712 7369 7f3f8f10142b9078a282cc4e9e196fcd "bibtex artigo_wnn"
-  "artigo_wnn.tex" 1785113492 1943 5574f2178cd0f21798b5ae9c91ca0e9e ""
+  "artigo_wnn.aux" 1787696181 5483 36483f34546ff1d02a1ab9290dfe3adf "pdflatex"
+  "artigo_wnn.bbl" 1787696118 7369 7f3f8f10142b9078a282cc4e9e196fcd "bibtex artigo_wnn"
+  "artigo_wnn.tex" 1787696174 2013 bd6d171af5adf6f2e2047d74ae506afe ""
+  "trabalho_wnn/metodologia_crime_unico.tex" 1787696107 39475 e7a466a0c8c849b2ce52b4e0717cde56 ""
   (generated)
   "artigo_wnn.aux"
   "artigo_wnn.log"

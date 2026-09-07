@@ -26,14 +26,14 @@ def run(config: RunConfig) -> dict[str, object]:
     sample_df = pd.DataFrame(
         {
             "arquivo": [doc["arquivo"] for doc in sample],
-            "data_publicacao": [doc.get("parsed", {}).get("data_publicacao", "") for doc in sample],
+            "data_publicacao": [doc.get("x4_data_noticia", doc.get("parsed", {}).get("data_publicacao", "")) for doc in sample],
             "estrato_temporal": [temporal_bucket(doc, config.temporal_strata) for doc in sample],
         }
     )
     reserve_df = pd.DataFrame(
         {
             "arquivo": [doc["arquivo"] for doc in reserve],
-            "data_publicacao": [doc.get("parsed", {}).get("data_publicacao", "") for doc in reserve],
+            "data_publicacao": [doc.get("x4_data_noticia", doc.get("parsed", {}).get("data_publicacao", "")) for doc in reserve],
             "estrato_temporal": [temporal_bucket(doc, config.temporal_strata) for doc in reserve],
         }
     )

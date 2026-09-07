@@ -35,12 +35,14 @@ No estudo de caso, a classificacao busca identificar o dominio criminal ou o mod
 
 A base e dividida em duas partes:
 
-- **fundacao tematica**: amostra temporal estratificada usada para descobrir temas e gerar discriminadores iniciais;
+- **fundacao tematica**: os 10% iniciais das noticias ordenadas por data, usados para descobrir temas e gerar discriminadores iniciais;
 - **reserva incremental**: restante da base, processado em lotes para medir cobertura WNN, residuos e aprendizado.
 
 ### 4.2 Texto de dominio, clusterizacao e similaridade
 
 Antes da clusterizacao, o texto e reduzido para sinais substantivos do dominio. Na aplicacao com noticias da Policia Federal, isso significa priorizar substantivos, verbos, adjetivos, termos de crime e termos de modus operandi presentes no corpo textual. Localidades, nomes proprios, nomes de operacao e termos administrativos tem peso reduzido.
+
+A retina recebe somente `x3 = texto_noticia` (o corpo da noticia, apos o preprocessamento). `x1 = titulo` fica como metadado de auditoria; `x2 = tags` e o alvo de referencia para avaliar a classificacao, sem entrar na decisao; e `x4 = data_noticia` ordena a base no tempo. Uma predicao e considerada correta na avaliacao quando seu rotulo canonico coincide com pelo menos uma tag criminal mapeada de `x2`.
 
 A clusterizacao organiza a amostra inicial em folhas exploratorias. A metodologia e compativel com HDBSCAN; quando a densidade fica instavel, o pipeline registra fallback operacional. Em seguida, a similaridade do cosseno consolida clusters semanticamente proximos.
 
@@ -70,9 +72,13 @@ O Agente 3 revisa apenas residuos. Ele pode:
 - registrar `novo_tema_candidato`;
 - marcar como `noticias_raras`.
 
-Quando houver evidencia suficiente, a decisao residual e convertida em novos discriminadores WNN para `crime` e/ou `modus_operandi`. Noticias raras recebem assinatura e ficam em memoria; se a assinatura reaparece, volta ao ciclo como candidata.
+Quando houver evidencia suficiente, a decisao residual segue ao Agente 4. Somente depois da validacao pós-decisão por x2 a decisao pode ser convertida em novos discriminadores WNN para crime. Noticias raras recebem assinatura e ficam em memoria; se a assinatura reaparece, volta ao ciclo como candidata.
 
-### 4.7 Agente Organizador da Arvore
+### 4.7 Agente 4: validacao supervisionada
+
+O Agente 4 consulta as tags x2 somente depois da classificacao. Ele confirma o aprendizado quando há concordancia, corrige o rótulo quando há uma única referência e usa as pontuações WNN para desambiguar parte dos casos multirrótulo. Sem evidência e margem suficientes, bloqueia a atualização.
+
+### 4.8 Agente Organizador da Arvore
 
 O Agente Organizador revisa globalmente os temas canonicos, candidatos, contagens, evidencias, discriminadores aprendidos e sugestoes por similaridade. Sua funcao e impedir crescimento desordenado da taxonomia.
 
@@ -84,6 +90,8 @@ Ele decide se um candidato deve ser:
 - mantido como raro;
 - descartado como ruido.
 
+Ao término da rodada, também aplica feedback métrico auditável aos discriminadores: reforça máscaras completas que contribuíram para decisões WNN corretas e coloca em quarentena apenas padrões aprendidos/generalizados com pelo menos dois erros e nenhum acerto. Regras curadas são preservadas e toda alteração gera snapshot.
+
 ## 5. Como rodar
 
 Use:
@@ -92,19 +100,29 @@ Use:
 rodar_sistema.bat
 ```
 
-O script executa a geracao/sincronizacao da base, limpa artefatos anteriores, monta a fundacao, processa os lotes incrementais, roda reorganizacao da arvore, reavalia noticias raras e gera metricas, graficos e relatorios.
+O script retoma automaticamente uma execucao interrompida a partir do primeiro lote pendente. Nesse modo, preserva a mesma reserva temporal, a taxonomia e o banco WNN; portanto, nao sincroniza a base nem refaz a fundacao. Quando nao ha checkpoint, executa a geracao/sincronizacao da base, monta a fundacao, processa os lotes incrementais, roda reorganizacao da arvore, reavalia noticias raras e gera metricas, graficos e relatorios.
+
+Para retomar explicitamente, tambem pode usar:
+
+```bat
+rodar_continuar.bat
+```
+
+Para iniciar uma rodada nova (inclusive para incorporar noticias novas), execute `set PF_RESUME_RUN=false` na mesma janela antes de chamar `rodar_sistema.bat`. A rodada nova arquiva a anterior quando `PF_PRESERVE_PREVIOUS_RUN=true` e recria a fundacao.
 
 Configuracao padrao atual:
 
 - `PF_SKIP_SYNC=false`: sincroniza a base antes da execucao.
+- `PF_RESUME_RUN=true`: retoma os lotes pendentes quando existe checkpoint; use `false` para uma rodada nova.
+- `PF_DYNAMIC_CLASS_THRESHOLDS=true`: ao fechar um lote, ajusta no máximo 2 pontos percentuais o limiar de confiança de cada classe para o lote seguinte, usando somente a avaliação pós-decisão por `x2`.
 - `PF_SAMPLE_FRACTION=0.10`: fundacao tematica com 10% da base.
 - `PF_BATCH_SIZE=500`: processamento incremental em lotes de 500 noticias.
-- `PF_THEME_TREE_REVIEW_INTERVAL_BATCHES=1`: revisao da arvore ao final de cada lote.
+ - `PF_THEME_TREE_REVIEW_INTERVAL_BATCHES=0`: revisão intermediária da árvore desativada; o organizador roda ao final da execução.
 - `PF_WNN_ENABLED=true`: ativa a camada WNN.
 - `PF_WNN_CONFIDENCE_THRESHOLD=0.50`: limiar de aceitacao da WNN.
 - `PF_WNN_MARGIN_THRESHOLD=0.12`: margem minima entre o melhor e o segundo melhor tema.
 - `PF_WNN_MIN_ACTIVE_DISCRIMINATORS=2`: minimo de discriminadores ativos para aceitacao.
-- `PF_WNN_MAX_DISCRIMINATORS_PER_THEME=35`: limita o banco de discriminadores por tema.
+ - `PF_WNN_MAX_DISCRIMINATORS_PER_THEME=200`: limite adaptativo do banco de discriminadores por tema.
 
 ## 6. Saidas principais
 
@@ -176,6 +194,7 @@ Scripts centrais da execucao atual:
 - `scripts/incremental/agente2_discriminadores.py`: gera discriminadores iniciais para a WNN.
 - `scripts/incremental/processar_lotes.py`: roda a classificacao incremental por lotes.
 - `scripts/agentes/agente3_residual.py`: revisa residuos e produz aprendizado.
+- `scripts/agentes/agente4_validacao_supervisionada.py`: valida a decisao do Agente 3 contra `x2` após a classificacao e autoriza, corrige ou bloqueia o aprendizado WNN.
 - `scripts/agentes/agente_organizador_arvore.py`: reorganiza a arvore tematica.
 - `scripts/incremental/dashboard_dash.py`: painel operacional em Dash.
 

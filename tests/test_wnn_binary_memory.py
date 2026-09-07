@@ -221,7 +221,7 @@ class WNNBinaryMemoryTests(unittest.TestCase):
             {"body"},
         )
 
-    def test_specific_crime_has_priority_over_organized_crime_context(self) -> None:
+    def test_generic_organized_crime_context_is_not_emitted_as_secondary_label(self) -> None:
         payload = {
             "version": 1,
             "discriminators": [
@@ -240,8 +240,121 @@ class WNNBinaryMemoryTests(unittest.TestCase):
                 confidence_threshold=0.10,
                 margin_threshold=0.0,
                 min_active_discriminators=1,
-                crime_text="Organização criminosa ligada ao tráfico de drogas.",
+                crime_text="Organizacao criminosa ligada ao trafico de drogas.",
                 modus_text="",
+            )
+
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.top_label, "trafico_drogas")
+        self.assertNotIn("crime_organizado", result.inference.marcadores_secundarios)
+
+    def test_incidental_weapon_is_suppressed_when_child_crime_mask_is_complete(self) -> None:
+        payload = {
+            "version": 1,
+            "discriminators": [
+                {
+                    "id": "child-exploitation",
+                    "kind": "crime",
+                    "label": "crimes_contra_criancas",
+                    "tokens": ["pornografia", "infantil"],
+                    "weight": 1.0,
+                    "strength": "strong",
+                },
+                {
+                    "id": "incidental-weapon",
+                    "kind": "crime",
+                    "label": "armas_municoes",
+                    "tokens": ["arma", "fogo"],
+                    "weight": 1.2,
+                    "strength": "strong",
+                },
+            ],
+            "memories": {},
+        }
+        sync_feature_memory(payload)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bank_path = Path(tmpdir) / "wnn_feature_bank.json"
+            bank_path.write_text(json.dumps(payload), encoding="utf-8")
+            result = classify_with_wnn(
+                "Foram encontradas imagens de pornografia infantil e uma arma de fogo.",
+                bank_path,
+                confidence_threshold=0.10,
+                margin_threshold=0.0,
+                min_active_discriminators=1,
+            )
+
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.top_label, "crimes_contra_criancas")
+        self.assertTrue(
+            any(item["reason"] == "incidental_weapon_context_with_protected_domain" for item in result.guard_rejected_discriminators)
+        )
+
+    def test_child_crime_uses_calibrated_class_threshold_below_global_threshold(self) -> None:
+        payload = {
+            "version": 1,
+            "discriminators": [
+                {
+                    "id": "child",
+                    "kind": "crime",
+                    "label": "crimes_contra_criancas",
+                    "tokens": ["abuso", "sexual"],
+                    "weight": 1.1,
+                    "strength": "strong",
+                },
+                {
+                    "id": "cyber",
+                    "kind": "crime",
+                    "label": "crimes_ciberneticos",
+                    "tokens": ["internet"],
+                    "weight": 0.95,
+                    "strength": "strong",
+                },
+            ],
+            "memories": {},
+        }
+        sync_feature_memory(payload)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bank_path = Path(tmpdir) / "wnn_feature_bank.json"
+            bank_path.write_text(json.dumps(payload), encoding="utf-8")
+            result = classify_with_wnn(
+                "Abuso sexual investigado na internet.",
+                bank_path,
+                confidence_threshold=0.50,
+                margin_threshold=0.12,
+                min_active_discriminators=1,
+            )
+
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.top_label, "crimes_contra_criancas")
+        self.assertGreaterEqual(result.confidence, 0.52)
+
+    def test_structural_organized_crime_evidence_is_emitted_as_secondary_label(self) -> None:
+        payload = {
+            "version": 1,
+            "discriminators": [
+                {
+                    "id": "organized-structural",
+                    "kind": "crime",
+                    "label": "crime_organizado",
+                    "tokens": ["organizacao", "criminosa", "integrantes"],
+                    "weight": 1.2,
+                    "strength": "strong",
+                },
+                {"id": "drugs", "kind": "crime", "label": "trafico_drogas", "tokens": ["trafico", "drogas"], "weight": 1.1},
+            ],
+            "memories": {},
+        }
+        sync_feature_memory(payload)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bank_path = Path(tmpdir) / "wnn_feature_bank.json"
+            bank_path.write_text(json.dumps(payload), encoding="utf-8")
+            result = classify_with_wnn(
+                "",
+                bank_path,
+                confidence_threshold=0.10,
+                margin_threshold=0.0,
+                min_active_discriminators=1,
+                crime_text="Integrantes de organização criminosa atuavam no tráfico de drogas.",
             )
 
         self.assertTrue(result.accepted)
@@ -284,6 +397,87 @@ class WNNBinaryMemoryTests(unittest.TestCase):
         self.assertTrue(result.accepted)
         self.assertEqual(result.status, "accepted_known_cooccurrence")
         self.assertEqual(set(result.inference.crimes_mais_presentes), {"moeda_falsa", "crimes_previdenciarios"})
+
+    def test_cosine_supported_theme_is_accepted_despite_low_wnn_confidence(self) -> None:
+        payload = {
+            "version": 1,
+            "discriminators": [
+                {"id": "drugs", "kind": "crime", "label": "trafico_drogas", "tokens": ["trafico", "droga"], "weight": 1.1},
+                {"id": "laundering", "kind": "crime", "label": "lavagem_dinheiro", "tokens": ["lavagem", "dinheiro"], "weight": 0.9},
+            ],
+            "memories": {},
+        }
+        sync_feature_memory(payload)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bank_path = Path(tmpdir) / "wnn_feature_bank.json"
+            bank_path.write_text(json.dumps(payload), encoding="utf-8")
+            result = classify_with_wnn(
+                "trafico de droga com lavagem de dinheiro",
+                bank_path,
+                confidence_threshold=0.80,
+                margin_threshold=0.30,
+                min_active_discriminators=1,
+                cosine_candidates=[{"label": "trafico_drogas", "score": 0.40}],
+            )
+
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.top_label, "trafico_drogas")
+        self.assertEqual(result.status, "accepted_cosine_supported")
+
+    def test_cosine_breaks_two_class_ambiguity_in_favor_of_runner_up(self) -> None:
+        payload = {
+            "version": 1,
+            "discriminators": [
+                {"id": "alpha", "kind": "crime", "label": "classe_alpha", "tokens": ["alfa"], "weight": 1.1},
+                {"id": "beta", "kind": "crime", "label": "classe_beta", "tokens": ["beta"], "weight": 1.0},
+            ],
+            "memories": {},
+        }
+        sync_feature_memory(payload)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bank_path = Path(tmpdir) / "wnn_feature_bank.json"
+            bank_path.write_text(json.dumps(payload), encoding="utf-8")
+            result = classify_with_wnn(
+                "alfa beta",
+                bank_path,
+                confidence_threshold=0.80,
+                margin_threshold=0.30,
+                min_active_discriminators=1,
+                cosine_candidates=[{"label": "classe_beta", "score": 0.40}],
+            )
+
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.top_label, "classe_beta")
+        self.assertEqual(result.status, "accepted_cosine_tiebreak")
+
+    def test_generic_generalized_pattern_is_context_not_decisive_evidence(self) -> None:
+        payload = {
+            "version": 1,
+            "discriminators": [
+                {
+                    "id": "generic",
+                    "kind": "crime",
+                    "label": "contrabando_descaminho",
+                    "tokens": ["associacao", "criminosa", "fraude", "organizacao"],
+                    "weight": 1.0,
+                    "strength": "strong",
+                    "source": "agent2_generalized_micro_world",
+                }
+            ],
+            "memories": {},
+        }
+        sync_feature_memory(payload)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bank_path = Path(tmpdir) / "wnn_feature_bank.json"
+            bank_path.write_text(json.dumps(payload), encoding="utf-8")
+            result = classify_with_wnn(
+                "associacao criminosa e fraude em organizacao",
+                bank_path,
+                min_active_discriminators=1,
+            )
+
+        self.assertFalse(result.accepted)
+        self.assertEqual(result.status, "abstain_weak_marker_evidence")
 
     def test_tag_hint_cannot_create_crime_without_textual_evidence(self) -> None:
         payload = {

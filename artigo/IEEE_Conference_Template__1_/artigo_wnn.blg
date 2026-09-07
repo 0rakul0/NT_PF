@@ -3,13 +3,13 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: artigo_wnn.aux
 Reallocating 'name_of_file' (item size: 1) to 9 items.
 The style file: IEEEtran.bst
-Reallocating 'name_of_file' (item size: 1) to 28 items.
+Reallocating 'name_of_file' (item size: 1) to 27 items.
 Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'wiz_functions' (item size: 4) to 6000 items.
 Reallocating 'singl_function' (item size: 4) to 100 items.
-Database file #1: ../trabalho_wnn/referencias.bib
+Database file #1: ./trabalho_wnn/referencias.bib
 -- IEEEtran.bst version 1.14 (2015/08/26) by Michael Shell.
 -- http://www.michaelshell.org/tex/ieeetran/bibtex/
 -- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
@@ -17,7 +17,7 @@ Database file #1: ../trabalho_wnn/referencias.bib
 Done.
 You've used 19 entries,
             4087 wiz_defined-function locations,
-            944 strings with 11486 characters,
+            944 strings with 11485 characters,
 and the built_in function-call counts, 12999 in all, are:
 = -- 1092
 > -- 260

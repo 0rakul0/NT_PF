@@ -6,8 +6,10 @@ from typing import Any
 import pandas as pd
 
 from scripts.agentes.agente3_residual import append_new_theme_candidate, review_residual
+from scripts.agentes.agente4_validacao_supervisionada import validate_residual_review
 from scripts.agentes.agente1_temas import KNOWN_CANONICAL_LABELS
 from scripts.incremental.common import (
+    DYNAMIC_THRESHOLDS_JSON,
     LOTS_DIR,
     METRICS_CSV,
     RARE_NEWS_LABEL,
@@ -21,6 +23,7 @@ from scripts.incremental.common import (
     read_json,
     write_json,
 )
+from scripts.incremental.calibracao_limiares import calibrate_after_batch, load_active_thresholds
 from scripts.incremental.noticias_raras import append_rare_news_observation
 from scripts.incremental.preprocessamento_linguistico import preprocess_body_text
 from scripts.incremental.similaridade_cosseno import top_k_similar_themes
@@ -31,6 +34,7 @@ from scripts.pf_llm_models import NoticiaLLMInference
 
 try:
     from scripts.pf_wnn_classifier import (
+        CRIME_CONFIDENCE_THRESHOLDS,
         append_discriminators_from_learned_rules,
         classify_with_wnn,
         compact_feature_bank,
@@ -38,7 +42,7 @@ try:
         suggest_discriminator_rules_from_review,
     )
 except ModuleNotFoundError:
-    from pf_wnn_classifier import append_discriminators_from_learned_rules, classify_with_wnn, compact_feature_bank, record_reverse_memory_observation, suggest_discriminator_rules_from_review
+    from pf_wnn_classifier import CRIME_CONFIDENCE_THRESHOLDS, append_discriminators_from_learned_rules, classify_with_wnn, compact_feature_bank, record_reverse_memory_observation, suggest_discriminator_rules_from_review
 
 try:
     from scripts.agentes.agente_organizador_arvore import run as run_theme_tree_organizer
@@ -47,19 +51,13 @@ except ModuleNotFoundError:
 
 
 def classification_text(doc: dict[str, Any]) -> str:
+    """Build the retinal input exclusively from x3 (``texto_noticia``)."""
     parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
     semantic = str(doc.get("semantic_features", "") or "").strip()
     if semantic:
         return semantic
-    body = str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "")).strip()
+    body = str(doc.get("x3_texto_noticia", "") or doc.get("body_text", "") or parsed.get("corpo", "")).strip()
     return preprocess_body_text(body).semantic_features
-
-
-def classification_inputs(doc: dict[str, Any]) -> tuple[str, str]:
-    """Return body evidence and the title fallback for crime classification."""
-    title = str(doc.get("titulo", "") or "").strip()
-    title_features = preprocess_body_text(title).semantic_features if title else ""
-    return classification_text(doc), title_features or title
 
 
 def review_to_inference(review: ResidualReviewAgentResponse) -> NoticiaLLMInference:
@@ -108,7 +106,8 @@ def initialize_classification_row(doc: dict[str, Any]) -> dict[str, Any]:
         "wnn_crime_margin": 0.0,
         "wnn_crime_autonomous": False,
         "wnn_crime_evidence_source": "",
-        "wnn_crime_tag_hints": [],
+        "x2_tags_referencia": list(doc.get("x2_tags", doc.get("tags", [])) or []),
+        "x2_target_labels": [],
         "wnn_top_label": "",
         "wnn_modus_operandi": [],
         "wnn_modus_confidence": 0.0,
@@ -127,7 +126,12 @@ def initialize_classification_row(doc: dict[str, Any]) -> dict[str, Any]:
         "wnn_memory_binary": "",
         "agent3_reviewed": False,
         "agent3_decision": "",
+        "agent3_raw_canonical_label": "",
         "agent3_canonical_label": "",
+        "agent3_learning_authorized": False,
+        "agent3_learning_status": "",
+        "agent4_bleaching_scores": [],
+        "agent4_bleaching_margin": 0.0,
         "agent3_tema_principal": "",
         "agent3_marcadores_secundarios": [],
         "agent3_relacao_operacional": "",
@@ -245,6 +249,9 @@ def run(config: RunConfig) -> dict[str, object]:
             print(f"[classificacao] lote {iteration}/{total_batches} ja processado, pulando", flush=True)
             continue
         started = time.perf_counter()
+        class_confidence_overrides = (
+            load_active_thresholds(DYNAMIC_THRESHOLDS_JSON) if config.dynamic_class_thresholds else {}
+        )
         rows = []
         llm_processed = 0
         learned_rules = 0
@@ -259,6 +266,11 @@ def run(config: RunConfig) -> dict[str, object]:
         agent3_rare_news = 0
         rare_promoted_candidates = 0
         agent3_errors = 0
+        agent4_validated = 0
+        agent4_confirmed = 0
+        agent4_corrected = 0
+        agent4_bleached = 0
+        agent4_blocked = 0
         residual_limit = config.max_residual_llm_per_batch
         residual_docs = 0
         wnn_attempted = 0
@@ -273,13 +285,15 @@ def run(config: RunConfig) -> dict[str, object]:
             row = initialize_classification_row(doc)
             rows.append(row)
             residual_docs += 1
-            crime_text, title_fallback_text = classification_inputs(doc)
+            crime_text = classification_text(doc)
+            wnn_score_rows: list[dict[str, object]] = []
             parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
-            raw_tags = doc.get("tags") or parsed.get("tags") or []
-            crime_tag_hints = crime_labels_from_tags(raw_tags if isinstance(raw_tags, list) else [])
-            cosine_candidates = top_k_similar_themes(crime_text or title_fallback_text, top_k=5, preprocessed=True)
+            raw_tags = doc.get("x2_tags", doc.get("tags") or parsed.get("tags") or [])
+            target_labels = crime_labels_from_tags(raw_tags if isinstance(raw_tags, list) else [])
+            cosine_candidates = top_k_similar_themes(crime_text, top_k=5, preprocessed=True)
             row.update(
                 {
+                    "x2_target_labels": target_labels,
                     "cosine_top_label": cosine_candidates[0]["label"] if cosine_candidates else "",
                     "cosine_top_score": cosine_candidates[0]["score"] if cosine_candidates else 0.0,
                     "cosine_top_k": cosine_candidates,
@@ -288,16 +302,17 @@ def run(config: RunConfig) -> dict[str, object]:
             if config.wnn_enabled:
                 wnn_attempted += 1
                 wnn_result = classify_with_wnn(
-                    title_fallback_text,
+                    crime_text,
                     WNN_FEATURE_BANK_PATH,
                     confidence_threshold=config.wnn_confidence_threshold,
                     margin_threshold=config.wnn_margin_threshold,
                     min_active_discriminators=config.wnn_min_active_discriminators,
                     cosine_candidates=cosine_candidates,
                     crime_text=crime_text,
-                    crime_tag_hints=crime_tag_hints,
+                    class_confidence_overrides=class_confidence_overrides,
                 )
                 wnn_dict = wnn_result.to_dict()
+                wnn_score_rows = [item for item in wnn_dict.get("scores", []) if isinstance(item, dict)]
                 row.update(
                     {
                         "wnn_attempted": True,
@@ -309,7 +324,6 @@ def run(config: RunConfig) -> dict[str, object]:
                         "wnn_crime_margin": round(wnn_result.crime_margin, 4),
                         "wnn_crime_autonomous": wnn_result.crime_autonomous,
                         "wnn_crime_evidence_source": wnn_dict.get("crime_evidence_source", ""),
-                        "wnn_crime_tag_hints": crime_tag_hints,
                         "wnn_top_label": wnn_result.top_label,
                         "wnn_modus_operandi": wnn_result.modus_operandi,
                         "wnn_modus_confidence": round(wnn_result.modus_confidence, 4),
@@ -345,7 +359,6 @@ def run(config: RunConfig) -> dict[str, object]:
                         "crime_margin": round(wnn_result.crime_margin, 4),
                         "crime_autonomous": wnn_result.crime_autonomous,
                         "crime_evidence_source": wnn_dict.get("crime_evidence_source", ""),
-                        "crime_tag_hints": crime_tag_hints,
                         "top_label": wnn_result.top_label,
                         "modus_operandi": wnn_result.modus_operandi,
                         "modus_confidence": round(wnn_result.modus_confidence, 4),
@@ -491,9 +504,32 @@ def run(config: RunConfig) -> dict[str, object]:
                 append_new_theme_candidate(doc, review, iteration)
             else:
                 agent3_quarantined += 1
+
+            agent4_result = validate_residual_review(
+                review,
+                target_labels,
+                wnn_score_rows,
+            )
+            learning_review = agent4_result.learning_review
+            learning_authorized = agent4_result.learning_authorized
+            learning_status = agent4_result.status
+            raw_agent3_label = agent4_result.raw_label
+            agent4_validated += 1
+            if learning_status == "confirmado_por_x2":
+                agent4_confirmed += 1
+            elif learning_status == "corrigido_por_x2_unica":
+                agent4_corrected += 1
+            elif learning_status == "desambiguado_por_bleaching_x2_multilabel":
+                agent4_bleached += 1
+            elif not learning_authorized:
+                agent4_blocked += 1
             incorporated = []
-            if review.decision in {"classificar", "novo_tema_candidato"} and review.canonical_label != RARE_NEWS_LABEL:
-                incorporated = suggest_discriminator_rules_from_review(doc, review)
+            if (
+                learning_authorized
+                and learning_review.decision == "classificar"
+                and learning_review.canonical_label != RARE_NEWS_LABEL
+            ):
+                incorporated = suggest_discriminator_rules_from_review(doc, learning_review)
             incorporated_wnn = (
                 append_discriminators_from_learned_rules(
                     incorporated,
@@ -505,10 +541,14 @@ def run(config: RunConfig) -> dict[str, object]:
             )
             learned_rules += len(incorporated_wnn)
             reverse_memory_update = {"recorded": False, "reason": "review_not_classified"}
-            if review.decision == "classificar" and review.canonical_label != RARE_NEWS_LABEL:
+            if (
+                learning_authorized
+                and learning_review.decision == "classificar"
+                and learning_review.canonical_label != RARE_NEWS_LABEL
+            ):
                 reverse_memory_update = record_reverse_memory_observation(
                     WNN_FEATURE_BANK_PATH,
-                    review.canonical_label,
+                    learning_review.canonical_label,
                     str(doc.get("body_text", "") or doc.get("context", "")),
                     source="verified_residual",
                 )
@@ -517,9 +557,17 @@ def run(config: RunConfig) -> dict[str, object]:
                     "classification_source": "agent3_review",
                     "agent3_reviewed": True,
                     "agent3_decision": review.decision,
-                    "agent3_canonical_label": review.canonical_label,
-                    "agent3_tema_principal": review.tema_principal or review.canonical_label,
-                    "agent3_marcadores_secundarios": review.marcadores_secundarios,
+                    "agent3_raw_canonical_label": raw_agent3_label,
+                    "agent3_canonical_label": learning_review.canonical_label,
+                    "agent3_learning_authorized": learning_authorized,
+                    "agent3_learning_status": learning_status,
+                    "agent4_bleaching_scores": [
+                        {"label": label, "score": round(score, 4)}
+                        for label, score in agent4_result.bleaching_scores
+                    ],
+                    "agent4_bleaching_margin": round(agent4_result.bleaching_margin, 4),
+                    "agent3_tema_principal": learning_review.tema_principal or learning_review.canonical_label,
+                    "agent3_marcadores_secundarios": learning_review.marcadores_secundarios,
                     "agent3_modus_operandi": review.modus_operandi,
                     "agent3_relacao_operacional": review.relacao_operacional,
                     "agent3_confidence": round(review.confidence, 4),
@@ -528,7 +576,24 @@ def run(config: RunConfig) -> dict[str, object]:
                     "agent2_incremental_wnn_count": len(incorporated_wnn),
                     "agent2_incremental_wnn": incorporated_wnn,
                     "drasiw_reverse_memory": reverse_memory_update,
-                    "inference": review_to_inference(review).model_dump() if review.decision == "classificar" else {},
+                    "inference": review_to_inference(learning_review).model_dump() if review.decision == "classificar" else {},
+                }
+            )
+            append_event(
+                {
+                    "stage": "agente4_validacao_supervisionada",
+                    "iteration": iteration,
+                    "arquivo": doc["arquivo"],
+                    "x2_target_labels": list(agent4_result.target_labels),
+                    "raw_canonical_label": raw_agent3_label,
+                    "learning_label": learning_review.canonical_label,
+                    "learning_authorized": learning_authorized,
+                    "status": learning_status,
+                    "bleaching_scores": [
+                        {"label": label, "score": round(score, 4)}
+                        for label, score in agent4_result.bleaching_scores
+                    ],
+                    "bleaching_margin": round(agent4_result.bleaching_margin, 4),
                 }
             )
             append_event(
@@ -550,6 +615,13 @@ def run(config: RunConfig) -> dict[str, object]:
                     "modus_operandi": review.modus_operandi,
                     "relacao_operacional": review.relacao_operacional,
                     "agent3_review": review.model_dump(),
+                    "agent3_supervision": {
+                        "x2_target_labels": target_labels,
+                        "raw_canonical_label": raw_agent3_label,
+                        "learning_label": learning_review.canonical_label,
+                        "learning_authorized": learning_authorized,
+                        "status": learning_status,
+                    },
                     "agent2_incremental_wnn": incorporated_wnn,
                 }
             )
@@ -573,6 +645,16 @@ def run(config: RunConfig) -> dict[str, object]:
         batch_output = LOTS_DIR / f"lote_{iteration:04d}_classificacoes.csv"
         batch_output.parent.mkdir(parents=True, exist_ok=True)
         batch_df.to_csv(batch_output, index=False, encoding="utf-8-sig")
+        calibration = calibrate_after_batch(
+            rows,
+            DYNAMIC_THRESHOLDS_JSON,
+            iteration,
+            default_threshold=config.wnn_confidence_threshold,
+            enabled=config.dynamic_class_thresholds,
+            min_references=config.dynamic_threshold_min_references,
+            step=config.dynamic_threshold_step,
+            base_thresholds=CRIME_CONFIDENCE_THRESHOLDS,
+        )
         docs = len(batch)
         memory_sizes = pd.to_numeric(batch_df.get("wnn_memory_vocab_size", pd.Series(dtype=float)), errors="coerce").fillna(0)
         wnn_memory_vocab_size = int(memory_sizes.max()) if not batch_df.empty else 0
@@ -612,6 +694,11 @@ def run(config: RunConfig) -> dict[str, object]:
                 "agent3_classified": agent3_classified,
                 "agent3_quarantined": agent3_quarantined,
                 "agent3_new_theme_candidates": agent3_new_theme_candidates,
+                "agent4_validated": agent4_validated,
+                "agent4_confirmed": agent4_confirmed,
+                "agent4_corrected": agent4_corrected,
+                "agent4_bleached": agent4_bleached,
+                "agent4_blocked": agent4_blocked,
                 "wnn_multi_discriminator_candidates": wnn_multi_discriminator_candidates,
                     "agent3_rare_news": agent3_rare_news,
                     "rare_promoted_candidates": rare_promoted_candidates,
@@ -627,6 +714,12 @@ def run(config: RunConfig) -> dict[str, object]:
                 "wnn_memory_vocab_size": wnn_memory_vocab_size,
                 "wnn_memory_active_avg": round(wnn_memory_active_avg, 4),
                 "wnn_rate": round(wnn_accepted / docs, 6) if docs else 0,
+                "dynamic_threshold_changes": sum(
+                    1
+                    for change in calibration.get("changes", [])
+                    if change.get("previous_threshold") != change.get("new_threshold")
+                ),
+                "dynamic_thresholds_path": str(DYNAMIC_THRESHOLDS_JSON),
                 "cumulative_docs": cumulative_docs,
                 "cumulative_wnn_accepted": cumulative_wnn,
                 "cumulative_llm_processed": cumulative_llm,

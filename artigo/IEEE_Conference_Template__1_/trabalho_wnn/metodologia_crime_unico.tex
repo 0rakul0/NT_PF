@@ -4,33 +4,17 @@ Instituições públicas que produzem ou analisam informação em larga escala l
 
 Esse processo é dificultado pela heterogeneidade da base, pelo seu crescimento ao longo do tempo e pela coexistência de fenômenos recorrentes e emergentes. A variação lexical, as mudanças de enfoque e a presença de atributos acidentais --- como localidades, nomes de operações e entidades --- podem induzir categorias artificiais. Embora a rotulagem humana seja onerosa e pouco escalável, uma classificação automática sem controles pode reproduzir ruídos, transformar metadados em classes e comprometer a estabilidade da taxonomia.
 
-Modelos de linguagem de grande porte podem apoiar a interpretação de textos e a identificação de evidências, mas sua aplicação indiscriminada sobre toda a base aumenta o custo de inferência e reduz a previsibilidade do processo. Este trabalho explora uma divisão de responsabilidades: a memória WNN trata documentos recorrentes para os quais existem evidências lexicais suficientes, enquanto a LLM revisa apenas casos residuais, ambíguos ou semanticamente inéditos. Os aprendizados validados nessa revisão podem ser convertidos em marcadores auditáveis e incorporados de forma controlada à memória.
+Modelos de linguagem de grande porte podem apoiar a interpretação de textos, mas enviar toda a base à API transforma cada notícia em consumo recorrente de tokens e custo de inferência. Este trabalho explora uma divisão de responsabilidades: a memória WNN trata documentos recorrentes com evidência lexical suficiente, sem chamada à LLM; a LLM revisa somente casos residuais, ambíguos ou semanticamente inéditos. Os aprendizados validados podem então ser incorporados à memória como marcadores auditáveis, ampliando gradualmente a parcela atendida sem consumo de tokens pela API.
 
 Assim, o objetivo é responder à seguinte questão: \textit{como organizar e classificar incrementalmente uma base textual institucional em crescimento, reduzindo o custo de inferência por LLM e preservando auditabilidade, adaptação a novos temas e estabilidade da taxonomia?} A metodologia é aplicada a notícias públicas da Polícia Federal e tem como alvo o crime canônico principal de cada documento. Sua contribuição é propor um ciclo reproduzível de fundação temática, classificação incremental, revisão residual e atualização controlada da memória, e não apenas uma classificação pontual da base analisada.
 
 \section{Trabalhos relacionados}
 
-Rangel et al.~\cite{rangel2016ssw} propõem uma WiSARD semissupervisionada para categorização de textos sociais. A abordagem explora a rapidez de treinamento e o aprendizado incremental da arquitetura, empregando uma medida de confiança para selecionar exemplos não rotulados que podem realimentar o classificador. Nos experimentos com conjuntos binários de sentimento, o estudo relata acurácias competitivas e tempo de treinamento inferior aos mecanismos semissupervisionados usados na comparação. Sua contribuição fundamenta, portanto, o uso de redes neurais sem pesos em cenários textuais com poucos rótulos e fluxo de exemplos.
+Rangel et al.~\cite{rangel2016ssw} exploram uma WiSARD semissupervisionada para textos e evidenciam a rapidez de treinamento e o aprendizado incremental de redes sem pesos. Carneiro~\cite{carneiro2017weightless} discute a robustez do \textit{bleaching} e a influência da representação de entrada. Esses estudos sustentam a retina textual e o uso de confiança, mas tratam classes predefinidas ou etiquetas linguísticas; não abordam a consolidação temporal de uma taxonomia de crimes nem o encaminhamento seletivo para LLM.
 
-Entretanto, o objetivo de Rangel et al.~\cite{rangel2016ssw} é classificar textos em categorias previamente definidas. O trabalho não tem como foco a descoberta de uma fundação temática, a validação de categorias emergentes nem o controle da evolução de uma taxonomia institucional. Essas necessidades são centrais em notícias públicas: termos como localidades, nomes de operações e órgãos podem ser frequentes sem constituir, por si só, crimes canônicos.
+Snorkel e ontologias especializadas usam regras interpretáveis para gerar supervisão programática~\cite{ratner2017snorkel,ratner2018drybell,ratner2020snorkel,fries2021ontology}. LDA, BERTopic, HDBSCAN e Sentence-BERT apoiam descoberta de tópicos, agrupamento e proximidade semântica~\cite{blei2003lda,grootendorst2022bertopic,mcinnes2017hdbscan,reimers2019sbert}. Nesta proposta, clusters apoiam apenas a fundação: cada agrupamento precisa ser consolidado como crime canônico, e os discriminadores permanecem como memória operacional versionada, não apenas como sinais para treinar outro modelo.
 
-Carneiro~\cite{carneiro2017weightless} investiga resultados teóricos para classificadores sem pesos e sua aplicação à linguística computacional. A tese demonstra que a técnica de \textit{bleaching} aumenta a robustez da WiSARD diante de grandes volumes de dados sem reduzir sua capacidade teórica de generalização e a aplica à etiquetagem gramatical multilíngue. O estudo também evidencia que a representação de entrada é determinante para o desempenho de uma WNN, oferecendo sustentação para a retina textual e para o vocabulário versionado empregados neste trabalho.
-
-Todavia, a aplicação de Carneiro~\cite{carneiro2017weightless} tem como alvo etiquetas linguísticas e a análise das propriedades do classificador. Ela não aborda a construção de uma taxonomia temática de crimes, a governança de documentos raros ou ambíguos, nem o uso seletivo de um modelo de linguagem para interpretar casos sem evidência suficiente na memória.
-
-No campo da supervisão fraca, a família Snorkel usa funções de rotulagem para produzir sinais programáticos e dados de treinamento quando há poucos rótulos manuais~\cite{ratner2017snorkel,ratner2018drybell,ratner2020snorkel}. De modo complementar, Fries et al.~\cite{fries2021ontology} mostram que ontologias, regras e conhecimento de domínio podem apoiar classificações especializadas. A proposta compartilha o emprego de sinais interpretáveis, mas difere porque os discriminadores lexicais não são somente uma etapa intermediária para treinar outro classificador: eles permanecem como memória operacional, versionada e auditável.
-
-Na organização de coleções textuais, LDA~\cite{blei2003lda}, BERTopic~\cite{grootendorst2022bertopic}, HDBSCAN~\cite{mcinnes2017hdbscan} e Sentence-BERT~\cite{reimers2019sbert} oferecem mecanismos para modelar tópicos, agrupar documentos ou estimar proximidade semântica. Neste trabalho, esses recursos apoiam exclusivamente a fundação exploratória. Os clusters não são assumidos como categorias finais: precisam ser consolidados em crimes canônicos e convertidos em discriminadores que preservem a justificativa da decisão.
-
-Estudos sobre LLMs em supervisão fraca e classificação textual mostram seu potencial para formular funções de rotulagem, interpretar textos e aproximar clusterização e classificação~\cite{smith2022lml,guan2023labelfunctions,huang2024clustering}. Em particular, Guan et al.~\cite{guan2023labelfunctions} propõem gerar e filtrar funções de rotulagem com modelos de linguagem. Sosnovikov et al.~\cite{sosnovikov2025lgiwl} empregam a LLM para sintetizar e refinar iterativamente essas funções a partir de erros de um classificador posterior. Essas abordagens aproximam-se da geração de discriminadores interpretáveis, mas as regras servem para supervisionar outro modelo. Nesta metodologia, os discriminadores permanecem como a memória operacional de classificação e a LLM atua somente sobre os casos residuais.
-
-O encaminhamento seletivo por confiança também aparece em arquiteturas de roteamento de LLMs. Shah e Shridhar~\cite{shah2025select} combinam uma taxonomia de tarefas com uma cascata adaptativa que encaminha consultas de baixa confiabilidade para modelos mais capazes. A finalidade é semelhante à redução de custo de inferência, mas o objeto é distinto: o trabalho seleciona LLMs para consultas gerais, enquanto a proposta encaminha notícias institucionais entre uma memória lexical de crimes e uma única etapa residual de interpretação.
-
-No aprendizado incremental, Xia et al.~\cite{xia2021incremental} formalizam a classificação textual com múltiplas rodadas de novas classes e preservação do desempenho nas classes anteriores. Na construção de taxonomias, Tuan et al.~\cite{tuan2016temporal} propõem atualizar relações taxonômicas com evidências temporais, evitando reconstruir toda a estrutura a cada atualização. A construção de taxonomias com LLMs, \textit{prompting} e ajuste fino também é investigada por Balakrishnan~\cite{balakrishnan2025taxonomy}. Esses estudos tratam, respectivamente, da entrada de classes, da atualização da taxonomia ou da sua geração, mas não associam esses processos a uma memória lexical binária, a critérios explícitos de suficiência de evidência e à revisão residual por LLM.
-
-Por sua vez, o princípio de converter evidências observadas em novos marcadores aproxima-se do \textit{bootstrapping} de padrões de Snowball~\cite{agichtein2000snowball}; a diferença é que o objetivo aqui é o aprendizado incremental de classes temáticas, e não a extração de relações.
-
-Assim, a lacuna identificada situa-se entre a eficiência e o aprendizado incremental de WNNs, a geração de regras por LLMs, a atualização de categorias e o roteamento sensível à confiança. A contribuição desta proposta é integrá-los em um ciclo único e auditável: uma fundação formada exclusivamente por documentos históricos consolida crimes canônicos e seus discriminadores; a memória WNN classifica os casos recorrentes; e somente os documentos sem evidência suficiente são encaminhados à LLM. As decisões residuais podem reforçar marcadores existentes, propor candidatos a novos crimes ou registrar exceções, sempre com controle de vocabulário, versão da memória e trilha de auditoria. Portanto, o destaque não é uma nova arquitetura WNN, mas a organização operacional e rastreável desses componentes para uma base institucional em evolução.
+LLMs podem gerar funções de rotulagem, interpretar textos e refinar regras~\cite{smith2022lml,guan2023labelfunctions,huang2024clustering,sosnovikov2025lgiwl}. O roteamento sensível à confiança também busca reduzir custo de inferência~\cite{shah2025select}. A diferença é que a proposta não escolhe entre LLMs: evita chamadas para notícias recorrentes mediante memória lexical e reserva uma única LLM para resíduos. A atualização de classes e taxonomias~\cite{xia2021incremental,tuan2016temporal,balakrishnan2025taxonomy} e o \textit{bootstrapping} de padrões~\cite{agichtein2000snowball} complementam esse ciclo. Assim, a contribuição é integrar fundação temporal, memória WNN, revisão residual e atualização auditável em uma base institucional em evolução.
 
 \section{Metodologia}
 
@@ -38,11 +22,35 @@ Assim, a lacuna identificada situa-se entre a eficiência e o aprendizado increm
 
 Propõe-se uma metodologia incremental para classificar notícias institucionais pelo crime canônico principal. A base completa é ordenada pela data de publicação e dividida por um corte cronológico em duas partes disjuntas: a fundação contém os 10\% mais antigos dos documentos, e a reserva incremental contém os 90\% posteriores. A fundação é usada para descobrir e consolidar a taxonomia inicial sem acesso a documentos futuros; a reserva é processada em lotes cronológicos de 500 notícias para avaliar a cobertura da memória WNN, os encaminhamentos residuais, a evolução temporal dos crimes e o aprendizado controlado de novos marcadores.
 
-O corpo da notícia é a fonte textual principal para a classificação, pois descreve o fato jurídico e suas evidências. O título pode ser usado como evidência secundária quando o corpo não ativa discriminadores suficientes. As tags institucionais são tratadas apenas como pistas auxiliares: elas podem reforçar uma classe já sustentada por evidência textual, mas não criam isoladamente uma classificação nem uma posição na memória.
+O corpo da notícia é a única fonte textual da classificação, pois descreve o fato jurídico e suas evidências. Título e tags são preservados para auditoria e avaliação. Em particular, as tags não participam da construção da retina, da ativação de discriminadores nem da decisão da WNN ou da revisão residual por LLM; são consultadas somente após essa decisão, em uma etapa determinística de validação do aprendizado.
 
 A memória adotada é uma implementação lexical binária inspirada em princípios de WNN/WiSARD, e não uma reprodução da WiSARD clássica. Em particular, ela não emprega o mapeamento pseudoaleatório da retina para um conjunto de RAMs endereçáveis. A implementação associa posições lexicais estáveis a discriminadores de crime, constrói vetores binários para os documentos e decide por pontuação de máscaras, cobertura, confiança e margem. A inspiração nas redes neurais sem pesos orienta a representação e a atualização incremental, enquanto as regras de decisão são explicitadas e auditadas no domínio textual.
 
-\subsection{Nomenclatura e representação textual}
+\subsection{Variáveis da notícia e política de uso}
+
+Cada notícia é representada por quatro variáveis. A Tabela~\ref{tab:variaveis-noticia} delimita seu papel para impedir vazamento de rótulos e confusão entre metadados e evidência classificatória.
+
+\begin{table}[ht]
+\centering
+\caption{Variáveis da notícia e seus usos no fluxo.}
+\label{tab:variaveis-noticia}
+\begin{tabular}{p{0.28\linewidth}>{\hyphenpenalty=50\exhyphenpenalty=50\tolerance=1000\arraybackslash}p{0.60\linewidth}}
+\hline
+\textbf{Variável} & \textbf{Uso operacional} \\
+\hline
+\mbox{$x_1=\textit{titulo}$} & Metadado preservado para identificação e auditoria; não entra na retina. \\
+\mbox{$x_2=\textit{tags}$} & Referência publicada, mapeada após a decisão; avalia a classificação e autoriza o aprendizado residual. Não entra na retina, WNN ou LLM. \\
+\mbox{$x_3=\textit{texto\_noticia}$} & Corpo da notícia; única entrada textual da retina e da classificação. \\
+\mbox{$x_4=\textit{data\_noticia}$} & Ordena cronologicamente a base e define fundação e reserva; não entra na retina. \\
+\hline
+\end{tabular}
+\end{table}
+
+Assim, $x_4$ permite separar os 10\% históricos da fundação dos 90\% posteriores da reserva sem acesso a documentos futuros. A classificação de uma notícia usa exclusivamente $x_3$, enquanto $x_2$ só é consultado depois da decisão para medir sua concordância com a taxonomia institucional publicada e validar a incorporação de aprendizado residual.
+
+\subsection{Retina textual, vocabulário e decisão}
+
+O fluxo da retina textual é: $\textit{texto\_noticia}\rightarrow$ normalização e pré-processamento linguístico $\rightarrow$ tokens e expressões de domínio $\rightarrow$ vocabulário versionado de posições estáveis $\rightarrow$ vetor binário $\rightarrow$ máscaras dos discriminadores $\rightarrow$ pontuação, confiança e margem $\rightarrow$ crime principal, marcadores secundários ou abstenção. Portanto, a retina não codifica título, tags, data, localidades ou outros metadados externos ao corpo da notícia.
 
 Para evitar ambiguidade com a terminologia original da WiSARD, este trabalho utiliza os termos apresentados na Tabela~\ref{tab:nomenclatura-wnn}.
 
@@ -50,7 +58,7 @@ Para evitar ambiguidade com a terminologia original da WiSARD, este trabalho uti
 \centering
 \caption{Nomenclatura da memória WNN aplicada a textos.}
 \label{tab:nomenclatura-wnn}
-\begin{tabular}{p{0.28\linewidth}p{0.64\linewidth}}
+\begin{tabular}{p{0.28\linewidth}p{0.60\linewidth}}
 \hline
 \textbf{Termo} & \textbf{Definição operacional} \\
 \hline
@@ -86,7 +94,7 @@ em que $m_{ci}=1$ indica que a posição $a_i$ fundamenta o crime $c$, e $m_{ci}
 
 Por exemplo, se $a_{12}=\textit{cartao}$, $a_{31}=\textit{perfurado}$ e $a_{44}=\textit{fraude}$, a máscara de um crime financeiro terá valor $1$ nessas posições. A expressão \textit{cartão perfurado} não exige uma posição adicional: ela é representada pela ativação conjunta de $a_{12}$ e $a_{31}$.
 
-A Figura~\ref{fig:exemplo-discriminador} ilustra a construção de discriminadores para o crime \textit{armas\_municoes}. O vocabulário ocupa posições estáveis na retina textual; o documento ativa as posições correspondentes às palavras observadas; e cada discriminador é uma combinação de posições que fornece evidência para a máscara do crime. O exemplo é didático e apresenta apenas dez posições; ao final da execução, a memória WNN continha 358 posições lexicais versionadas. Os cartões perfurados simplificados da figura mostram que cada crime ocupa um padrão distinto sobre as mesmas posições; eles não representam a quantidade total de bits nem os padrões completos da memória.
+A Figura~\ref{fig:exemplo-discriminador} ilustra a construção de discriminadores para o crime \textit{armas\_municoes}. O vocabulário ocupa posições estáveis na retina textual; o documento ativa as posições correspondentes às palavras observadas; e cada discriminador é uma combinação de posições que fornece evidência para a máscara do crime. O exemplo é didático e apresenta apenas dez posições; ao final da execução, a memória WNN continha 403 posições lexicais versionadas. Os cartões perfurados simplificados da figura mostram que cada crime ocupa um padrão distinto sobre as mesmas posições; eles não representam a quantidade total de bits nem os padrões completos da memória.
 
 \begin{figure}[ht]
 \centering
@@ -130,7 +138,7 @@ Uma coincidência parcial não é suficiente para considerar um discriminador in
 
 A fundação temática executa duas funções. A Função~1 consolida temas canônicos a partir dos clusters exploratórios. Inicialmente, os documentos são pré-processados, vetorizados e agrupados por HDBSCAN; em seguida, a similaridade do cosseno auxilia a aproximar clusters semanticamente equivalentes. A função interpreta os agrupamentos, controla atributos acidentais --- como localidades, órgãos e nomes de operações --- e define crimes canônicos que representam o fenômeno substantivo predominante.
 
-Na execução, o pré-processamento linguístico foi aplicado aos 8.310 documentos antes da fundação e da classificação incremental. A representação preservou substantivos, verbos, adjetivos e expressões de domínio, removendo 497.688 de 1.240.262 tokens originais (redução de 40,13\%) e mantendo 742.574 tokens para as etapas analíticas.
+Na execução, o pré-processamento linguístico foi aplicado aos 8.600 documentos antes da fundação e da classificação incremental. A representação preservou substantivos, verbos, adjetivos e expressões de domínio, removendo 512.589 de 1.277.742 tokens originais (redução de 40,12\%) e mantendo 765.153 tokens para as etapas analíticas.
 
 A Função~2 gera discriminadores lexicais de crime. Para cada crime canônico, são selecionados marcadores substantivos e combinações de marcadores que compõem sua máscara vetorial WNN. A saída é um banco de discriminadores auditável, que registra o crime associado, os termos, as posições lexicais, a origem e o número de confirmações.
 
@@ -140,16 +148,17 @@ As funções do fluxo são definidas por contratos de entrada, instruções de o
 
 \begin{table}[ht]
 \centering
-\caption{Funções, instruções operacionais e saídas auditáveis.}
+\caption{Funções, entradas e saídas auditáveis.}
 \label{tab:funcoes-instrucoes}
-\begin{tabular}{>{\hyphenpenalty=10000\exhyphenpenalty=10000\emergencystretch=1em\arraybackslash}p{0.25\linewidth}>{\hyphenpenalty=10000\exhyphenpenalty=10000\emergencystretch=1em\arraybackslash}p{0.66\linewidth}}
+\begin{tabular}{>{\hyphenpenalty=10000\exhyphenpenalty=10000\emergencystretch=1em\arraybackslash}p{0.25\linewidth}>{\hyphenpenalty=10000\exhyphenpenalty=10000\emergencystretch=1em\arraybackslash}p{0.62\linewidth}}
 \hline
-\textbf{Função} & \textbf{Instrução operacional e saída} \\
+\textbf{Função} & \textbf{Entrada, decisão e saída} \\
 \hline
-1. Consolidação temática & Recebe resumos dos clusters, termos de domínio e evidências semânticas. Deve agrupar folhas equivalentes em crimes canônicos, ignorar localidades, órgãos, telefones, siglas e nomes de operações como possíveis classes. Pode aceitar, descartar ou colocar um cluster em quarentena; retorna rótulo canônico, clusters incluídos, termos de evidência, confiança e decisão. \\
-2. Geração de discriminadores & Recebe os crimes aceitos, suas evidências e exemplos da fundação. Deve produzir combinações não ordenadas de termos substantivos, filtrando sinais acidentais e palavras genéricas. Retorna identificador, crime associado, termos, posições lexicais, peso, origem e justificativa de cada discriminador no banco de memória. \\
-3. Classificação pela WNN & Recebe o corpo pré-processado, o título como apoio secundário, tags apenas como pistas e a versão corrente da memória. Deve projetar o documento no vetor binário, calcular cobertura, pontuação, confiança e margem das máscaras. Aceita um crime somente se os limiares configurados forem atendidos; caso contrário, encaminha o documento como residual e preserva as evidências ativadas. \\
-4. Revisão residual por LLM & Recebe corpo, título, tags, classes canônicas permitidas, evidências WNN e sugestões por cosseno. Deve priorizar o sentido substantivo do corpo, usar o título como indício e não aceitar tags isoladamente. Confirma uma classe existente, propõe tema candidato, registra notícia rara ou indica quarentena para texto insuficiente. Retorna JSON com decisão, rótulo, confiança, evidência textual, justificativa, tema principal e marcadores secundários. \\
+1. Consolidação temática & Resumos de clusters e termos de domínio; consolida crimes canônicos e ignora atributos acidentais. Retorna rótulo, evidências, confiança e decisão. \\
+2. Geração de discriminadores & Crimes e evidências da fundação; cria combinações de termos substantivos. Retorna discriminadores com posições, peso e origem. \\
+3. Classificação pela WNN & Recebe somente $x_3$ e a memória; calcula pontuação, cobertura, confiança e margem. Retorna crime, marcadores ou encaminhamento residual. \\
+4. Revisão residual por LLM & Recebe $x_3$, classes permitidas e evidências WNN; interpreta casos residuais. Retorna decisão, rótulo, confiança, evidência e marcadores. \\
+5. Validação supervisionada & Recebe a saída residual, pontuações WNN e $x_2$ mapeado; confirma, corrige ou bloqueia o aprendizado. \\
 \hline
 \end{tabular}
 \end{table}
@@ -164,117 +173,163 @@ A Função~3 processa a reserva incremental em lotes. O corpo pré-processado de
 S(c,d)=\sum_{i=1}^{n_t}m_{ci}^{(t)}x_i(d).
 \end{equation}
 
-Na implementação, a pontuação considera as posições efetivamente ativadas, a cobertura da máscara, a confiança da decisão e sua margem em relação às alternativas. A notícia é aceita pela WNN somente quando os limiares de evidência, confiança e margem são atendidos. A decisão aceita registra o crime canônico, os marcadores ativados, as posições binárias, a versão da memória e a origem das evidências.
+Na implementação, a pontuação considera as posições efetivamente ativadas, a cobertura da máscara, a confiança da decisão e sua margem em relação às alternativas. Padrões generalistas compartilhados entre crimes atuam somente como contexto; a decisão exige marcador específico. A notícia é aceita pela WNN quando os limiares de evidência, confiança e margem são atendidos, quando o tema líder possui evidência lexical suficiente e é confirmado pela similaridade do cosseno, ou quando essa similaridade desempata as duas classes líderes. A decisão aceita registra o crime canônico, os marcadores ativados, as posições binárias, a versão da memória e a origem das evidências.
+
+Os limiares de confiança são ajustados dinamicamente por classe. Cada ajuste é limitado a dois pontos percentuais: com pelo menos 10 referências, o limiar diminui quando a precisão é de pelo menos 80\% e a revocação é inferior a 30\%, aumentando a cobertura; quando a precisão é inferior a 80\%, ele aumenta para reduzir falsos positivos. Os valores permanecem limitados a 35--70\% nas classes usuais e a 60--80\% em \textit{crime\_organizado}. As margens específicas são preservadas.
 
 O tratamento de decisões pouco separadas inspira-se conceitualmente no 
-\textit{bleaching} da WiSARD~\cite{carneiro2017weightless}. Na técnica original, o limiar de resposta é ajustado para distinguir discriminadores empatados ou muito próximos. Nesta proposta, o mecanismo não implementa o \textit{bleaching} nas RAMs: quando a maior pontuação não apresenta margem ou confiança suficiente, a Função~4 encaminha a notícia à LLM para uma revisão contextual de desempate. Assim, a memória permanece responsável pelos casos com evidência estável, enquanto a LLM atua somente onde a separação entre máscaras não é conclusiva.
+\textit{bleaching} da WiSARD~\cite{carneiro2017weightless}. Na técnica original, o limiar de resposta é ajustado para distinguir discriminadores empatados ou muito próximos. Nesta proposta, o mecanismo não implementa \textit{bleaching} nas RAMs: quando a maior pontuação não apresenta margem ou confiança suficiente, a Função~4 encaminha a notícia à LLM para uma revisão contextual. Posteriormente, a Função~5 pode aplicar uma desambiguação supervisionada análoga ao princípio de separação: ela restringe a comparação aos crimes indicados por $x_2$, mas seleciona o crime principal somente pelas pontuações textuais já calculadas pela WNN. Assim, as tags delimitam candidatos válidos, sem se tornarem entrada da retina ou da LLM.
 
 \subsection{Revisão residual e atualização controlada}
 
 A Função~4 revisa exclusivamente documentos residuais, ambíguos ou semanticamente inéditos. A revisão contextual pode confirmar um crime canônico, registrar uma notícia rara ou propor um tema candidato. Ela não substitui a memória WNN para os documentos já aceitos com evidência suficiente.
 
+A Função~5, denominada Agente~4, executa a validação supervisionada pós-decisão. Quando a classe proposta pela LLM coincide com ao menos uma tag criminal mapeada, o aprendizado é confirmado. Quando existe uma única referência e ocorre divergência, o rótulo associado aos novos discriminadores é corrigido para essa referência, preservando-se a resposta original da LLM para auditoria. Quando há múltiplas referências divergentes, o Agente~4 ordena apenas essas classes pelas pontuações WNN já registradas. O aprendizado é autorizado se a classe líder apresentar evidência forte e margem configurada sobre a segunda colocada; a classe escolhida torna-se o crime principal e as demais permanecem como marcadores secundários. Em particular, \textit{crime\_organizado} é tratado como marcador pai estrutural: um delito concreto, como tráfico, lavagem ou contrabando, preserva a decisão principal, e a evidência explícita de organização criminosa acrescenta o pai como marcador secundário. Na ausência dessa separação, a atualização é bloqueada e a divergência é registrada. A Figura~\ref{fig:agente3-agente4} sintetiza esse fluxo de atualização controlada.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  >=latex,
+  block/.style={draw, rounded corners, align=center, text width=.86\columnwidth, minimum height=.7cm},
+  source/.style={block, fill=blue!8},
+  agent/.style={block, fill=orange!12},
+  memory/.style={block, fill=green!10},
+  info/.style={draw, rounded corners, align=center, text width=.31\columnwidth, minimum height=.55cm, fill=purple!8},
+  result/.style={draw, rounded corners, align=center, text width=.24\columnwidth, minimum height=.72cm, fill=gray!10},
+  arrow/.style={->, thick}
+]
+\node[source] (residual) {\textbf{Notícia residual}\\Corpo pré-processado ($x_3$)};
+\node[agent, below=.38cm of residual] (agentthree) {\textbf{Agente 3 --- revisão residual}\\Rótulo proposto, evidência textual e confiança};
+\node[info] (tags) at ($(agentthree.south)+(-.21\columnwidth,-.62cm)$) {Tags $x_2$\\mapeadas};
+\node[info] (scores) at ($(agentthree.south)+(.21\columnwidth,-.62cm)$) {Pontuações\\da WNN};
+\node[agent, below=1.25cm of agentthree] (agentfour) {\textbf{Agente 4 --- validação supervisionada}\\Confirma, corrige ou bloqueia o aprendizado};
+\node[result] (confirm) at ($(agentfour.south)+(-.29\columnwidth,-.78cm)$) {\textbf{Confirma}\\Mesmo rótulo};
+\node[result] (correct) at ($(agentfour.south)+(0,-.78cm)$) {\textbf{Corrige}\\Tag única ou \\ desambiguação};
+\node[result] (block) at ($(agentfour.south)+(.29\columnwidth,-.78cm)$) {\textbf{Bloqueia}\\Evidência ou \\ margem insuficiente};
+\node[memory] (memory) at ($(agentfour.south)+(0,-2.02cm)$) {\textbf{Memória WNN}\\Discriminador validado e vocabulário versionado};
+
+\draw[arrow] (residual) -- (agentthree);
+\draw[arrow] (agentthree) -- (agentfour);
+\draw[arrow] (tags.south) -- (agentfour.north west);
+\draw[arrow] (scores.south) -- (agentfour.north east);
+\draw[arrow] (agentfour) -- (confirm);
+\draw[arrow] (agentfour) -- (correct);
+\draw[arrow] (agentfour) -- (block);
+\draw[arrow] (confirm.south) |- (memory.west);
+\draw[arrow] (correct.south) -- (memory.north);
+\draw[arrow] (block.south) |- (memory.east);
+\end{tikzpicture}
+\caption{Atualização supervisionada da memória após revisão residual. O Agente~3 interpreta exclusivamente o corpo da notícia ($x_3$). O Agente~4 consulta $x_2$ somente após a decisão para confirmar, corrigir ou bloquear a atualização da memória WNN.}
+\label{fig:agente3-agente4}
+\end{figure}
+
 O crescimento da memória é controlado por uma política de vocabulário imutável e expansível por acréscimo. Uma posição já existente mantém seu significado e seu índice durante toda a execução. Antes de criar uma posição, o sistema normaliza o termo e consulta o mapa $\textit{termo}\rightarrow a_i$. Se o termo já existir, sua posição é reutilizada; se a evidência corresponder apenas a uma combinação de termos existentes, a máscara do crime é atualizada sem expandir o vocabulário.
 
 Uma palavra inédita sugerida pela revisão residual é registrada inicialmente como variante pendente. Ela só é admitida como nova posição $a_{n_t+1}$ após pelo menos duas confirmações recorrentes. Quando aprovada, a nova posição é acrescentada no final de $V^{(t)}$, sem reordenar as posições anteriores. Assim, vetores históricos permanecem comparáveis mediante preenchimento de zeros à direita. A criação de um novo crime adiciona uma nova máscara vetorial sobre o vocabulário existente; ela não exige, necessariamente, uma nova posição lexical.
 
+Ao término da execução, o organizador da árvore aplica uma realimentação métrica conservadora ao banco de discriminadores. Para cada decisão autônoma já registrada, ele consulta $x_2$ somente após a classificação e identifica as máscaras completas que contribuíram para o rótulo aceito. Uma ativação concordante incrementa a confirmação do discriminador. Um padrão aprendido ou generalizado é colocado em quarentena somente quando acumula pelo menos duas ativações incorretas e nenhuma ativação correta; discriminadores curados não são desativados automaticamente. Antes de qualquer atualização, o banco é versionado em \textit{snapshot}, e a decisão de reforço ou quarentena é registrada para auditoria. Esse procedimento ajusta a memória para execuções futuras, sem alterar retrospectivamente a decisão usada para calcular as métricas do lote.
+
 \subsection{Avaliação e auditabilidade}
 
-A avaliação operacional mede a cobertura da WNN, a taxa de encaminhamento residual, o consumo de tokens pela LLM, a quantidade de discriminadores confirmados, os candidatos a novos temas e a evolução do vocabulário. Como as tags podem ser usadas como pistas auxiliares, elas não devem constituir a única referência de avaliação. A qualidade da classificação deve ser examinada por uma partição textual sem uso de tags ou por uma amostra validada manualmente.
+A avaliação operacional mede a cobertura da WNN, a taxa de encaminhamento residual, o consumo de tokens pela LLM, a quantidade de discriminadores confirmados, os candidatos a novos temas e a evolução do vocabulário. Após cada decisão, as tags $x_2$ são mapeadas para crimes canônicos e usadas para calcular precisão, revocação, medida-F1 e matriz de confusão. A métrica global considera a decisão principal; a métrica por classe considera também marcadores secundários estruturais, para contabilizar a relação pai--filha de \textit{crime\_organizado} sem fazê-lo competir com o delito concreto. No ramo residual, as tags também permitem ao Agente~4 validar a classe sob a qual um discriminador será incorporado. Tanto a avaliação quanto a validação ocorrem após as decisões da WNN e da LLM; portanto, $x_2$ não é entrada da retina nem do \textit{prompt} da revisão residual e não substitui uma anotação independente por especialistas.
 
-Cada execução preserva as máscaras vetoriais dos crimes, o vocabulário versionado, os vetores e posições ativadas, as decisões residuais e as alterações de taxonomia. Esses artefatos permitem reconstruir a justificativa de uma classificação e verificar quando uma posição ou máscara foi incorporada à memória.
+Cada execução preserva as máscaras vetoriais dos crimes, o vocabulário versionado, os vetores e posições ativadas, as decisões residuais, as alterações de taxonomia e os relatórios de realimentação métrica. Esses artefatos permitem reconstruir a justificativa de uma classificação, verificar quando uma posição ou máscara foi incorporada à memória e identificar quais padrões foram reforçados ou colocados em quarentena.
 
 \section{Resultados}
 
-Esta seção apresenta os diagnósticos operacionais da rodada concluída. A unidade experimental foi a notícia pública da Polícia Federal. A base reuniu 8.310 documentos, dos quais os 831 (10\%) mais antigos compuseram a fundação temática e os 7.479 (90\%) posteriores formaram a reserva incremental. Temporalmente, a fundação compreendeu notícias de 29/11/2011 até 30/07/2020; a reserva iniciou em 30/07/2020 e foi processada sem reordenamento cronológico em 15 lotes de aproximadamente 500 notícias. A coincidência da data de corte ocorre porque há múltiplas notícias publicadas em 30/07/2020; a ordem original do manifesto define a separação entre fundação e reserva nessa data.
+Esta seção apresenta os diagnósticos operacionais da rodada concluída. A unidade experimental foi a notícia pública da Polícia Federal. A base reuniu 8.600 documentos, dos quais os 860 (10\%) mais antigos compuseram a fundação temática e os 7.740 (90\%) posteriores formaram a reserva incremental. Temporalmente, a fundação compreendeu notícias de 29/11/2011 até 30/08/2020; a reserva iniciou em 30/08/2020 e foi processada sem reordenamento cronológico em 16 lotes, quinze com 500 notícias e o último com 240. A coincidência da data de corte ocorre porque há múltiplas notícias publicadas em 30/08/2020; a ordem original do manifesto define a separação entre fundação e reserva nessa data.
 
-\subsection{Clusterização da fundação temporal}
+\subsection{Fundação e evolução da taxonomia}
 
-Na fundação de 831 notícias, a representação TF--IDF produziu vocabulário de 12.285 termos e matriz esparsa com 94.357 valores não nulos (densidade de 0,00924). Como estratégia operacional de agrupamento, a execução utilizou \textit{MiniBatch K-Means} como fallback, produzindo 28 clusters brutos, sem clusters de ruído e com coeficiente de silhueta de 0,288877. A similaridade do cosseno consolidou três grupos de clusters semanticamente próximos: os clusters 2, 9 e 23 em \textit{corrupcao\_recursos\_publicos} (113 notícias); os clusters 3 e 15 em \textit{crime\_organizado} (75); e os clusters 10, 18 e 19 em \textit{crimes\_contra\_criancas} (57). Após essas fusões, a fundação passou a conter 23 clusters para interpretação temática.
-
-\subsection{Evolução da taxonomia de crimes}
-
-A fundação temática consolidou 17 crimes canônicos. Durante a análise incremental, o tema \textit{ameacas\_e\_terrorismo} foi promovido, resultando em 18 categorias criminais na taxonomia final. O candidato operacional \textit{rara\_combate\_disseminacao\_pornografia} foi absorvido por \textit{crimes\_contra\_criancas}, pois suas evidências mencionam pornografia infantil ou infantojuvenil. A Tabela~\ref{tab:taxonomia-crimes} apresenta as categorias por etapa. A categoria operacional \textit{noticias\_raras} não integra a tabela, pois registra exceções para auditoria e não constitui crime canônico.
-
-\begin{table}[ht]
-\centering
-\caption{Crimes canônicos por etapa de consolidação.}
-\label{tab:taxonomia-crimes}
-\begin{tabular}{p{0.16\linewidth}p{0.72\linewidth}}
-\hline
-\textbf{Etapa} & \textbf{Crime canônico ou tema promovido} \\
-\hline
-\multicolumn{2}{l}{\textit{Fundação temática (10\% da base): 17 crimes}} \\
-\hline
-1 & armas\_municoes \\
-2 & contrabando\_descaminho \\
-3 & corrupcao\_desvio\_recursos\_publicos \\
-4 & crime\_organizado \\
-5 & crimes\_ambientais \\
-6 & crimes\_ciberneticos \\
-7 & crimes\_contra\_criancas \\
-8 & crimes\_eleitorais \\
-9 & crimes\_migratorios \\
-10 & crimes\_previdenciarios \\
-11 & crimes\_sistema\_financeiro \\
-12 & fraudes\_auxilios\_beneficios \\
-13 & lavagem\_dinheiro \\
-14 & moeda\_falsa \\
-15 & radiodifusao\_clandestina \\
-16 & trabalho\_escravo \\
-17 & trafico\_drogas \\
-\hline
-\multicolumn{2}{l}{\textit{Promovido na reserva incremental (90\% da base): 1 tema}} \\
-\hline
-18 & ameacas\_e\_terrorismo \\
-\hline
-\end{tabular}
-\end{table}
+Na fundação de 860 notícias, TF--IDF produziu 12.675 termos e 98.381 valores não nulos. O \textit{MiniBatch K-Means}, usado como \textit{fallback}, produziu 29 clusters brutos (silhueta de 0,302837), consolidados em 20 para interpretação temática. A fundação resultou em 17 crimes canônicos. Na reserva, o organizador avaliou 197 candidatos, absorveu 191 em temas existentes e promoveu três temas operacionais. A recorrência de pornografia infantil permanece vinculada a \textit{crimes\_contra\_criancas}; assim, temas operacionais não alteram retroativamente os rótulos avaliados pela WNN.
 
 \subsection{Cobertura da memória e encaminhamento residual}
 
-O principal indicador é a cobertura da memória WNN: a proporção de documentos da reserva classificados pela camada determinística antes de qualquer revisão por LLM. A Tabela~\ref{tab:resultados-cobertura} sintetiza os indicadores acumulados. A WNN classificou diretamente 6.031 das 7.479 notícias da reserva, atingindo cobertura de 80,64\%. Os 1.448 documentos restantes foram registrados como residuais e demandaram revisão contextual por LLM.
+O principal indicador operacional é a cobertura da memória WNN: a proporção de documentos da reserva classificados pela camada determinística antes de qualquer revisão por LLM. A Tabela~\ref{tab:resultados-cobertura} sintetiza os indicadores acumulados. A WNN classificou diretamente 4.139 das 7.740 notícias da reserva, atingindo cobertura operacional de 53,48\%. Os 3.601 documentos restantes foram registrados como residuais e demandaram revisão contextual por LLM. Para avaliar a qualidade das decisões WNN, as tags $x_2$ foram mapeadas após a classificação: entre 2.312 notícias com referência criminal mapeada, houve 1.353 classificações WNN e 1.154 predições corretas.
 
 \begin{table}[ht]
 \centering
 \caption{Diagnósticos acumulados da rodada com fundação de 10\%.}
 \label{tab:resultados-cobertura}
-\small
-\begin{tabular}{p{0.62\linewidth}r}
+\scriptsize
+\begin{tabular}{p{0.58\linewidth}r}
 \hline
 \textbf{Indicador} & \textbf{Valor} \\
 \hline
-Notícias na base completa & 8.310 \\
-Notícias na fundação temática & 831 \\
-Notícias na reserva incremental & 7.479 \\
-Período da fundação temporal & 29/11/2011--30/07/2020 \\
-Início da reserva incremental & 30/07/2020 \\
-Lotes processados & 15 \\
-Notícias classificadas diretamente pela WNN & 6.031 \\
-Cobertura acumulada da WNN & 80,64\% \\
-Documentos residuais pós-WNN & 1.448 \\
-Chamadas residuais à LLM & 1.448 \\
-Taxa de chamada à LLM & 19,36\% \\
-Tokens consumidos nas chamadas residuais & 2.615.125 \\
+Notícias na base completa & 8.600 \\
+Notícias na fundação temática & 860 \\
+Notícias na reserva incremental & 7.740 \\
+Período da fundação temporal & 29/11/2011--30/08/2020 \\
+Início da reserva incremental & 30/08/2020 \\
+Lotes processados & 16 \\
+Notícias classificadas diretamente pela WNN & 4.139 \\
+Cobertura operacional acumulada da WNN & 53,48\% \\
+Documentos residuais pós-WNN & 3.601 \\
+Chamadas residuais à LLM & 3.601 \\
+Taxa de chamada à LLM & 46,52\% \\
+Tokens consumidos nas chamadas residuais & 7.398.441 \\
 Modelo da revisão residual & \textit{gpt-4.1-mini} \\
-Média de tokens por chamada residual & 1.806 \\
+Média de tokens por chamada residual & 2.055 \\
+Notícias com referência $x_2$ criminal mapeada & 2.312 \\
+Cobertura WNN no subconjunto com $x_2$ & 58,52\% \\
+Precisão WNN contra $x_2$ & 85,29\% \\
+Revocação WNN contra $x_2$ & 49,91\% \\
+Medida-F1 WNN contra $x_2$ & 62,97\% \\
 \hline
 \end{tabular}
 \end{table}
 
-Esse resultado indica que a LLM não precisou ser aplicada à totalidade da reserva. Caso a revisão por LLM fosse usada como classificador principal, haveria até 7.479 chamadas potenciais; na rodada observada, foram necessárias 1.448 chamadas residuais. Portanto, 6.031 chamadas potenciais (80,64\%) foram evitadas pela camada determinística. O consumo de 2.615.125 tokens pelo \textit{gpt-4.1-mini}, equivalente a 1.806 tokens por chamada em média, torna o custo computacional da camada residual mensurável e reproduzível. A redução de chamadas é um indicador de eficiência operacional, e não uma medida de qualidade semântica por si só.
+Esse resultado indica que a LLM não precisou ser aplicada à totalidade da reserva. Se fosse o classificador principal, haveria 7.740 chamadas; a memória evitou 4.139 (53,48\%). A revisão residual consumiu 7.398.441 tokens pelo \textit{gpt-4.1-mini}, ou 2.055 por chamada. Essa redução mede eficiência, não qualidade semântica; por isso, a tabela também apresenta as métricas contra $x_2$.
+
+\subsection{Evolução da cobertura por lote}
+
+A cobertura não permaneceu constante ao longo da reserva temporal. Nos sete primeiros lotes, a WNN aceitou 1.539 das 3.500 notícias (43,97\%); nos nove lotes seguintes, aceitou 2.600 das 4.240 notícias (61,32\%). Assim, a segunda parte da execução encaminhou 1.640 notícias à LLM, mesmo contendo 740 documentos a mais que a primeira, que encaminhou 1.961. Essa diferença é compatível com o enriquecimento incremental e a calibração dos limiares, mas não demonstra causalidade isolada, pois a distribuição temática também varia no tempo.
+
+\subsection{Métricas por classe}
+
+A Tabela~\ref{tab:metricas-classe} contrasta classes críticas e classes com desempenho elevado. $n$ é a quantidade de notícias com tag $x_2$ mapeada. A classe \textit{crimes\_sistema\_financeiro} possui somente três referências; sua métrica é diagnóstica, não conclusiva. Para \textit{crime\_organizado}, a métrica considera o marcador estrutural pai, sem substituir o delito concreto como decisão principal.
+
+\begin{table}[ht]
+\centering
+\caption{Desempenho da WNN por classe contra $x_2$.}
+\label{tab:metricas-classe}
+\scriptsize
+\begin{tabular}{p{0.43\linewidth}rrrr}
+\hline
+\textbf{Classe} & \textbf{$n$} & \textbf{Prec.} & \textbf{Rev.} & \textbf{F1} \\
+\hline
+crime\_organizado & 156 & 36,96\% & 10,90\% & 16,83\% \\
+crimes\_sistema\_financeiro & 3 & 1,82\% & 33,33\% & 3,45\% \\
+armas\_municoes & 79 & 26,29\% & 58,23\% & 36,22\% \\
+corrupcao\_desvio\_recursos\_publicos & 209 & 53,85\% & 33,49\% & 41,30\% \\
+lavagem\_dinheiro & 257 & 49,07\% & 51,36\% & 50,19\% \\
+crimes\_contra\_criancas & 535 & 98,16\% & 79,63\% & 87,93\% \\
+crimes\_ambientais & 222 & 87,57\% & 69,82\% & 77,69\% \\
+moeda\_falsa & 93 & 88,24\% & 80,65\% & 84,27\% \\
+trabalho\_escravo & 30 & 82,14\% & 76,67\% & 79,31\% \\
+\hline
+\end{tabular}
+\end{table}
+
+As classes com evidência lexical mais específica apresentam o comportamento esperado para a camada determinística. \textit{Crimes\_contra\_criancas} alcançou precisão de 98,16\% e medida-F1 de 87,93\%; \textit{moeda\_falsa}, \textit{trabalho\_escravo} e \textit{crimes\_ambientais} também superaram 77\% de F1. Esses resultados indicam que vocabulários recorrentes e especializados podem ser resolvidos pela WNN com pouca dependência de interpretação contextual.
+
+Em contraste, \textit{armas\_municoes} obteve precisão de 26,29\%, o que sugere ativações por contexto incidental, enquanto \textit{crimes\_sistema\_financeiro} não permite conclusão devido ao suporte de apenas três referências. A classe-pai \textit{crime\_organizado} apresentou revocação de 10,90\%, pois sua identificação exige evidência estrutural adicional e não é inferida automaticamente a partir de toda classe-filha. Já \textit{corrupcao\_desvio\_recursos\_publicos} e \textit{lavagem\_dinheiro} mantêm desempenho intermediário, compatível com a sobreposição lexical entre recursos, contratos, valores e ocultação. Esses casos justificam o encaminhamento residual e a revisão dos discriminadores, em vez da redução indiscriminada dos limiares.
 
 \subsection{Interpretação operacional e auditabilidade}
 
 Os documentos aceitos pela WNN preservam o crime canônico atribuído, os discriminadores ativados, as posições lexicais correspondentes, a versão da memória e a origem da evidência. Nos casos de baixa confiança, margem insuficiente ou competição entre máscaras, a decisão é deslocada para a revisão contextual da Função~4. Desse modo, os resultados permitem identificar tanto a parcela absorvida por evidência lexical recorrente quanto a parcela que exige interpretação adicional.
 
-O uso dos diagnósticos de cobertura deve ser interpretado com cautela. Cobertura WNN não equivale a acurácia, pois a rodada não possui uma amostra de referência integralmente validada por especialistas. As tags institucionais foram tratadas como pistas auxiliares e não como verdade de referência. Além disso, a comparação com execuções anteriores é apenas operacional, pois as rodadas diferem em base, fração amostral, fundação temática e parâmetros. Assim, os resultados sustentam a viabilidade do fluxo e a redução do acionamento de LLM, mas não substituem uma avaliação futura de precisão, revocação e medida-F1.
+O Agente~4 avaliou os 3.601 documentos residuais: confirmou 798 decisões, corrigiu 144 e bloqueou 2.659 aprendizados automáticos por insuficiência de concordância com a referência pós-decisão. Ao longo da rodada, 923 regras foram incorporadas à memória e cinco discriminadores generalizados foram colocados em quarentena após falsos positivos sem ativações corretas. Esses registros distinguem a decisão histórica usada na métrica da atualização que afetará execuções futuras.
+
+O uso dos diagnósticos de cobertura deve ser interpretado com cautela. Cobertura WNN não equivale a acurácia, pois a rodada não possui uma amostra de referência integralmente validada por especialistas. As tags institucionais fornecem uma referência operacional publicada pela fonte, mas podem ser incompletas, multilabel ou adotar granularidade distinta da taxonomia canônica. Além disso, a comparação com execuções anteriores é apenas operacional, pois as rodadas diferem em base, fração amostral, fundação temática e parâmetros. Assim, os resultados sustentam a viabilidade do fluxo e a redução do acionamento de LLM, enquanto a validação humana independente permanece necessária.
 
 \section{Conclusão}
 
 Este trabalho abordou o problema de organizar e classificar incrementalmente uma base textual institucional em crescimento, reduzindo o custo de inferência por LLM e preservando auditabilidade, adaptação a novos temas e estabilidade taxonômica. Para isso, foi proposta uma metodologia que combina fundação temática formada pelos documentos históricos mais antigos, máscaras vetoriais de crimes em uma memória WNN e revisão contextual de documentos residuais por LLM.
 
-Na rodada concluída, com 10\% da base destinados à fundação temática, a memória WNN classificou diretamente 80,64\% da reserva incremental. A LLM ficou restrita aos 19,36\% de casos com evidência insuficiente, baixa margem ou ambiguidade entre máscaras. Essa separação permite que documentos recorrentes sejam tratados por uma camada determinística, enquanto a interpretação mais custosa é reservada aos casos nos quais ela é necessária.
+Na rodada concluída, com 10\% da base destinados à fundação temática, a memória WNN classificou diretamente 53,48\% da reserva incremental. A LLM ficou restrita aos 46,52\% de casos com evidência insuficiente, baixa margem ou ambiguidade entre máscaras. Contra as tags institucionais mapeadas após a decisão, a WNN obteve precisão de 85,29\%, revocação de 49,91\% e medida-F1 de 62,97\%. Essa separação permite que documentos recorrentes sejam tratados por uma camada determinística, enquanto a interpretação mais custosa é reservada aos casos nos quais ela é necessária.
 
 A contribuição do trabalho não se limita à classificação de uma coleção específica de notícias. A proposta organiza um ciclo auditável que transforma agrupamentos exploratórios em crimes canônicos, associa cada crime a uma máscara vetorial de evidências, registra as decisões da memória e encaminha incertezas para revisão residual. O vocabulário versionado e a política de acréscimo controlado preservam a comparabilidade das posições lexicais ao longo das atualizações.
 
-Os resultados devem ser interpretados como diagnósticos operacionais internos. A qualidade da fundação temática, a representatividade temporal da amostra e a especificidade dos discriminadores influenciam a classificação. Sem anotação humana independente, a cobertura observada não permite afirmar acurácia. Como trabalhos futuros, recomenda-se validar uma amostra com especialistas, calcular precisão, revocação e medida-F1, comparar a proposta com classificadores supervisionados e LLM aplicada a toda a base e testar o procedimento em outras coleções institucionais.
+Os resultados devem ser interpretados como diagnósticos operacionais internos. A qualidade da fundação temática, a representatividade temporal da amostra e a especificidade dos discriminadores influenciam a classificação. As tags institucionais permitem calcular métricas operacionais de precisão, revocação e medida-F1, mas não substituem uma amostra anotada independentemente por especialistas. Como trabalhos futuros, recomenda-se validar essa amostra, comparar a proposta com classificadores supervisionados e LLM aplicada a toda a base e testar o procedimento em outras coleções institucionais.

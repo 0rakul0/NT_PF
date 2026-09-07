@@ -43,7 +43,7 @@ def normalize_modus_label(label: str) -> str:
 
 def body_text(doc: dict[str, Any]) -> str:
     parsed = doc.get("parsed", {}) if isinstance(doc.get("parsed"), dict) else {}
-    return str(doc.get("body_text", "") or parsed.get("corpo", "") or doc.get("context", "")).strip()
+    return str(doc.get("x3_texto_noticia", "") or doc.get("body_text", "") or parsed.get("corpo", "")).strip()
 
 
 def map_to_canonical_label(inference_labels: list[str], allowed_labels: list[str]) -> str:
@@ -146,17 +146,19 @@ Tarefa:
 - escolha a label pelo sentido substantivo do caso, nao apenas por palavra solta;
 - use as sugestoes por similaridade do cosseno como apoio, nao como verdade obrigatoria;
 - quando houver varios marcadores, nao force fusao automaticamente:
-  * dominios sensiveis/materialmente especificos tem preferencia sobre crime_organizado quando houver evidencia direta: crimes_contra_criancas vence se houver infantil/crianca/adolescente/menor/pornografia/abuso/estupro/exploracao; crimes_ambientais vence se houver mineracao/garimpo/madeira/desmatamento/extracao/ouro/animais silvestres; trabalho_escravo vence se houver trabalho analogo/condicoes analogas/trabalhadores resgatados;
-  * trafico de drogas + organizacao/faccao/associacao criminosa deve virar canonical_label="crime_organizado" com marcadores_secundarios=["trafico_drogas"];
+  * trate crime_organizado como classe pai estrutural, e nao como classe irma que disputa o crime principal com trafico, lavagem, armas ou contrabando. O delito concreto e o canonical_label; crime_organizado entra em marcadores_secundarios quando o Texto vincular explicitamente esse delito a organizacao criminosa, faccao, associacao criminosa, quadrilha estruturada, lideranca, divisao de funcoes, cadeia coordenada ou atuacao conjunta;
+  * a regra e analoga a pornografia infantil -> crimes_contra_criancas: a subclasse ou o delito concreto e preservado como principal, enquanto a classe pai agrega a ocorrencia. Assim, trafico/lavagem/armas + evidencia explicita de estrutura organizada deve manter canonical_label no delito concreto e adicionar "crime_organizado" aos marcadores_secundarios; nao exija a expressao literal "crime organizado" se a estrutura estiver descrita de modo inequivoco;
+  * dominios sensiveis/materialmente especificos mantem preferencia quando nao houver essa ponte organizacional: crimes_contra_criancas vence se houver infantil/crianca/adolescente/menor/pornografia/abuso/estupro/exploracao; crimes_ambientais vence se houver mineracao/garimpo/madeira/desmatamento/extracao/ouro/animais silvestres; trabalho_escravo vence se houver trabalho analogo/condicoes analogas/trabalhadores resgatados;
+  * trafico de drogas + organizacao/faccao/associacao criminosa deve virar canonical_label="trafico_drogas" com marcadores_secundarios incluindo "crime_organizado";
   * trafico de drogas sem ponte organizacional deve ficar em canonical_label="trafico_drogas";
   * trafico de drogas + mineracao/garimpo/madeira/desmatamento/extracao deve ficar em canonical_label="crimes_ambientais", com trafico_drogas como marcador secundario se relevante;
   * crime_organizado + extracao de madeira/garimpo/mineracao/desmatamento deve ficar em canonical_label="crimes_ambientais", com crime_organizado como marcador secundario;
-  * se houver relacao operacional clara entre organizacao/faccao/associacao, trafico, lavagem, armas ou outros eixos sem dominio preferencial mais especifico, use canonical_label="crime_organizado", relacao_operacional="crime_organizado_multidominio" ou "cadeia_operacional";
+  * se houver relacao operacional clara entre organizacao/faccao/associacao, trafico, lavagem, armas ou outros eixos, mantenha o delito dominante em canonical_label, inclua "crime_organizado" em marcadores_secundarios e use relacao_operacional="crime_organizado_multidominio" ou "cadeia_operacional"; em caso de duvida, cite no rationale a ponte textual concreta que sustenta essa decisao;
   * se houver dominios distintos sem ponte operacional clara, escolha o tema dominante em canonical_label, preencha marcadores_secundarios e use relacao_operacional="coocorrencia_sem_fusao";
   * exemplo: mineracao ilegal + trafico de drogas sem grupo organizado explicito nao deve virar crime_organizado automaticamente;
-  * exemplo: trafico de drogas + lavagem de dinheiro + organizacao criminosa deve virar crime_organizado com marcadores_secundarios=["trafico_drogas","lavagem_dinheiro"];
-- use o Titulo como indicio do crime principal e as Tags como pistas auxiliares, mas nao aceite uma tag sem confirmacao no corpo;
-- use o Corpo como evidencia decisiva para confirmar ou corrigir o crime;
+  * exemplo: trafico de drogas + lavagem de dinheiro + organizacao criminosa deve manter o delito dominante como canonical_label e registrar marcadores_secundarios incluindo "crime_organizado" e o outro delito concreto;
+- use exclusivamente o Texto da noticia como evidencia para decidir o crime;
+- titulo e tags sao metadados externos a classificacao: tags servem somente como referencia posterior de avaliacao;
 - responda somente um objeto JSON valido com as chaves:
   decision, canonical_label, confidence, evidence_text, rationale, resumo_curto, tema_principal, marcadores_secundarios, relacao_operacional;
 - se decision for novo_tema_candidato, canonical_label deve ser uma nova label em lowercase_com_underscores.
@@ -167,13 +169,7 @@ Labels canonicas permitidas:
 Sugestoes por similaridade do cosseno:
 {cosine_block}
 
-Titulo:
-{doc.get("titulo", "")}
-
-Tags da fonte:
-{', '.join(str(tag) for tag in doc.get("tags", [])[:20])}
-
-Texto:
+Texto da noticia (x3):
 {body_text(doc)[:1800]}
 """.strip()
     review, provider, model_name, token_usage = invoke_json_with_fallback(prompt, ResidualReviewAgentResponse, config, "agente3_review")

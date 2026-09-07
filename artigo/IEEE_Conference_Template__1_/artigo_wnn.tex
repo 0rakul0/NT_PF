@@ -10,12 +10,9 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,calc}
 
-% Mantém a composição justificada, sem hifenização automática.
-\hyphenpenalty=10000
-\exhyphenpenalty=10000
-\pretolerance=10000
-\tolerance=2000
-\emergencystretch=1em
+% Permite hifenização em português para evitar grandes espaços no texto justificado.
+\hyphenpenalty=250
+\exhyphenpenalty=1000
 
 \title{Classificação Incremental e Auditável de Crimes em Notícias Institucionais com Memória WNN e LLM Residual}
 
@@ -32,7 +29,7 @@ jefferson.anjos.1@aluno.cefet-rj.br}
 \maketitle
 
 \begin{abstract}
-Bases textuais institucionais crescem continuamente e tornam custosa a classificação temática, a revisão humana e o uso indiscriminado de modelos de linguagem. Este trabalho propõe uma metodologia incremental e auditável para classificar o crime canônico principal em notícias públicas da Polícia Federal. A abordagem combina uma fundação temporal formada pelos 10\% mais antigos da base, memória lexical binária inspirada em WNN/WiSARD e revisão residual por modelo de linguagem. Na rodada concluída, a memória classificou diretamente 80,64\% da reserva incremental, restringindo a LLM aos 19,36\% de casos residuais. Os resultados são apresentados como diagnósticos operacionais, preservando evidências lexicais, versões da memória e decisões residuais para auditoria.
+Bases textuais institucionais crescem continuamente e tornam custosa a classificação temática, a revisão humana e, sobretudo, o envio indiscriminado de tokens a modelos de linguagem. Este trabalho propõe uma metodologia incremental e auditável para classificar o crime canônico principal em notícias públicas da Polícia Federal. A abordagem combina fundação temporal, memória lexical binária inspirada em WNN/WiSARD e revisão residual por LLM. Na rodada concluída, a memória classificou diretamente 53,48\% da reserva, evitando igual proporção de chamadas e restringindo a LLM aos 46,52\% de casos residuais. Contra as tags institucionais mapeadas após a decisão, a WNN obteve precisão de 85,29\%, revocação de 49,91\% e medida-F1 de 62,97\%. Os resultados preservam evidências lexicais, versões da memória e decisões residuais para auditoria.
 \end{abstract}
 
 \begin{IEEEkeywords}

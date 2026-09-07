@@ -41,9 +41,9 @@ def run(config: RunConfig) -> dict[str, object]:
             ]
         ),
         "discriminator_mode": "tokens_only",
-        "generalization_policy": "crime_markers_from_body; title_as_secondary_crime_clue",
-        "uses_title_or_tags": True,
-        "tag_policy": "auxiliary_hints_only; tags_do_not_activate_or_create_a_classification",
+        "generalization_policy": "crime_markers_from_texto_noticia_only",
+        "retina_input": "x3_texto_noticia",
+        "target_policy": "x2_tags_are_evaluation_labels_only",
     }
     write_json(RUN_DIR / "agente2_result.json", result)
     append_event(result)
